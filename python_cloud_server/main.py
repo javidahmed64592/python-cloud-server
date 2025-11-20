@@ -3,6 +3,8 @@
 import uvicorn
 from fastapi import FastAPI
 
+from python_cloud_server.config import load_config
+
 app = FastAPI(
     title="Cloud Storage Server",
     description="A FastAPI cloud server for basic file storage.",
@@ -17,9 +19,12 @@ async def health_check() -> dict[str, str]:
 
 
 if __name__ == "__main__":
+    config = load_config()
     uvicorn.run(
         "python_cloud_server.main:app",
         host="127.0.0.1",
-        port=8000,
-        reload=True,  # Auto-reload on code changes during development
+        port=8443,
+        reload=True,
+        ssl_keyfile=config.ssl_keyfile,
+        ssl_certfile=config.ssl_certfile,
     )

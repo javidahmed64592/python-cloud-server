@@ -8,3 +8,4 @@ class ConfigModel(BaseModel):
 
     ssl_keyfile: str
     ssl_certfile: str
+    days_valid: int = 365

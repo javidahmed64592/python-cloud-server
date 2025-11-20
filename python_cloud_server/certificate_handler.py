@@ -2,27 +2,24 @@
 
 import ipaddress
 from datetime import UTC, datetime, timedelta
-from pathlib import Path
 
 from cryptography import x509
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.x509.oid import NameOID
 
-from python_cloud_server.config import ROOT_DIR
-
-CERT_FILE = ROOT_DIR / "cert.pem"
-KEY_FILE = ROOT_DIR / "key.pem"
+from python_cloud_server.config import ROOT_DIR, load_config
 
 
 class CertificateHandler:
     """Handles SSL certificate generation and management."""
 
-    def __init__(self, cert_file: Path = CERT_FILE, key_file: Path = KEY_FILE, days_valid: int = 365) -> None:
+    def __init__(self) -> None:
         """Initialize the CertificateHandler."""
-        self.cert_file = cert_file
-        self.key_file = key_file
-        self.days_valid = days_valid
+        config = load_config()
+        self.cert_file = ROOT_DIR / config.ssl_certfile
+        self.key_file = ROOT_DIR / config.ssl_keyfile
+        self.days_valid = config.days_valid
 
     def generate_self_signed_cert(self) -> None:
         """Generate a self-signed certificate and private key."""
@@ -66,8 +63,7 @@ class CertificateHandler:
         )
 
         # Write private key to file
-        key_path = Path(self.key_file)
-        with key_path.open("wb") as f:
+        with self.key_file.open("wb") as f:
             f.write(
                 private_key.private_bytes(
                     encoding=serialization.Encoding.PEM,
@@ -78,8 +74,7 @@ class CertificateHandler:
         print(f"✓ Private key saved to {self.key_file}")
 
         # Write certificate to file
-        cert_path = Path(self.cert_file)
-        with cert_path.open("wb") as f:
+        with self.cert_file.open("wb") as f:
             f.write(cert.public_bytes(serialization.Encoding.PEM))
         print(f"✓ Certificate saved to {self.cert_file}")
         print(f"✓ Certificate valid for {self.days_valid} days")

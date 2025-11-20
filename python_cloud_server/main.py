@@ -1,14 +1,19 @@
 """FastAPI cloud storage server."""
 
+from importlib.metadata import metadata
+
 import uvicorn
 from fastapi import FastAPI
 
 from python_cloud_server.config import load_config
 
+PACKAGE_NAME = "python-cloud-server"
+package_metadata = metadata(PACKAGE_NAME)
+
 app = FastAPI(
-    title="Cloud Storage Server",
-    description="A FastAPI cloud server for basic file storage.",
-    version="0.1.0",
+    title=package_metadata["Name"],
+    description=package_metadata["Summary"],
+    version=package_metadata["Version"],
 )
 
 

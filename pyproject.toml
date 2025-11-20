@@ -38,6 +38,10 @@ dev = [
 [project.urls]
 repository = "https://github.com/javidahmed64592/template-python"
 
+[project.scripts]
+python-cloud-server = "python_cloud_server.main:run"
+generate-certificates = "python_cloud_server.certificate_handler:generate_certificates"
+
 [tool.pytest.ini_options]
 addopts = [
     "-vv",

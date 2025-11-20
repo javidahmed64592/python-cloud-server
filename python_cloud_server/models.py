@@ -1,6 +1,7 @@
 """Pydantic models for the server."""
 
 from enum import IntEnum
+from pathlib import Path
 
 from pydantic import BaseModel, Field
 
@@ -16,9 +17,20 @@ class ServerConfigModel(BaseModel):
 class CertificateConfigModel(BaseModel):
     """Certificate configuration model."""
 
+    directory: str
     ssl_keyfile: str
     ssl_certfile: str
     days_valid: int = 365
+
+    @property
+    def ssl_keyfile_path(self) -> Path:
+        """Get the full path to the SSL key file."""
+        return Path(self.directory) / self.ssl_keyfile
+
+    @property
+    def ssl_certfile_path(self) -> Path:
+        """Get the full path to the SSL certificate file."""
+        return Path(self.directory) / self.ssl_certfile
 
 
 class AppConfigModel(BaseModel):

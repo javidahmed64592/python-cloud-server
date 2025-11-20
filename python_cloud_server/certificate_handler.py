@@ -9,7 +9,7 @@ from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.x509.oid import NameOID
 
-from python_cloud_server.config import ROOT_DIR, load_config
+from python_cloud_server.config import load_config
 
 
 class CertificateHandler:
@@ -18,8 +18,8 @@ class CertificateHandler:
     def __init__(self) -> None:
         """Initialize the CertificateHandler."""
         config = load_config()
-        self.cert_file = ROOT_DIR / config.certificate.ssl_certfile
-        self.key_file = ROOT_DIR / config.certificate.ssl_keyfile
+        self.cert_file = config.certificate.ssl_certfile_path
+        self.key_file = config.certificate.ssl_keyfile_path
         self.days_valid = config.certificate.days_valid
 
     @property
@@ -86,6 +86,9 @@ class CertificateHandler:
             )
             .sign(private_key, hashes.SHA256())
         )
+
+        # Ensure certificate directory exists
+        self.cert_file.parent.mkdir(parents=True, exist_ok=True)
 
         # Write private key to file
         self.write_to_key_file(

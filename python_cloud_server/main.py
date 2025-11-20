@@ -31,7 +31,7 @@ def run() -> None:
         "python_cloud_server.main:app",
         host=config.server.host,
         port=config.server.port,
-        ssl_keyfile=config.certificate.ssl_keyfile,
-        ssl_certfile=config.certificate.ssl_certfile,
+        ssl_keyfile=config.certificate.ssl_keyfile_path,
+        ssl_certfile=config.certificate.ssl_certfile_path,
         reload=True,
     )

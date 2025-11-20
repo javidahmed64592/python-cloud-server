@@ -4,6 +4,7 @@
     "port": 8443
   },
   "certificate": {
+    "directory": "certs",
     "ssl_keyfile": "key.pem",
     "ssl_certfile": "cert.pem",
     "days_valid": 365

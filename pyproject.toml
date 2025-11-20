@@ -3,9 +3,9 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "example"
+name = "python-cloud-server"
 version = "0.1.0"
-description = "An example pyproject.toml."
+description = "A FastAPI cloud server for basic file storage."
 readme = "README.md"
 requires-python = ">=3.12"
 license = { file = "LICENSE" }

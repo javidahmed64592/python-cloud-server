@@ -5,15 +5,15 @@ from enum import IntEnum
 from pydantic import BaseModel, Field
 
 
-# Server Configuration Models
-class ServerModel(BaseModel):
+# Application Configuration Models
+class ServerConfigModel(BaseModel):
     """Server configuration model."""
 
     host: str
     port: int
 
 
-class CertificateModel(BaseModel):
+class CertificateConfigModel(BaseModel):
     """Certificate configuration model."""
 
     ssl_keyfile: str
@@ -21,11 +21,11 @@ class CertificateModel(BaseModel):
     days_valid: int = 365
 
 
-class ConfigModel(BaseModel):
-    """Configuration model for the server."""
+class AppConfigModel(BaseModel):
+    """Application configuration model."""
 
-    server: ServerModel
-    certificate: CertificateModel
+    server: ServerConfigModel
+    certificate: CertificateConfigModel
 
 
 # API Response Models

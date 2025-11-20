@@ -1,4 +1,4 @@
-"""FastAPI cloud storage server."""
+"""FastAPI cloud storage server using uvicorn."""
 
 from importlib.metadata import metadata
 

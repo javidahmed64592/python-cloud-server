@@ -18,9 +18,9 @@ class CertificateHandler:
     def __init__(self) -> None:
         """Initialize the CertificateHandler."""
         config = load_config()
-        self.cert_file = ROOT_DIR / config.ssl_certfile
-        self.key_file = ROOT_DIR / config.ssl_keyfile
-        self.days_valid = config.days_valid
+        self.cert_file = ROOT_DIR / config.certificate.ssl_certfile
+        self.key_file = ROOT_DIR / config.certificate.ssl_keyfile
+        self.days_valid = config.certificate.days_valid
 
     @property
     def certificate_subject(self) -> x509.Name:

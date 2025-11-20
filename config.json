@@ -1,5 +1,11 @@
 {
-  "ssl_keyfile": "key.pem",
-  "ssl_certfile": "cert.pem",
-  "days_valid": 365
+  "server": {
+    "host": "localhost",
+    "port": 8443
+  },
+  "certificate": {
+    "ssl_keyfile": "key.pem",
+    "ssl_certfile": "cert.pem",
+    "days_valid": 365
+  }
 }

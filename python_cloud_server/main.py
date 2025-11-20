@@ -18,13 +18,14 @@ async def health_check() -> dict[str, str]:
     return {"status": "healthy", "message": "Server is running"}
 
 
-if __name__ == "__main__":
+def run() -> None:
+    """Run the FastAPI server."""
     config = load_config()
     uvicorn.run(
         "python_cloud_server.main:app",
-        host="127.0.0.1",
-        port=8443,
+        host=config.server.host,
+        port=config.server.port,
+        ssl_keyfile=config.certificate.ssl_keyfile,
+        ssl_certfile=config.certificate.ssl_certfile,
         reload=True,
-        ssl_keyfile=config.ssl_keyfile,
-        ssl_certfile=config.ssl_certfile,
     )

@@ -535,6 +535,7 @@ dependencies = [
     { name = "cryptography" },
     { name = "fastapi" },
     { name = "numpy" },
+    { name = "pydantic" },
     { name = "python-dotenv" },
     { name = "uvicorn", extra = ["standard"] },
 ]
@@ -554,6 +555,7 @@ requires-dist = [
     { name = "fastapi", specifier = ">=0.121.3" },
     { name = "mypy", marker = "extra == 'dev'" },
     { name = "numpy" },
+    { name = "pydantic", specifier = ">=2.12.4" },
     { name = "pytest", marker = "extra == 'dev'" },
     { name = "pytest-cov", marker = "extra == 'dev'" },
     { name = "python-dotenv", specifier = ">=1.2.1" },

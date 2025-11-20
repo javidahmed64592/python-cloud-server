@@ -6,6 +6,7 @@ import uvicorn
 from fastapi import FastAPI
 
 from python_cloud_server.config import load_config
+from python_cloud_server.models import GetHealthResponse, ResponseCode
 
 PACKAGE_NAME = "python-cloud-server"
 package_metadata = metadata(PACKAGE_NAME)
@@ -17,14 +18,14 @@ app = FastAPI(
 )
 
 
-@app.get("/health")
-async def health_check() -> dict[str, str]:
-    """Health check endpoint to verify the server is running."""
-    return {"status": "healthy", "message": "Server is running"}
+@app.get("/health", response_model=GetHealthResponse)
+async def get_health() -> GetHealthResponse:
+    """Get server health."""
+    return GetHealthResponse(code=ResponseCode.OK, message="Server is healthy")
 
 
 def run() -> None:
-    """Run the FastAPI server."""
+    """Serve the FastAPI application using uvicorn."""
     config = load_config()
     uvicorn.run(
         "python_cloud_server.main:app",

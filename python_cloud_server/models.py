@@ -1,8 +1,11 @@
 """Pydantic models for the server."""
 
-from pydantic import BaseModel
+from enum import IntEnum
+
+from pydantic import BaseModel, Field
 
 
+# Server Configuration Models
 class ServerModel(BaseModel):
     """Server configuration model."""
 
@@ -23,3 +26,31 @@ class ConfigModel(BaseModel):
 
     server: ServerModel
     certificate: CertificateModel
+
+
+# API Response Models
+class ResponseCode(IntEnum):
+    """HTTP response codes for API endpoints."""
+
+    OK = 200
+    CREATED = 201
+    ACCEPTED = 202
+    NO_CONTENT = 204
+    BAD_REQUEST = 400
+    UNAUTHORIZED = 401
+    FORBIDDEN = 403
+    NOT_FOUND = 404
+    CONFLICT = 409
+    INTERNAL_SERVER_ERROR = 500
+    SERVICE_UNAVAILABLE = 503
+
+
+class BaseResponse(BaseModel):
+    """Base response model for all API endpoints."""
+
+    code: ResponseCode = Field(..., description="Response code indicating the result status")
+    message: str = Field(..., description="Human-readable message describing the response")
+
+
+class GetHealthResponse(BaseResponse):
+    """Response model for the health endpoint."""

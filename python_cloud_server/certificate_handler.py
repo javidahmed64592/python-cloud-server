@@ -2,6 +2,7 @@
 
 import ipaddress
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
 
 from cryptography import x509
 from cryptography.hazmat.primitives import hashes, serialization
@@ -21,16 +22,10 @@ class CertificateHandler:
         self.key_file = ROOT_DIR / config.ssl_keyfile
         self.days_valid = config.days_valid
 
-    def generate_self_signed_cert(self) -> None:
-        """Generate a self-signed certificate and private key."""
-        # Generate private key
-        private_key = rsa.generate_private_key(
-            public_exponent=65537,
-            key_size=4096,
-        )
-
-        # Create certificate subject and issuer (self-signed, so they're the same)
-        subject = issuer = x509.Name(
+    @property
+    def certificate_subject(self) -> x509.Name:
+        """Define the subject for the self-signed certificate."""
+        return x509.Name(
             [
                 x509.NameAttribute(NameOID.COUNTRY_NAME, "UK"),
                 x509.NameAttribute(NameOID.STATE_OR_PROVINCE_NAME, "Local"),
@@ -40,8 +35,38 @@ class CertificateHandler:
             ]
         )
 
+    @staticmethod
+    def new_private_key() -> rsa.RSAPrivateKey:
+        """Generate a new RSA private key."""
+        return rsa.generate_private_key(
+            public_exponent=65537,
+            key_size=4096,
+        )
+
+    @staticmethod
+    def _write_to_file(file_path: Path, data: bytes) -> None:
+        """Write data to a file."""
+        with file_path.open("wb") as f:
+            f.write(data)
+
+    def write_to_key_file(self, data: bytes) -> None:
+        """Write data to the key file."""
+        self._write_to_file(self.key_file, data)
+
+    def write_to_cert_file(self, data: bytes) -> None:
+        """Write data to the certificate file."""
+        self._write_to_file(self.cert_file, data)
+
+    def generate_self_signed_cert(self) -> None:
+        """Generate a self-signed certificate and private key."""
+        # Generate private key
+        private_key = self.new_private_key()
+
+        # Create certificate subject and issuer (self-signed, so they're the same)
+        subject = issuer = self.certificate_subject
+
         # Build certificate
-        cert = (
+        certificate = (
             x509.CertificateBuilder()
             .subject_name(subject)
             .issuer_name(issuer)
@@ -63,21 +88,16 @@ class CertificateHandler:
         )
 
         # Write private key to file
-        with self.key_file.open("wb") as f:
-            f.write(
-                private_key.private_bytes(
-                    encoding=serialization.Encoding.PEM,
-                    format=serialization.PrivateFormat.TraditionalOpenSSL,
-                    encryption_algorithm=serialization.NoEncryption(),
-                )
+        self.write_to_key_file(
+            private_key.private_bytes(
+                encoding=serialization.Encoding.PEM,
+                format=serialization.PrivateFormat.TraditionalOpenSSL,
+                encryption_algorithm=serialization.NoEncryption(),
             )
-        print(f"✓ Private key saved to {self.key_file}")
+        )
 
         # Write certificate to file
-        with self.cert_file.open("wb") as f:
-            f.write(cert.public_bytes(serialization.Encoding.PEM))
-        print(f"✓ Certificate saved to {self.cert_file}")
-        print(f"✓ Certificate valid for {self.days_valid} days")
+        self.write_to_cert_file(certificate.public_bytes(serialization.Encoding.PEM))
 
 
 def generate_certificates() -> None:

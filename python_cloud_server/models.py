@@ -30,7 +30,7 @@ class CertificateConfigModel(BaseModel):
     directory: str
     ssl_keyfile: str
     ssl_certfile: str
-    days_valid: int = 365
+    days_valid: int = Field(gt=0)
 
     @property
     def ssl_key_file_path(self) -> Path:

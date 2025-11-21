@@ -130,7 +130,7 @@ class CertificateHandler:
             raise
 
 
-def generate_certificates() -> None:
+def generate_self_signed_certificate() -> None:
     """Generate self-signed certificates for local development.
 
     :raise SystemExit: If certificate generation fails

@@ -65,7 +65,8 @@ class CertificateHandler:
     def generate_self_signed_cert(self) -> None:
         """Generate a self-signed certificate and private key.
 
-        :raise OSError: If certificate directory cannot be created or files cannot be written
+        :raise SystemExit: If certificate directory cannot be created
+        :raise OSError: If certificate files cannot be written
         :raise PermissionError: If insufficient permissions to write certificate files
         """
         try:
@@ -74,8 +75,8 @@ class CertificateHandler:
 
             # Test write permissions
             if not self.cert_file.parent.exists():
-                msg = f"Failed to create certificate directory: {self.cert_file.parent}"
-                raise OSError(msg)  # noqa: TRY301
+                logger.error("Failed to create certificate directory: %s", self.cert_file.parent)
+                sys.exit(1)
 
             # Generate private key
             private_key = self.new_private_key()

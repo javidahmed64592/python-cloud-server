@@ -74,6 +74,7 @@ def run() -> None:
         sys.exit(1)
 
     try:
+        logger.info("Starting server: %s", config.server.full_url)
         uvicorn.run(
             "python_cloud_server.main:app",
             host=config.server.host,
@@ -82,6 +83,7 @@ def run() -> None:
             ssl_certfile=cert_file,
             reload=True,
         )
+        logger.info("Server stopped.")
     except OSError:
         logger.exception("Failed to start server!")
         sys.exit(1)

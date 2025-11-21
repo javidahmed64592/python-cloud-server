@@ -494,6 +494,15 @@ wheels = [
 ]
 
 [[package]]
+name = "pyhere"
+version = "1.0.3"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/34/e2/79dca2aa113e3be3bac013ec3c6d21fde79783f62866312012d787026e0c/pyhere-1.0.3.tar.gz", hash = "sha256:dbea60e83cbcaef41c4da429c1372b7780c580bc0714801c6c5957df06208cdf", size = 4329, upload-time = "2024-07-26T18:59:55.937Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/04/e6/80f613b0f6d5079950083f274f2f19a2bf2870c0376ccd4a63851ef53f43/pyhere-1.0.3-py3-none-any.whl", hash = "sha256:7c39f5ab806d332ce9812b74e4486c0753e2c5416265758c7251f1bbe0946f69", size = 4395, upload-time = "2024-07-26T18:59:54.56Z" },
+]
+
+[[package]]
 name = "pytest"
 version = "8.4.1"
 source = { registry = "https://pypi.org/simple" }
@@ -532,6 +541,7 @@ dependencies = [
     { name = "fastapi" },
     { name = "httpx" },
     { name = "pydantic" },
+    { name = "pyhere" },
     { name = "python-dotenv" },
     { name = "uvicorn", extra = ["standard"] },
 ]
@@ -552,6 +562,7 @@ requires-dist = [
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "mypy", marker = "extra == 'dev'" },
     { name = "pydantic", specifier = ">=2.12.4" },
+    { name = "pyhere", specifier = ">=1.0.3" },
     { name = "pytest", marker = "extra == 'dev'" },
     { name = "pytest-cov", marker = "extra == 'dev'" },
     { name = "python-dotenv", specifier = ">=1.2.1" },

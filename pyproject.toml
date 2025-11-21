@@ -22,6 +22,7 @@ dependencies = [
     "fastapi>=0.121.3",
     "httpx>=0.28.1",
     "pydantic>=2.12.4",
+    "pyhere>=1.0.3",
     "python-dotenv>=1.2.1",
     "uvicorn[standard]>=0.38.0",
 ]
@@ -42,6 +43,15 @@ repository = "https://github.com/javidahmed64592/template-python"
 python-cloud-server = "python_cloud_server.main:run"
 generate-certificates = "python_cloud_server.certificate_handler:generate_certificates"
 generate-new-token = "python_cloud_server.authentication_handler:generate_new_token"
+
+[tool.hatch.build]
+include = [
+    ".here",
+    "config.json",
+    "README.md",
+    "LICENSE",
+    "python_cloud_server/**",
+]
 
 [tool.pytest.ini_options]
 addopts = [

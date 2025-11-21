@@ -3,9 +3,9 @@
 import json
 import logging
 import sys
-from pathlib import Path
 
 from pydantic import ValidationError
+from pyhere import here
 
 from python_cloud_server.models import AppConfigModel
 
@@ -14,7 +14,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-ROOT_DIR = Path(__file__).parent.parent.resolve()
+ROOT_DIR = here()
 CONFIG_PATH = ROOT_DIR / "config.json"
 
 

@@ -1,8 +1,8 @@
 """Constants used across the server."""
 
 # Main constants
-API_PREFIX = "/api"
 PACKAGE_NAME = "python-cloud-server"
+API_PREFIX = "/api"
 API_KEY_HEADER_NAME = "X-API-Key"
 CONFIG_FILE_NAME = "config.json"
 

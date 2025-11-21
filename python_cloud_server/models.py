@@ -5,6 +5,8 @@ from pathlib import Path
 
 from pydantic import BaseModel, Field
 
+from python_cloud_server.constants import API_PREFIX
+
 
 # Application Configuration Models
 class ServerConfigModel(BaseModel):
@@ -22,6 +24,11 @@ class ServerConfigModel(BaseModel):
     def url(self) -> str:
         """Get the server URL."""
         return f"https://{self.address}"
+
+    @property
+    def full_url(self) -> str:
+        """Get the full server URL including API prefix."""
+        return f"{self.url}{API_PREFIX}"
 
 
 class CertificateConfigModel(BaseModel):

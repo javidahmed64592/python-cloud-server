@@ -33,6 +33,7 @@ async def verify_api_key(api_key: str | None = Security(api_key_header)) -> None
     :raise HTTPException: If the API key is missing or invalid
     """
     if api_key is None:
+        logger.warning("Missing API key in request!")
         raise HTTPException(
             status_code=ResponseCode.UNAUTHORIZED,
             detail="Missing API key",
@@ -40,11 +41,13 @@ async def verify_api_key(api_key: str | None = Security(api_key_header)) -> None
 
     try:
         if not verify_token(api_key):
+            logger.warning("Unauthorized login attempt with key: %s", api_key)
             raise HTTPException(
                 status_code=ResponseCode.UNAUTHORIZED,
                 detail="Invalid API key",
             )
     except ValueError as e:
+        logger.exception("Error verifying API key!")
         raise HTTPException(
             status_code=ResponseCode.UNAUTHORIZED,
             detail=str(e),
@@ -68,7 +71,7 @@ def run() -> None:
         (cert_file := config.certificate.ssl_cert_file_path).exists()
         and (key_file := config.certificate.ssl_key_file_path).exists()
     ):
-        logger.error("SSL certificate files not found: %s or %s", cert_file, key_file)
+        logger.error("SSL certificate files not found: '%s' or '%s'", cert_file, key_file)
         sys.exit(1)
 
     try:

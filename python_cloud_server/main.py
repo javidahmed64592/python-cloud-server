@@ -10,12 +10,10 @@ from fastapi.security import APIKeyHeader
 
 from python_cloud_server.authentication_handler import verify_token
 from python_cloud_server.config import load_config
+from python_cloud_server.constants import API_KEY_HEADER_NAME, PACKAGE_NAME
 from python_cloud_server.models import GetHealthResponse, ResponseCode
 
 logger = logging.getLogger(__name__)
-
-PACKAGE_NAME = "python-cloud-server"
-API_KEY_HEADER_NAME = "X-API-Key"
 
 package_metadata = metadata(PACKAGE_NAME)
 app = FastAPI(

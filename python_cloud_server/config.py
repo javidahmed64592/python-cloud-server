@@ -7,6 +7,7 @@ import sys
 from pydantic import ValidationError
 from pyhere import here
 
+from python_cloud_server.constants import CONFIG_FILE_NAME
 from python_cloud_server.models import AppConfigModel
 
 logging.basicConfig(
@@ -15,7 +16,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 ROOT_DIR = here()
-CONFIG_PATH = ROOT_DIR / "config.json"
+CONFIG_PATH = ROOT_DIR / CONFIG_FILE_NAME
 
 
 def load_config() -> AppConfigModel:

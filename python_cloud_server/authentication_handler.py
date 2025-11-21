@@ -8,12 +8,11 @@ import secrets
 from dotenv import load_dotenv, set_key
 
 from python_cloud_server.config import ROOT_DIR
+from python_cloud_server.constants import ENV_FILE_NAME, ENV_VAR_NAME, TOKEN_LENGTH
 
 logger = logging.getLogger(__name__)
 
-ENV_FILE = ROOT_DIR / ".env"
-ENV_VAR_NAME = "API_TOKEN_HASH"
-TOKEN_LENGTH = 32
+ENV_FILE = ROOT_DIR / ENV_FILE_NAME
 
 
 def generate_token() -> str:

@@ -116,7 +116,7 @@ class TestBaseResponse:
 
     def test_model_dump(self) -> None:
         """Test the model_dump method."""
-        config_dict = {"code": ResponseCode.OK, "message": "Success"}
+        config_dict: dict = {"code": ResponseCode.OK, "message": "Success"}
         response = BaseResponse(**config_dict)
         assert response.model_dump() == config_dict
 
@@ -126,6 +126,6 @@ class TestGetHealthResponse:
 
     def test_model_dump(self) -> None:
         """Test the model_dump method."""
-        config_dict = {"code": ResponseCode.OK, "message": "Server is healthy"}
+        config_dict: dict = {"code": ResponseCode.OK, "message": "Server is healthy"}
         response = GetHealthResponse(**config_dict)
         assert response.model_dump() == config_dict

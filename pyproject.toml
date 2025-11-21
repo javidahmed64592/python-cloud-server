@@ -159,5 +159,7 @@ warn_unreachable = true
 pretty = true
 
 [[tool.mypy.overrides]]
-module = []
+module = [
+    "pyhere.*"
+]
 ignore_missing_imports = true

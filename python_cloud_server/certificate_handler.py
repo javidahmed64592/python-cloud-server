@@ -1,6 +1,7 @@
 """Generate self-signed SSL certificate for local development."""
 
 import ipaddress
+import logging
 import sys
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -11,17 +12,20 @@ from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.x509.oid import NameOID
 
 from python_cloud_server.config import load_config
+from python_cloud_server.models import CertificateConfigModel
+
+logger = logging.getLogger(__name__)
 
 
 class CertificateHandler:
     """Handles SSL certificate generation and management."""
 
-    def __init__(self) -> None:
+    def __init__(self, certificate_config: CertificateConfigModel) -> None:
         """Initialize the CertificateHandler."""
-        config = load_config()
-        self.cert_file = config.certificate.ssl_cert_file_path
-        self.key_file = config.certificate.ssl_key_file_path
-        self.days_valid = config.certificate.days_valid
+        self.cert_dir = certificate_config.directory
+        self.cert_file = certificate_config.ssl_cert_file_path
+        self.key_file = certificate_config.ssl_key_file_path
+        self.days_valid = certificate_config.days_valid
 
     @property
     def certificate_subject(self) -> x509.Name:
@@ -113,19 +117,15 @@ class CertificateHandler:
             # Write certificate to file
             self.write_to_cert_file(certificate.public_bytes(serialization.Encoding.PEM))
 
-            print("✓ Certificate generated successfully")
-            print(f"  Key file: {self.key_file}")
-            print(f"  Certificate file: {self.cert_file}")
-            print(f"  Valid for: {self.days_valid} days")
+            logger.info("Certificate generated successfully!")
+            logger.info("Saved in directory: %s", self.cert_dir)
+            logger.info("Valid for: %d days", self.days_valid)
 
-        except PermissionError as e:
-            print("ERROR: Permission denied when writing certificate files", file=sys.stderr)
-            print(f"  Directory: {self.cert_file.parent}", file=sys.stderr)
-            print(f"  Error: {e}", file=sys.stderr)
+        except PermissionError:
+            logger.exception("Permission denied when writing certificate files: %s", self.cert_file.parent)
             raise
-        except OSError as e:
-            print("ERROR: Failed to generate certificate", file=sys.stderr)
-            print(f"  Error: {e}", file=sys.stderr)
+        except OSError:
+            logger.exception("Failed to generate certificate files.")
             raise
 
 
@@ -135,11 +135,12 @@ def generate_certificates() -> None:
     :raise SystemExit: If certificate generation fails
     """
     try:
-        handler = CertificateHandler()
+        config = load_config()
+        handler = CertificateHandler(config.certificate)
         handler.generate_self_signed_cert()
-    except (OSError, PermissionError) as e:
-        print(f"\nFailed to generate certificates: {e}", file=sys.stderr)
+    except (OSError, PermissionError):
+        logger.exception("Failed to generate certificates.")
         sys.exit(1)
-    except Exception as e:
-        print(f"\nUnexpected error during certificate generation: {e}", file=sys.stderr)
+    except Exception:
+        logger.exception("Unexpected error during certificate generation!")
         sys.exit(1)

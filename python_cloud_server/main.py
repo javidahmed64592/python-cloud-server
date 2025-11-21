@@ -1,5 +1,6 @@
 """FastAPI cloud storage server using uvicorn."""
 
+import logging
 import sys
 from importlib.metadata import metadata
 
@@ -10,6 +11,8 @@ from fastapi.security import APIKeyHeader
 from python_cloud_server.authentication_handler import verify_token
 from python_cloud_server.config import load_config
 from python_cloud_server.models import GetHealthResponse, ResponseCode
+
+logger = logging.getLogger(__name__)
 
 PACKAGE_NAME = "python-cloud-server"
 API_KEY_HEADER_NAME = "X-API-Key"
@@ -57,7 +60,7 @@ async def get_health(_: None = Security(verify_api_key)) -> GetHealthResponse:
 def run() -> None:
     """Serve the FastAPI application using uvicorn.
 
-    :raise SystemExit: If configuration fails to load or SSL certificates are missing
+    :raise SystemExit: If configuration fails to load or SSL certificate files are missing
     """
     config = load_config()
 
@@ -66,7 +69,7 @@ def run() -> None:
         (cert_file := config.certificate.ssl_cert_file_path).exists()
         and (key_file := config.certificate.ssl_key_file_path).exists()
     ):
-        print(f"ERROR: SSL certificates not found: {cert_file}", file=sys.stderr)
+        logger.error("SSL certificate files not found: %s or %s", cert_file, key_file)
         sys.exit(1)
 
     try:
@@ -78,9 +81,9 @@ def run() -> None:
             ssl_certfile=cert_file,
             reload=True,
         )
-    except OSError as e:
-        print(f"ERROR: Failed to start server: {e}", file=sys.stderr)
+    except OSError:
+        logger.exception("Failed to start server!")
         sys.exit(1)
     except KeyboardInterrupt:
-        print("\nServer stopped by user")
+        logger.info("Server stopped by user.")
         sys.exit(0)

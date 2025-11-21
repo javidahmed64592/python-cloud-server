@@ -1,12 +1,15 @@
 """Authentication handler for the server."""
 
 import hashlib
+import logging
 import os
 import secrets
 
 from dotenv import load_dotenv, set_key
 
 from python_cloud_server.config import ROOT_DIR
+
+logger = logging.getLogger(__name__)
 
 ENV_FILE = ROOT_DIR / ".env"
 ENV_VAR_NAME = "API_TOKEN_HASH"
@@ -73,4 +76,4 @@ def generate_new_token() -> None:
     """
     new_token = generate_token()
     save_hashed_token(new_token)
-    print(f"New API token generated and saved. Token: {new_token}")
+    logger.info("New API token generated and saved. Token: %s", new_token)

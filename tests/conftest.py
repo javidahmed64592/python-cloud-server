@@ -1,5 +1,8 @@
 """Pytest fixtures for the application's unit tests."""
 
+from collections.abc import Generator
+from unittest.mock import MagicMock, mock_open, patch
+
 import pytest
 
 from python_cloud_server.models import (
@@ -7,6 +10,36 @@ from python_cloud_server.models import (
     CertificateConfigModel,
     ServerConfigModel,
 )
+
+
+# General fixtures
+@pytest.fixture(autouse=True)
+def mock_here(tmp_path: str) -> Generator[MagicMock, None, None]:
+    """Mock the here() function to return a temporary directory."""
+    with patch("pyhere.here") as mock_here:
+        mock_here.return_value = tmp_path
+        yield mock_here
+
+
+@pytest.fixture
+def mock_exists() -> Generator[MagicMock, None, None]:
+    """Mock the Path.exists() method."""
+    with patch("pathlib.Path.exists") as mock_exists:
+        yield mock_exists
+
+
+@pytest.fixture
+def mock_open_file() -> Generator[MagicMock, None, None]:
+    """Mock the Path.open() method."""
+    with patch("pathlib.Path.open", mock_open()) as mock_file:
+        yield mock_file
+
+
+@pytest.fixture
+def mock_sys_exit() -> Generator[MagicMock, None, None]:
+    """Mock sys.exit to prevent actual exit during tests."""
+    with patch("sys.exit") as mock_exit:
+        yield mock_exit
 
 
 # Application Configuration Models

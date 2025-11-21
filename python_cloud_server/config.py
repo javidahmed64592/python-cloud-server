@@ -29,6 +29,7 @@ def load_config() -> AppConfigModel:
         logger.error("Configuration file not found: %s", CONFIG_PATH)
         sys.exit(1)
 
+    config_data = {}
     try:
         with CONFIG_PATH.open() as f:
             config_data = json.load(f)

@@ -20,7 +20,7 @@ classifiers = [
 dependencies = [
     "cryptography>=46.0.3",
     "fastapi>=0.121.3",
-    "numpy",
+    "httpx>=0.28.1",
     "pydantic>=2.12.4",
     "python-dotenv>=1.2.1",
     "uvicorn[standard]>=0.38.0",
@@ -149,7 +149,5 @@ warn_unreachable = true
 pretty = true
 
 [[tool.mypy.overrides]]
-module = [
-    "numpy.*",
-]
+module = []
 ignore_missing_imports = true

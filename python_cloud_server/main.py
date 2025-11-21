@@ -1,5 +1,6 @@
 """FastAPI cloud storage server using uvicorn."""
 
+import sys
 from importlib.metadata import metadata
 
 import uvicorn
@@ -54,13 +55,32 @@ async def get_health(_: None = Security(verify_api_key)) -> GetHealthResponse:
 
 
 def run() -> None:
-    """Serve the FastAPI application using uvicorn."""
+    """Serve the FastAPI application using uvicorn.
+
+    :raise SystemExit: If configuration fails to load or SSL certificates are missing
+    """
     config = load_config()
-    uvicorn.run(
-        "python_cloud_server.main:app",
-        host=config.server.host,
-        port=config.server.port,
-        ssl_keyfile=config.certificate.ssl_keyfile_path,
-        ssl_certfile=config.certificate.ssl_certfile_path,
-        reload=True,
-    )
+
+    # Validate SSL certificate files exist
+    if not (
+        (cert_file := config.certificate.ssl_cert_file_path).exists()
+        and (key_file := config.certificate.ssl_key_file_path).exists()
+    ):
+        print(f"ERROR: SSL certificates not found: {cert_file}", file=sys.stderr)
+        sys.exit(1)
+
+    try:
+        uvicorn.run(
+            "python_cloud_server.main:app",
+            host=config.server.host,
+            port=config.server.port,
+            ssl_keyfile=key_file,
+            ssl_certfile=cert_file,
+            reload=True,
+        )
+    except OSError as e:
+        print(f"ERROR: Failed to start server: {e}", file=sys.stderr)
+        sys.exit(1)
+    except KeyboardInterrupt:
+        print("\nServer stopped by user")
+        sys.exit(0)

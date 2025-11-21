@@ -33,12 +33,12 @@ class CertificateConfigModel(BaseModel):
     days_valid: int = 365
 
     @property
-    def ssl_keyfile_path(self) -> Path:
+    def ssl_key_file_path(self) -> Path:
         """Get the full path to the SSL key file."""
         return Path(self.directory) / self.ssl_keyfile
 
     @property
-    def ssl_certfile_path(self) -> Path:
+    def ssl_cert_file_path(self) -> Path:
         """Get the full path to the SSL certificate file."""
         return Path(self.directory) / self.ssl_certfile
 

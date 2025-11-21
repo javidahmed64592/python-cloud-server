@@ -11,14 +11,15 @@ from python_cloud_server.config import load_config
 from python_cloud_server.models import GetHealthResponse, ResponseCode
 
 PACKAGE_NAME = "python-cloud-server"
-package_metadata = metadata(PACKAGE_NAME)
+API_KEY_HEADER_NAME = "X-API-Key"
 
+package_metadata = metadata(PACKAGE_NAME)
 app = FastAPI(
     title=package_metadata["Name"],
     description=package_metadata["Summary"],
     version=package_metadata["Version"],
 )
-api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
+api_key_header = APIKeyHeader(name=API_KEY_HEADER_NAME, auto_error=False)
 
 
 async def verify_api_key(api_key: str | None = Security(api_key_header)) -> None:
@@ -33,11 +34,17 @@ async def verify_api_key(api_key: str | None = Security(api_key_header)) -> None
             detail="Missing API key",
         )
 
-    if not verify_token(api_key):
+    try:
+        if not verify_token(api_key):
+            raise HTTPException(
+                status_code=ResponseCode.UNAUTHORIZED,
+                detail="Invalid API key",
+            )
+    except ValueError as e:
         raise HTTPException(
             status_code=ResponseCode.UNAUTHORIZED,
-            detail="Invalid API key",
-        )
+            detail=str(e),
+        ) from e
 
 
 @app.get("/health", response_model=GetHealthResponse)

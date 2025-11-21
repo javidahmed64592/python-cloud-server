@@ -64,7 +64,6 @@ def run() -> None:
     """
     config = load_config()
 
-    # Validate SSL certificate files exist
     if not (
         (cert_file := config.certificate.ssl_cert_file_path).exists()
         and (key_file := config.certificate.ssl_key_file_path).exists()
@@ -84,6 +83,3 @@ def run() -> None:
     except OSError:
         logger.exception("Failed to start server!")
         sys.exit(1)
-    except KeyboardInterrupt:
-        logger.info("Server stopped by user.")
-        sys.exit(0)

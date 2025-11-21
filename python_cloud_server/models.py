@@ -11,7 +11,17 @@ class ServerConfigModel(BaseModel):
     """Server configuration model."""
 
     host: str
-    port: int
+    port: int = Field(ge=1, le=65535)
+
+    @property
+    def address(self) -> str:
+        """Get the server address in host:port format."""
+        return f"{self.host}:{self.port}"
+
+    @property
+    def url(self) -> str:
+        """Get the server URL."""
+        return f"https://{self.address}"
 
 
 class CertificateConfigModel(BaseModel):

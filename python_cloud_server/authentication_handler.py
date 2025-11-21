@@ -5,7 +5,7 @@ import logging
 import os
 import secrets
 
-from dotenv import load_dotenv, set_key
+import dotenv
 
 from python_cloud_server.config import ROOT_DIR
 from python_cloud_server.constants import ENV_FILE_NAME, ENV_VAR_NAME, TOKEN_LENGTH
@@ -42,7 +42,7 @@ def save_hashed_token(token: str) -> None:
     if not ENV_FILE.exists():
         ENV_FILE.touch()
 
-    set_key(ENV_FILE, ENV_VAR_NAME, hashed)
+    dotenv.set_key(ENV_FILE, ENV_VAR_NAME, hashed)
 
 
 def load_hashed_token() -> str | None:
@@ -50,7 +50,7 @@ def load_hashed_token() -> str | None:
 
     :return str | None: The hashed token string, or None if not found
     """
-    load_dotenv(ENV_FILE)
+    dotenv.load_dotenv(ENV_FILE)
     return os.getenv(ENV_VAR_NAME)
 
 

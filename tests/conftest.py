@@ -42,6 +42,20 @@ def mock_sys_exit() -> Generator[MagicMock, None, None]:
         yield mock_exit
 
 
+@pytest.fixture
+def mock_set_key() -> Generator[MagicMock, None, None]:
+    """Mock the set_key function."""
+    with patch("dotenv.set_key") as mock_set_key:
+        yield mock_set_key
+
+
+@pytest.fixture
+def mock_os_getenv() -> Generator[MagicMock, None, None]:
+    """Mock the os.getenv function."""
+    with patch("os.getenv") as mock_getenv:
+        yield mock_getenv
+
+
 # Application Configuration Models
 @pytest.fixture
 def mock_server_config_dict() -> dict:

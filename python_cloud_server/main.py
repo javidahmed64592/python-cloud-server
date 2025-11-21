@@ -3,8 +3,10 @@
 from importlib.metadata import metadata
 
 import uvicorn
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, Security
+from fastapi.security import APIKeyHeader
 
+from python_cloud_server.authentication_handler import verify_token
 from python_cloud_server.config import load_config
 from python_cloud_server.models import GetHealthResponse, ResponseCode
 
@@ -16,10 +18,30 @@ app = FastAPI(
     description=package_metadata["Summary"],
     version=package_metadata["Version"],
 )
+api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
+
+
+async def verify_api_key(api_key: str | None = Security(api_key_header)) -> None:
+    """Verify the API key from the request header.
+
+    :param str | None api_key: The API key from the X-API-Key header
+    :raise HTTPException: If the API key is missing or invalid
+    """
+    if api_key is None:
+        raise HTTPException(
+            status_code=ResponseCode.UNAUTHORIZED,
+            detail="Missing API key",
+        )
+
+    if not verify_token(api_key):
+        raise HTTPException(
+            status_code=ResponseCode.UNAUTHORIZED,
+            detail="Invalid API key",
+        )
 
 
 @app.get("/health", response_model=GetHealthResponse)
-async def get_health() -> GetHealthResponse:
+async def get_health(_: None = Security(verify_api_key)) -> GetHealthResponse:
     """Get server health."""
     return GetHealthResponse(code=ResponseCode.OK, message="Server is healthy")
 

@@ -38,7 +38,7 @@ dev = [
 ]
 
 [project.urls]
-repository = "https://github.com/javidahmed64592/template-python"
+repository = "https://github.com/javidahmed64592/python-cloud-server"
 
 [project.scripts]
 python-cloud-server = "python_cloud_server.main:run"

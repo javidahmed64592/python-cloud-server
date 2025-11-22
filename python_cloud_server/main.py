@@ -102,10 +102,10 @@ def run() -> None:
     """
     config = load_config()
 
-    if not (
-        (cert_file := config.certificate.ssl_cert_file_path).exists()
-        and (key_file := config.certificate.ssl_key_file_path).exists()
-    ):
+    cert_file = config.certificate.ssl_cert_file_path
+    key_file = config.certificate.ssl_key_file_path
+
+    if not (cert_file.exists() and key_file.exists()):
         logger.error("SSL certificate files not found: '%s' or '%s'", cert_file, key_file)
         sys.exit(1)
 

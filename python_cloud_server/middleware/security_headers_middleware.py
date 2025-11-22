@@ -1,21 +1,22 @@
 """Middleware to add security headers to all responses."""
 
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
 
-from fastapi import FastAPI, Request, Response
+from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.types import ASGIApp
 
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     """Middleware to add security headers to all responses."""
 
-    def __init__(self, app: FastAPI, hsts_max_age: int, csp: str) -> None:
+    def __init__(self, app: ASGIApp, hsts_max_age: int, csp: str) -> None:
         """Initialize the SecurityHeadersMiddleware."""
         super().__init__(app)
         self.hsts_max_age = hsts_max_age
         self.csp = csp
 
-    async def dispatch(self, request: Request, call_next: Callable) -> Response:
+    async def dispatch(self, request: Request, call_next: Callable[[Request], Awaitable[Response]]) -> Response:
         """Add security headers to the response."""
         response = await call_next(request)
         response.headers["Strict-Transport-Security"] = f"max-age={self.hsts_max_age}; includeSubDomains"

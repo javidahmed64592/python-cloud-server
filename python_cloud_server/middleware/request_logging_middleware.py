@@ -1,21 +1,22 @@
 """Middleware to log incoming requests and responses."""
 
 import logging
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
 
-from fastapi import FastAPI, Request, Response
+from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.types import ASGIApp
 
 
 class RequestLoggingMiddleware(BaseHTTPMiddleware):
     """Middleware to log incoming requests and responses."""
 
-    def __init__(self, app: FastAPI) -> None:
+    def __init__(self, app: ASGIApp) -> None:
         """Initialize the RequestLoggingMiddleware."""
         super().__init__(app)
         self.logger = logging.getLogger(__name__)
 
-    async def dispatch(self, request: Request, call_next: Callable) -> Response:
+    async def dispatch(self, request: Request, call_next: Callable[[Request], Awaitable[Response]]) -> Response:
         """Log request and response details."""
         client_ip = request.client.host if request.client else "unknown"
 

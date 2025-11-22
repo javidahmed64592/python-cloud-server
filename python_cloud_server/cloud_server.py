@@ -3,6 +3,7 @@
 import logging
 from collections.abc import Callable
 from importlib.metadata import metadata
+from typing import Any
 
 import uvicorn
 from fastapi import FastAPI, HTTPException, Request, Security
@@ -75,7 +76,7 @@ class CloudServer:
         )
 
         self.app.state.limiter = self.limiter
-        self.app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+        self.app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)  # type: ignore[arg-type]
 
         self.logger.info(
             "Rate limiting enabled: rate=%s, storage=%s",
@@ -83,14 +84,14 @@ class CloudServer:
             self.config.rate_limit.storage_uri or "in-memory",
         )
 
-    def _limit_route(self, route_function: Callable) -> Callable:
+    def _limit_route(self, route_function: Callable[..., Any]) -> Callable[..., Any]:
         """Apply rate limiting to a route function if enabled.
 
         :param Callable route_function: The route handler function
         :return Callable: The potentially rate-limited route handler
         """
         if self.limiter is not None:
-            return self.limiter.limit(self.config.rate_limit.rate_limit)(route_function)
+            return self.limiter.limit(self.config.rate_limit.rate_limit)(route_function)  # type: ignore[no-any-return]
         return route_function
 
     def _add_authenticated_route(

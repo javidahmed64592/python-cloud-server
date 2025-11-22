@@ -110,7 +110,7 @@ class TestAuthenticationHandler:
     def test_verify_token_no_stored_hash(self, mock_load_hashed_token: MagicMock) -> None:
         """Test the verify_token function when no stored hash is found."""
         mock_load_hashed_token.return_value = None
-        with pytest.raises(ValueError, match="No stored token hash found for verification."):
+        with pytest.raises(ValueError, match=r"No stored token hash found for verification."):
             verify_token("anytoken")
 
     def test_generate_new_token(

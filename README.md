@@ -37,13 +37,6 @@ Built for local development with production-ready patterns and designed for futu
 - Security headers (HSTS, CSP, X-Frame-Options, etc.) on all responses
 - Environment-based configuration for sensitive data
 
-🏗️ **Architecture**
-- Clean separation of concerns (models, config, authentication, certificates)
-- Factory pattern for application creation (supports hot-reload)
-- Pydantic models for configuration and response validation
-- Structured logging with Python's logging module
-- Type-safe codebase with full mypy compliance
-
 ## Quick Start
 
 ### Prerequisites

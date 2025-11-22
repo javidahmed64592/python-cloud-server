@@ -32,6 +32,23 @@ class ServerConfigModel(BaseModel):
         return f"{self.url}{API_PREFIX}"
 
 
+class SecurityConfigModel(BaseModel):
+    """Security headers configuration model."""
+
+    hsts_max_age: int = Field(default=31536000, ge=0, description="HSTS max-age in seconds (1 year default)")
+    content_security_policy: str = Field(
+        default="default-src 'self'", description="Content Security Policy header value"
+    )
+
+
+class RateLimitConfigModel(BaseModel):
+    """Rate limit configuration model."""
+
+    enabled: bool = Field(default=True, description="Whether rate limiting is enabled")
+    rate_limit: str = Field(default="100/minute", description="Rate limit for API endpoints (format: count/period)")
+    storage_uri: str = Field(default="", description="Storage URI for rate limit data (empty string for in-memory)")
+
+
 class CertificateConfigModel(BaseModel):
     """Certificate configuration model."""
 
@@ -51,20 +68,13 @@ class CertificateConfigModel(BaseModel):
         return Path(self.directory) / self.ssl_certfile
 
 
-class RateLimitConfigModel(BaseModel):
-    """Rate limit configuration model."""
-
-    enabled: bool = Field(default=True, description="Whether rate limiting is enabled")
-    rate_limit: str = Field(default="100/minute", description="Rate limit for API endpoints (format: count/period)")
-    storage_uri: str = Field(default="", description="Storage URI for rate limit data (empty string for in-memory)")
-
-
 class AppConfigModel(BaseModel):
     """Application configuration model."""
 
     server: ServerConfigModel = Field(default_factory=ServerConfigModel)
-    certificate: CertificateConfigModel = Field(default_factory=CertificateConfigModel)
+    security: SecurityConfigModel = Field(default_factory=SecurityConfigModel)
     rate_limit: RateLimitConfigModel = Field(default_factory=RateLimitConfigModel)
+    certificate: CertificateConfigModel = Field(default_factory=CertificateConfigModel)
 
 
 # API Response Models

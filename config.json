@@ -3,15 +3,19 @@
     "host": "localhost",
     "port": 8443
   },
-  "certificate": {
-    "directory": "certs",
-    "ssl_keyfile": "key.pem",
-    "ssl_certfile": "cert.pem",
-    "days_valid": 365
+  "security": {
+    "hsts_max_age": 31536000,
+    "content_security_policy": "default-src 'self'"
   },
   "rate_limit": {
     "enabled": true,
     "rate_limit": "100/minute",
     "storage_uri": ""
+  },
+  "certificate": {
+    "directory": "certs",
+    "ssl_keyfile": "key.pem",
+    "ssl_certfile": "cert.pem",
+    "days_valid": 365
   }
 }

@@ -9,6 +9,7 @@ from python_cloud_server.models import (
     AppConfigModel,
     CertificateConfigModel,
     RateLimitConfigModel,
+    SecurityConfigModel,
     ServerConfigModel,
 )
 
@@ -80,13 +81,11 @@ def mock_server_config_dict() -> dict:
 
 
 @pytest.fixture
-def mock_certificate_config_dict() -> dict:
-    """Provide a mock certificate configuration dictionary."""
+def mock_security_config_dict() -> dict:
+    """Provide a mock security configuration dictionary."""
     return {
-        "directory": "/path/to/certs",
-        "ssl_keyfile": "key.pem",
-        "ssl_certfile": "cert.pem",
-        "days_valid": 365,
+        "hsts_max_age": 31536000,
+        "content_security_policy": "default-src 'self'",
     }
 
 
@@ -101,15 +100,26 @@ def mock_rate_limit_config_dict() -> dict:
 
 
 @pytest.fixture
+def mock_certificate_config_dict() -> dict:
+    """Provide a mock certificate configuration dictionary."""
+    return {
+        "directory": "/path/to/certs",
+        "ssl_keyfile": "key.pem",
+        "ssl_certfile": "cert.pem",
+        "days_valid": 365,
+    }
+
+
+@pytest.fixture
 def mock_server_config(mock_server_config_dict: dict) -> ServerConfigModel:
     """Provide a mock ServerConfigModel instance."""
     return ServerConfigModel(**mock_server_config_dict)
 
 
 @pytest.fixture
-def mock_certificate_config(mock_certificate_config_dict: dict) -> CertificateConfigModel:
-    """Provide a mock CertificateConfigModel instance."""
-    return CertificateConfigModel(**mock_certificate_config_dict)
+def mock_security_config(mock_security_config_dict: dict) -> SecurityConfigModel:
+    """Provide a mock SecurityConfigModel instance."""
+    return SecurityConfigModel(**mock_security_config_dict)
 
 
 @pytest.fixture
@@ -119,12 +129,22 @@ def mock_rate_limit_config(mock_rate_limit_config_dict: dict) -> RateLimitConfig
 
 
 @pytest.fixture
+def mock_certificate_config(mock_certificate_config_dict: dict) -> CertificateConfigModel:
+    """Provide a mock CertificateConfigModel instance."""
+    return CertificateConfigModel(**mock_certificate_config_dict)
+
+
+@pytest.fixture
 def mock_app_config(
     mock_server_config: ServerConfigModel,
-    mock_certificate_config: CertificateConfigModel,
+    mock_security_config: SecurityConfigModel,
     mock_rate_limit_config: RateLimitConfigModel,
+    mock_certificate_config: CertificateConfigModel,
 ) -> AppConfigModel:
     """Provide a mock AppConfigModel instance."""
     return AppConfigModel(
-        server=mock_server_config, certificate=mock_certificate_config, rate_limit=mock_rate_limit_config
+        server=mock_server_config,
+        security=mock_security_config,
+        rate_limit=mock_rate_limit_config,
+        certificate=mock_certificate_config,
     )

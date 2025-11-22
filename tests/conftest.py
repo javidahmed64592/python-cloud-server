@@ -95,8 +95,7 @@ def mock_rate_limit_config_dict() -> dict:
     """Provide a mock rate limit configuration dictionary."""
     return {
         "enabled": False,
-        "default_limit": "200/minute",
-        "auth_limit": "500/minute",
+        "rate_limit": "200/minute",
         "storage_uri": "memory://",
     }
 

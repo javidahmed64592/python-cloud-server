@@ -55,12 +55,7 @@ class RateLimitConfigModel(BaseModel):
     """Rate limit configuration model."""
 
     enabled: bool = Field(default=True, description="Whether rate limiting is enabled")
-    default_limit: str = Field(
-        default="100/minute", description="Default rate limit for API endpoints (format: count/period)"
-    )
-    auth_limit: str = Field(
-        default="5/minute", description="Rate limit for authentication endpoints (format: count/period)"
-    )
+    rate_limit: str = Field(default="100/minute", description="Rate limit for API endpoints (format: count/period)")
     storage_uri: str = Field(default="", description="Storage URI for rate limit data (empty string for in-memory)")
 
 

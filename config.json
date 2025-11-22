@@ -11,8 +11,7 @@
   },
   "rate_limit": {
     "enabled": true,
-    "default_limit": "100/minute",
-    "auth_limit": "5/minute",
+    "rate_limit": "100/minute",
     "storage_uri": ""
   }
 }

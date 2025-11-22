@@ -33,6 +33,7 @@ Built for local development with production-ready patterns and designed for futu
 - SHA-256 token hashing for safe storage
 - Certificate generation with RSA-4096 keys
 - Authentication middleware for all protected endpoints
+- Rate limiting to prevent abuse and DoS attacks
 - Environment-based configuration for sensitive data
 
 🏗️ **Architecture**
@@ -74,6 +75,11 @@ The server uses a `config.json` file for configuration:
     "ssl_keyfile": "key.pem",
     "ssl_certfile": "cert.pem",
     "days_valid": 365
+  },
+  "rate_limit": {
+    "enabled": true,
+    "rate_limit": "100/minute",
+    "storage_uri": ""
   }
 }
 ```

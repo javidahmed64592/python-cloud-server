@@ -5,69 +5,17 @@ from collections.abc import Callable
 from importlib.metadata import metadata
 
 import uvicorn
-from fastapi import FastAPI, HTTPException, Request, Response, Security
+from fastapi import FastAPI, HTTPException, Request, Security
 from fastapi.security import APIKeyHeader
 from pydantic import BaseModel
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
-from starlette.middleware.base import BaseHTTPMiddleware
 
 from python_cloud_server.authentication_handler import verify_token
 from python_cloud_server.constants import API_KEY_HEADER_NAME, API_PREFIX, PACKAGE_NAME
+from python_cloud_server.middleware import RequestLoggingMiddleware, SecurityHeadersMiddleware
 from python_cloud_server.models import AppConfigModel, GetHealthResponse, ResponseCode
-
-
-class RequestLoggingMiddleware(BaseHTTPMiddleware):
-    """Middleware to log incoming requests and responses."""
-
-    def __init__(self, app: FastAPI) -> None:
-        """Initialize the RequestLoggingMiddleware."""
-        super().__init__(app)
-        self.logger = logging.getLogger(__name__)
-
-    async def dispatch(self, request: Request, call_next: Callable) -> Response:
-        """Log request and response details."""
-        client_ip = request.client.host if request.client else "unknown"
-
-        self.logger.info(
-            "Request: %s %s from %s",
-            request.method,
-            request.url.path,
-            client_ip,
-        )
-
-        response = await call_next(request)
-
-        self.logger.info(
-            "Response: %s %s -> %d",
-            request.method,
-            request.url.path,
-            response.status_code,
-        )
-
-        return response
-
-
-class SecurityHeadersMiddleware(BaseHTTPMiddleware):
-    """Middleware to add security headers to all responses."""
-
-    def __init__(self, app: FastAPI, hsts_max_age: int, csp: str) -> None:
-        """Initialize the SecurityHeadersMiddleware."""
-        super().__init__(app)
-        self.hsts_max_age = hsts_max_age
-        self.csp = csp
-
-    async def dispatch(self, request: Request, call_next: Callable) -> Response:
-        """Add security headers to the response."""
-        response = await call_next(request)
-        response.headers["Strict-Transport-Security"] = f"max-age={self.hsts_max_age}; includeSubDomains"
-        response.headers["X-Content-Type-Options"] = "nosniff"
-        response.headers["X-Frame-Options"] = "DENY"
-        response.headers["Content-Security-Policy"] = self.csp
-        response.headers["X-XSS-Protection"] = "1; mode=block"
-        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
-        return response
 
 
 class CloudServer:

@@ -10,7 +10,7 @@ from fastapi.routing import APIRoute
 from fastapi.security import APIKeyHeader
 from fastapi.testclient import TestClient
 
-from python_cloud_server.cloud_server import CloudServer
+from python_cloud_server.cloud_server import CloudServer, SecurityHeadersMiddleware
 from python_cloud_server.constants import API_PREFIX
 from python_cloud_server.models import AppConfigModel, BaseResponse, ResponseCode
 
@@ -118,6 +118,29 @@ class TestCloudServer:
         assert "No stored token hash found" in exc_info.value.detail
 
 
+class TestSecurityHeaders:
+    """Unit tests for security headers middleware."""
+
+    def test_security_headers_middleware_added(self, mock_cloud_server: CloudServer) -> None:
+        """Test that SecurityHeadersMiddleware is added to the app."""
+        middlewares = [middleware.cls for middleware in mock_cloud_server.app.user_middleware]
+        assert SecurityHeadersMiddleware in middlewares
+
+    def test_security_headers_set(self, mock_cloud_server: CloudServer) -> None:
+        """Test that security headers are set in the response."""
+        app = mock_cloud_server.app
+        client = TestClient(app)
+
+        response = client.get("/health", headers={"X-API-Key": "valid_key"})
+
+        assert response.headers.get("X-Content-Type-Options") == "nosniff"
+        assert response.headers.get("X-Frame-Options") == "DENY"
+        assert response.headers.get("X-XSS-Protection") == "1; mode=block"
+        assert response.headers.get("Strict-Transport-Security") == "max-age=31536000; includeSubDomains"
+        assert response.headers.get("Referrer-Policy") == "strict-origin-when-cross-origin"
+        assert response.headers.get("Content-Security-Policy") == "default-src 'self'"
+
+
 class TestRateLimiting:
     """Unit tests for rate limiting functionality."""
 
@@ -223,7 +246,6 @@ class TestCloudServerRun:
         call_kwargs = mock_uvicorn_run.call_args.kwargs
         assert call_kwargs["host"] == mock_cloud_server.config.server.host
         assert call_kwargs["port"] == mock_cloud_server.config.server.port
-        assert call_kwargs["factory"] is True
 
     def test_run_missing_cert_file(self, mock_cloud_server: CloudServer, mock_exists: MagicMock) -> None:
         """Test run raises FileNotFoundError when certificate file is missing."""

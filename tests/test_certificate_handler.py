@@ -166,6 +166,9 @@ class TestGenerateSelfSignedCertificate:
         self, mock_load_config: MagicMock, mock_app_config: AppConfigModel, tmp_path: Path
     ) -> None:
         """Test successful certificate generation via wrapper function."""
+        # Use tmp_path for certificate directory to avoid permission issues
+        cert_dir = tmp_path / "certs"
+        mock_app_config.certificate.directory = str(cert_dir)
         mock_load_config.return_value = mock_app_config
 
         with (
@@ -187,9 +190,12 @@ class TestGenerateSelfSignedCertificate:
             assert b"BEGIN CERTIFICATE" in cert_data
 
     def test_generate_self_signed_certificate_os_error(
-        self, mock_load_config: MagicMock, mock_app_config: AppConfigModel, mock_sys_exit: MagicMock
+        self, mock_load_config: MagicMock, mock_app_config: AppConfigModel, mock_sys_exit: MagicMock, tmp_path: Path
     ) -> None:
         """Test certificate generation wrapper handles OSError."""
+        # Use tmp_path for certificate directory
+        cert_dir = tmp_path / "certs"
+        mock_app_config.certificate.directory = str(cert_dir)
         mock_load_config.return_value = mock_app_config
 
         with patch(
@@ -202,9 +208,12 @@ class TestGenerateSelfSignedCertificate:
         mock_sys_exit.assert_called_once_with(1)
 
     def test_generate_self_signed_certificate_permission_error(
-        self, mock_load_config: MagicMock, mock_app_config: AppConfigModel, mock_sys_exit: MagicMock
+        self, mock_load_config: MagicMock, mock_app_config: AppConfigModel, mock_sys_exit: MagicMock, tmp_path: Path
     ) -> None:
         """Test certificate generation wrapper handles PermissionError."""
+        # Use tmp_path for certificate directory
+        cert_dir = tmp_path / "certs"
+        mock_app_config.certificate.directory = str(cert_dir)
         mock_load_config.return_value = mock_app_config
 
         with patch(
@@ -217,9 +226,12 @@ class TestGenerateSelfSignedCertificate:
         mock_sys_exit.assert_called_once_with(1)
 
     def test_generate_self_signed_certificate_unexpected_error(
-        self, mock_load_config: MagicMock, mock_app_config: AppConfigModel, mock_sys_exit: MagicMock
+        self, mock_load_config: MagicMock, mock_app_config: AppConfigModel, mock_sys_exit: MagicMock, tmp_path: Path
     ) -> None:
         """Test certificate generation wrapper handles unexpected exceptions."""
+        # Use tmp_path for certificate directory
+        cert_dir = tmp_path / "certs"
+        mock_app_config.certificate.directory = str(cert_dir)
         mock_load_config.return_value = mock_app_config
 
         with patch(

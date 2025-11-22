@@ -2,7 +2,7 @@
 
 import asyncio
 from collections.abc import Generator
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, call, patch
 
 import pytest
 from fastapi import FastAPI, HTTPException, Request
@@ -10,7 +10,7 @@ from fastapi.routing import APIRoute
 from fastapi.security import APIKeyHeader
 from fastapi.testclient import TestClient
 
-from python_cloud_server.cloud_server import CloudServer, SecurityHeadersMiddleware
+from python_cloud_server.cloud_server import CloudServer, RequestLoggingMiddleware, SecurityHeadersMiddleware
 from python_cloud_server.constants import API_PREFIX
 from python_cloud_server.models import AppConfigModel, BaseResponse, ResponseCode
 
@@ -116,6 +116,32 @@ class TestCloudServer:
 
         assert exc_info.value.status_code == ResponseCode.UNAUTHORIZED
         assert "No stored token hash found" in exc_info.value.detail
+
+
+class TestRequestLogging:
+    """Unit tests for request logging middleware."""
+
+    def test_request_logging_middleware_added(self, mock_cloud_server: CloudServer) -> None:
+        """Test that RequestLoggingMiddleware is added to the app."""
+        middlewares = [middleware.cls for middleware in mock_cloud_server.app.user_middleware]
+        assert RequestLoggingMiddleware in middlewares
+
+    def test_request_logging_middleware_logs_request(
+        self, mock_cloud_server: CloudServer, mock_verify_token: MagicMock
+    ) -> None:
+        """Test that RequestLoggingMiddleware logs requests."""
+        mock_verify_token.return_value = True
+        app = mock_cloud_server.app
+        client = TestClient(app)
+
+        with patch.object(mock_cloud_server.logger, "info") as mock_logger_info:
+            client.get("/health", headers={"X-API-Key": "valid_key"})
+            mock_logger_info.assert_has_calls(
+                [
+                    call("Request: %s %s from %s", "GET", "/health", "testclient"),
+                    call("Response: %s %s -> %d", "GET", "/health", 200),
+                ]
+            )
 
 
 class TestSecurityHeaders:

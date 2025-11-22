@@ -18,6 +18,37 @@ from python_cloud_server.constants import API_KEY_HEADER_NAME, API_PREFIX, PACKA
 from python_cloud_server.models import AppConfigModel, GetHealthResponse, ResponseCode
 
 
+class RequestLoggingMiddleware(BaseHTTPMiddleware):
+    """Middleware to log incoming requests and responses."""
+
+    def __init__(self, app: FastAPI) -> None:
+        """Initialize the RequestLoggingMiddleware."""
+        super().__init__(app)
+        self.logger = logging.getLogger(__name__)
+
+    async def dispatch(self, request: Request, call_next: Callable) -> Response:
+        """Log request and response details."""
+        client_ip = request.client.host if request.client else "unknown"
+
+        self.logger.info(
+            "Request: %s %s from %s",
+            request.method,
+            request.url.path,
+            client_ip,
+        )
+
+        response = await call_next(request)
+
+        self.logger.info(
+            "Response: %s %s -> %d",
+            request.method,
+            request.url.path,
+            response.status_code,
+        )
+
+        return response
+
+
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     """Middleware to add security headers to all responses."""
 
@@ -59,9 +90,15 @@ class CloudServer:
         )
         self.api_key_header = APIKeyHeader(name=API_KEY_HEADER_NAME, auto_error=False)
 
+        self._setup_request_logging()
         self._setup_security_headers()
         self._setup_rate_limiting()
         self._setup_routes()
+
+    def _setup_request_logging(self) -> None:
+        """Set up request logging middleware."""
+        self.app.add_middleware(RequestLoggingMiddleware)
+        self.logger.info("Request logging enabled")
 
     def _setup_security_headers(self) -> None:
         """Set up security headers middleware."""
@@ -146,11 +183,12 @@ class CloudServer:
 
         try:
             if not verify_token(api_key):
-                self.logger.warning("Unauthorized login attempt with key: %s", api_key)
+                self.logger.warning("Invalid API key attempt!")
                 raise HTTPException(
                     status_code=ResponseCode.UNAUTHORIZED,
                     detail="Invalid API key",
                 )
+            self.logger.debug("API key validated successfully.")
         except ValueError as e:
             self.logger.exception("Error verifying API key!")
             raise HTTPException(

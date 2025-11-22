@@ -43,6 +43,13 @@ def mock_open_file() -> Generator[MagicMock, None, None]:
 
 
 @pytest.fixture
+def mock_touch() -> Generator[MagicMock, None, None]:
+    """Mock the Path.touch() method."""
+    with patch("pathlib.Path.touch") as mock_touch:
+        yield mock_touch
+
+
+@pytest.fixture
 def mock_sys_exit() -> Generator[MagicMock, None, None]:
     """Mock sys.exit to raise SystemExit."""
     with patch("sys.exit") as mock_exit:

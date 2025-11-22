@@ -69,6 +69,15 @@ class TestAuthenticationHandler:
         save_hashed_token("testtoken")
         mock_set_key.assert_called_once_with(ROOT_DIR / ENV_FILE_NAME, ENV_VAR_NAME, mock_hash_token.return_value)
 
+    def test_save_hashed_token_file_creation(
+        self, mock_hash_token: MagicMock, mock_exists: MagicMock, mock_touch: MagicMock, mock_set_key: MagicMock
+    ) -> None:
+        """Test the save_hashed_token function creates the .env file if it does not exist."""
+        mock_exists.return_value = False
+        save_hashed_token("testtoken")
+        mock_touch.assert_called_once()
+        mock_set_key.assert_called_once_with(ROOT_DIR / ENV_FILE_NAME, ENV_VAR_NAME, mock_hash_token.return_value)
+
     @pytest.mark.parametrize(
         ("token", "expected"),
         [("token", "token"), (None, None)],

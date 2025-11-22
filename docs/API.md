@@ -7,6 +7,7 @@ All endpoints are mounted under the `/api` prefix.
 <!-- omit from toc -->
 ## Table of Contents
 - [Authentication](#authentication)
+- [Request Logging](#request-logging)
 - [Security Headers](#security-headers)
 - [Rate Limiting](#rate-limiting)
 - [Endpoints](#endpoints)
@@ -24,6 +25,28 @@ X-API-Key: your-api-token-here
 
 **Error Responses**:
 - `401 Unauthorized`: Missing or invalid API key
+
+## Request Logging
+
+All incoming requests and responses are automatically logged for monitoring and debugging purposes.
+
+**Logged Information**:
+- **Request**: HTTP method, path, client IP address
+- **Response**: HTTP method, path, status code
+- **Authentication**: API key validation attempts
+
+**Log Levels**:
+- `INFO`: Successful requests and responses
+- `WARNING`: Authentication failures (missing or invalid API keys)
+- `DEBUG`: Successful API key validations
+- `ERROR`: Server errors and exceptions
+
+**Example Log Output**:
+```
+INFO: Request: GET /api/health from 192.168.1.100
+DEBUG: API key validated successfully
+INFO: Response: GET /api/health -> 200
+```
 
 ## Security Headers
 

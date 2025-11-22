@@ -8,6 +8,7 @@ import pytest
 from python_cloud_server.models import (
     AppConfigModel,
     CertificateConfigModel,
+    RateLimitConfigModel,
     ServerConfigModel,
 )
 
@@ -90,6 +91,17 @@ def mock_certificate_config_dict() -> dict:
 
 
 @pytest.fixture
+def mock_rate_limit_config_dict() -> dict:
+    """Provide a mock rate limit configuration dictionary."""
+    return {
+        "enabled": False,
+        "default_limit": "200/minute",
+        "auth_limit": "500/minute",
+        "storage_uri": "memory://",
+    }
+
+
+@pytest.fixture
 def mock_server_config(mock_server_config_dict: dict) -> ServerConfigModel:
     """Provide a mock ServerConfigModel instance."""
     return ServerConfigModel(**mock_server_config_dict)
@@ -102,9 +114,18 @@ def mock_certificate_config(mock_certificate_config_dict: dict) -> CertificateCo
 
 
 @pytest.fixture
+def mock_rate_limit_config(mock_rate_limit_config_dict: dict) -> RateLimitConfigModel:
+    """Provide a mock RateLimitConfigModel instance."""
+    return RateLimitConfigModel(**mock_rate_limit_config_dict)
+
+
+@pytest.fixture
 def mock_app_config(
     mock_server_config: ServerConfigModel,
     mock_certificate_config: CertificateConfigModel,
+    mock_rate_limit_config: RateLimitConfigModel,
 ) -> AppConfigModel:
     """Provide a mock AppConfigModel instance."""
-    return AppConfigModel(server=mock_server_config, certificate=mock_certificate_config)
+    return AppConfigModel(
+        server=mock_server_config, certificate=mock_certificate_config, rate_limit=mock_rate_limit_config
+    )

@@ -8,5 +8,11 @@
     "ssl_keyfile": "key.pem",
     "ssl_certfile": "cert.pem",
     "days_valid": 365
+  },
+  "rate_limit": {
+    "enabled": true,
+    "default_limit": "100/minute",
+    "auth_limit": "5/minute",
+    "storage_uri": ""
   }
 }

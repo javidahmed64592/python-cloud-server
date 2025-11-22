@@ -1,6 +1,8 @@
 """Unit tests for the python_cloud_server.config module."""
 
-from unittest.mock import MagicMock, call
+from unittest.mock import MagicMock
+
+import pytest
 
 from python_cloud_server.config import load_config
 from python_cloud_server.models import AppConfigModel
@@ -34,7 +36,8 @@ class TestLoadConfig:
         """Test loading config when the file does not exist."""
         mock_exists.return_value = False
 
-        load_config()
+        with pytest.raises(SystemExit):
+            load_config()
 
         mock_sys_exit.assert_called_once_with(1)
 
@@ -48,11 +51,10 @@ class TestLoadConfig:
         mock_exists.return_value = True
         mock_open_file.return_value.read.return_value = "invalid json"
 
-        load_config()
+        with pytest.raises(SystemExit):
+            load_config()
 
-        mock_sys_exit.assert_has_calls(
-            [call(1), call(1)]
-        )  # Called twice: once for JSON error, once for exit (only in test environment)
+        mock_sys_exit.assert_called_with(1)
 
     def test_load_config_os_error(
         self,
@@ -64,11 +66,10 @@ class TestLoadConfig:
         mock_exists.return_value = True
         mock_open_file.side_effect = OSError("File read error")
 
-        load_config()
+        with pytest.raises(SystemExit):
+            load_config()
 
-        mock_sys_exit.assert_has_calls(
-            [call(1), call(1)]
-        )  # Called twice: once for OSError, once for exit (only in test environment)
+        mock_sys_exit.assert_called_with(1)
 
     def test_load_config_validation_error(
         self,
@@ -80,6 +81,7 @@ class TestLoadConfig:
         mock_exists.return_value = True
         mock_open_file.return_value.read.return_value = '{"server": {"host": "localhost"}}'  # Incomplete config
 
-        load_config()
+        with pytest.raises(SystemExit):
+            load_config()
 
         mock_sys_exit.assert_called_once_with(1)

@@ -44,8 +44,9 @@ def mock_open_file() -> Generator[MagicMock, None, None]:
 
 @pytest.fixture
 def mock_sys_exit() -> Generator[MagicMock, None, None]:
-    """Mock sys.exit to prevent actual exit during tests."""
+    """Mock sys.exit to raise SystemExit."""
     with patch("sys.exit") as mock_exit:
+        mock_exit.side_effect = SystemExit
         yield mock_exit
 
 

@@ -122,7 +122,9 @@ class TestCertificateHandler:
         mock_mkdir.return_value = None
 
         handler = CertificateHandler(mock_certificate_config)
-        handler.generate_self_signed_cert()
+
+        with pytest.raises(SystemExit):
+            handler.generate_self_signed_cert()
 
         mock_sys_exit.assert_called_once_with(1)
 
@@ -194,7 +196,8 @@ class TestGenerateSelfSignedCertificate:
             "python_cloud_server.certificate_handler.CertificateHandler.generate_self_signed_cert",
             side_effect=OSError("Disk error"),
         ):
-            generate_self_signed_certificate()
+            with pytest.raises(SystemExit):
+                generate_self_signed_certificate()
 
         mock_sys_exit.assert_called_once_with(1)
 
@@ -210,7 +213,8 @@ class TestGenerateSelfSignedCertificate:
             "python_cloud_server.certificate_handler.CertificateHandler.generate_self_signed_cert",
             side_effect=PermissionError("No permission"),
         ):
-            generate_self_signed_certificate()
+            with pytest.raises(SystemExit):
+                generate_self_signed_certificate()
 
         mock_sys_exit.assert_called_once_with(1)
 
@@ -226,6 +230,7 @@ class TestGenerateSelfSignedCertificate:
             "python_cloud_server.certificate_handler.CertificateHandler.generate_self_signed_cert",
             side_effect=RuntimeError("Unexpected error"),
         ):
-            generate_self_signed_certificate()
+            with pytest.raises(SystemExit):
+                generate_self_signed_certificate()
 
         mock_sys_exit.assert_called_once_with(1)

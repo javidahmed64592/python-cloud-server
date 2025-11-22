@@ -30,7 +30,9 @@ class CloudServer:
         self.api_key_header = APIKeyHeader(name=API_KEY_HEADER_NAME, auto_error=False)
         self._setup_routes()
 
-    def _add_authenticated_route(self, endpoint: str, handler_function: Callable, response_model: BaseModel) -> None:
+    def _add_authenticated_route(
+        self, endpoint: str, handler_function: Callable, response_model: type[BaseModel]
+    ) -> None:
         """Add an authenticated API route.
 
         :param str endpoint: The API endpoint path

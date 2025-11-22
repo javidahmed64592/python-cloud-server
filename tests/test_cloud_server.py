@@ -6,6 +6,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from fastapi import FastAPI, HTTPException
+from fastapi.routing import APIRoute
 from fastapi.security import APIKeyHeader
 from fastapi.testclient import TestClient
 
@@ -22,7 +23,7 @@ def mock_verify_token() -> Generator[MagicMock, None, None]:
 
 
 @pytest.fixture
-def mock_timestamp() -> Generator[MagicMock, None, None]:
+def mock_timestamp() -> Generator[str, None, None]:
     """Mock the current_timestamp method to return a fixed timestamp."""
     fixed_timestamp = "2025-11-22T12:00:00.000000Z"
     with patch("python_cloud_server.models.BaseResponse.current_timestamp", return_value=fixed_timestamp):
@@ -58,11 +59,12 @@ class TestCloudServer:
         mock_cloud_server._add_authenticated_route("/test", test_handler, BaseResponse)
 
         # Verify the route was added
-        routes = [route.path for route in mock_cloud_server.app.routes]
+        api_routes = [route for route in mock_cloud_server.app.routes if isinstance(route, APIRoute)]
+        routes = [route.path for route in api_routes]
         assert "/test" in routes
 
         # Find the specific route
-        test_route = next((route for route in mock_cloud_server.app.routes if route.path == "/test"), None)
+        test_route = next((route for route in api_routes if route.path == "/test"), None)
         assert test_route is not None
 
         # Verify the route has dependencies (authentication)
@@ -74,7 +76,8 @@ class TestCloudServer:
 
     def test_setup_routes(self, mock_cloud_server: CloudServer) -> None:
         """Test that routes are set up correctly."""
-        routes = [route.path for route in mock_cloud_server.app.routes]
+        api_routes = [route for route in mock_cloud_server.app.routes if isinstance(route, APIRoute)]
+        routes = [route.path for route in api_routes]
         expected_endpoints = ["/health"]
         for endpoint in expected_endpoints:
             assert endpoint in routes

@@ -21,14 +21,18 @@ This document outlines how to configure and setup a development environment to w
 ### Directory Structure
 
 ```
-cyber_query_ai/
-├── authentication_handler.py      # Authentication
-├── certificate_handler.py         # Certificate generator
-├── cloud_server.py                # FastAPI endpoints
-├── config.py                      # Configuration management
-├── constants.py                   # Server constants
-├── main.py                        # Application entry point
-└── models.py                      # Pydantic models
+python_cloud_server/
+├── middleware/
+|   ├── __init__.py
+|   ├── request_logging_middleware.py  # Request logging
+|   └── security_headers_middleware.py # Security headers
+├── authentication_handler.py          # Authentication
+├── certificate_handler.py             # Certificate generator
+├── cloud_server.py                    # FastAPI application
+├── config.py                          # Configuration management
+├── constants.py                       # Server constants
+├── main.py                            # Application entry point
+└── models.py                          # Pydantic models
 ```
 
 ### Installing Dependencies

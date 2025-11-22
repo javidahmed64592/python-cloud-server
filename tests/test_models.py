@@ -10,7 +10,9 @@ from python_cloud_server.models import (
     BaseResponse,
     CertificateConfigModel,
     GetHealthResponse,
+    RateLimitConfigModel,
     ResponseCode,
+    SecurityConfigModel,
     ServerConfigModel,
 )
 
@@ -42,6 +44,22 @@ class TestServerConfigModel:
         invalid_config_data["port"] = port  # Invalid port number
         with pytest.raises(ValidationError):
             ServerConfigModel(**invalid_config_data)
+
+
+class TestSecurityConfigModel:
+    """Unit tests for the SecurityConfigModel class."""
+
+    def test_model_dump(self, mock_security_config_dict: dict, mock_security_config: SecurityConfigModel) -> None:
+        """Test the model_dump method."""
+        assert mock_security_config.model_dump() == mock_security_config_dict
+
+
+class TestRateLimitConfigModel:
+    """Unit tests for the RateLimitConfigModel class."""
+
+    def test_model_dump(self, mock_rate_limit_config_dict: dict, mock_rate_limit_config: RateLimitConfigModel) -> None:
+        """Test the model_dump method."""
+        assert mock_rate_limit_config.model_dump() == mock_rate_limit_config_dict
 
 
 class TestCertificateConfigModel:
@@ -76,11 +94,18 @@ class TestAppConfigModel:
     """Unit tests for the AppConfigModel class."""
 
     def test_model_dump(
-        self, mock_app_config: AppConfigModel, mock_server_config_dict: dict, mock_certificate_config_dict: dict
+        self,
+        mock_app_config: AppConfigModel,
+        mock_server_config_dict: dict,
+        mock_security_config_dict: dict,
+        mock_rate_limit_config_dict: dict,
+        mock_certificate_config_dict: dict,
     ) -> None:
         """Test the model_dump method."""
         expected_dict = {
             "server": mock_server_config_dict,
+            "security": mock_security_config_dict,
+            "rate_limit": mock_rate_limit_config_dict,
             "certificate": mock_certificate_config_dict,
         }
         assert mock_app_config.model_dump() == expected_dict

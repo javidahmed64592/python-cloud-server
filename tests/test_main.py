@@ -6,99 +6,54 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from python_cloud_server.main import run
+from python_cloud_server.models import AppConfigModel
 
 TEST_PORT = 8443
 
 
 @pytest.fixture
-def mock_load_config() -> Generator[MagicMock, None, None]:
+def mock_load_config(mock_app_config: AppConfigModel) -> Generator[MagicMock, None, None]:
     """Mock the load_config function."""
     with patch("python_cloud_server.main.load_config") as mock_config:
+        mock_config.return_value = mock_app_config
         yield mock_config
 
 
 @pytest.fixture
-def mock_uvicorn_run() -> Generator[MagicMock, None, None]:
-    """Mock uvicorn.run."""
-    with patch("python_cloud_server.main.uvicorn.run") as mock_run:
-        yield mock_run
+def mock_cloud_server_class() -> Generator[MagicMock, None, None]:
+    """Mock CloudServer class."""
+    with patch("python_cloud_server.main.CloudServer") as mock_server:
+        yield mock_server
 
 
 class TestRun:
     """Unit tests for the run function."""
 
-    def test_run_success(
-        self,
-        mock_load_config: MagicMock,
-        mock_uvicorn_run: MagicMock,
-    ) -> None:
+    def test_run_success(self, mock_load_config: MagicMock, mock_cloud_server_class: MagicMock) -> None:
         """Test successful server run."""
-        mock_config = MagicMock()
-        mock_config.certificate.ssl_cert_file_path.exists.return_value = True
-        mock_config.certificate.ssl_key_file_path.exists.return_value = True
-        mock_config.server.host = "localhost"
-        mock_config.server.port = TEST_PORT
-        mock_load_config.return_value = mock_config
-
         run()
 
-        mock_uvicorn_run.assert_called_once()
-        call_kwargs = mock_uvicorn_run.call_args.kwargs
-        assert call_kwargs["host"] == "localhost"
-        assert call_kwargs["port"] == TEST_PORT
-        assert call_kwargs["factory"] is True
-        assert call_kwargs["reload"] is True
+        mock_load_config.assert_called_once()
+        mock_cloud_server_class.return_value.run.assert_called_once()
 
-    def test_run_missing_cert_file(
+    def test_run_file_not_found_error(
         self,
         mock_load_config: MagicMock,
-        mock_uvicorn_run: MagicMock,
-        mock_sys_exit: MagicMock,
+        mock_cloud_server_class: MagicMock,
     ) -> None:
-        """Test run exits when certificate file is missing."""
-        mock_config = MagicMock()
-        mock_config.certificate.ssl_cert_file_path.exists.return_value = False
-        mock_config.certificate.ssl_key_file_path.exists.return_value = True
-        mock_load_config.return_value = mock_config
+        """Test run handles FileNotFoundError."""
+        mock_cloud_server_class.return_value.run.side_effect = FileNotFoundError("SSL cert files missing")
 
         with pytest.raises(SystemExit):
             run()
-
-        mock_sys_exit.assert_called_once_with(1)
-        mock_uvicorn_run.assert_not_called()
-
-    def test_run_missing_key_file(
-        self,
-        mock_load_config: MagicMock,
-        mock_uvicorn_run: MagicMock,
-        mock_sys_exit: MagicMock,
-    ) -> None:
-        """Test run exits when key file is missing."""
-        mock_config = MagicMock()
-        mock_config.certificate.ssl_cert_file_path.exists.return_value = True
-        mock_config.certificate.ssl_key_file_path.exists.return_value = False
-        mock_load_config.return_value = mock_config
-
-        with pytest.raises(SystemExit):
-            run()
-
-        mock_sys_exit.assert_called_once_with(1)
-        mock_uvicorn_run.assert_not_called()
 
     def test_run_os_error(
         self,
         mock_load_config: MagicMock,
-        mock_uvicorn_run: MagicMock,
-        mock_sys_exit: MagicMock,
+        mock_cloud_server_class: MagicMock,
     ) -> None:
-        """Test run handles OSError from uvicorn."""
-        mock_config = MagicMock()
-        mock_config.certificate.ssl_cert_file_path.exists.return_value = True
-        mock_config.certificate.ssl_key_file_path.exists.return_value = True
-        mock_load_config.return_value = mock_config
-        mock_uvicorn_run.side_effect = OSError("Port already in use")
+        """Test run handles OSError."""
+        mock_cloud_server_class.return_value.run.side_effect = OSError("SSL cert files missing")
 
         with pytest.raises(SystemExit):
             run()
-
-        mock_sys_exit.assert_called_once_with(1)

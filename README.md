@@ -5,8 +5,8 @@
 <!-- omit from toc -->
 # Python Cloud Server
 
-A secure FastAPI-based cloud storage server with HTTPS support, API key authentication, and comprehensive testing.
-Built for local development with production-ready patterns and designed for future extensibility with file upload/download, caching, and observability features.
+A secure FastAPI-based cloud storage server with HTTPS support, API key authentication, rate limiting, and comprehensive testing.
+Built for local development with production-ready security patterns and designed for future extensibility with file upload/download, caching, and observability features.
 
 <!-- omit from toc -->
 ## Table of Contents
@@ -33,14 +33,10 @@ Built for local development with production-ready patterns and designed for futu
 - SHA-256 token hashing for safe storage
 - Certificate generation with RSA-4096 keys
 - Authentication middleware for all protected endpoints
+- Rate limiting to prevent abuse and DoS attacks
+- Security headers (HSTS, CSP, X-Frame-Options, etc.) on all responses
+- Request/response logging for security monitoring and debugging
 - Environment-based configuration for sensitive data
-
-🏗️ **Architecture**
-- Clean separation of concerns (models, config, authentication, certificates)
-- Factory pattern for application creation (supports hot-reload)
-- Pydantic models for configuration and response validation
-- Structured logging with Python's logging module
-- Type-safe codebase with full mypy compliance
 
 ## Quick Start
 
@@ -74,6 +70,15 @@ The server uses a `config.json` file for configuration:
     "ssl_keyfile": "key.pem",
     "ssl_certfile": "cert.pem",
     "days_valid": 365
+  },
+  "security": {
+    "hsts_max_age": 31536000,
+    "content_security_policy": "default-src 'self'"
+  },
+  "rate_limit": {
+    "enabled": true,
+    "rate_limit": "100/minute",
+    "storage_uri": ""
   }
 }
 ```

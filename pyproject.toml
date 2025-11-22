@@ -23,7 +23,9 @@ dependencies = [
     "httpx>=0.28.1",
     "pydantic>=2.12.4",
     "pyhere>=1.0.3",
+    "pytest-asyncio[dev]>=1.3.0",
     "python-dotenv>=1.2.1",
+    "slowapi>=0.1.9",
     "uvicorn[standard]>=0.38.0",
 ]
 
@@ -37,7 +39,7 @@ dev = [
 ]
 
 [project.urls]
-repository = "https://github.com/javidahmed64592/template-python"
+repository = "https://github.com/javidahmed64592/python-cloud-server"
 
 [project.scripts]
 python-cloud-server = "python_cloud_server.main:run"

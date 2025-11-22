@@ -13,8 +13,8 @@ from python_cloud_server.constants import API_PREFIX
 class ServerConfigModel(BaseModel):
     """Server configuration model."""
 
-    host: str
-    port: int = Field(ge=1, le=65535)
+    host: str = Field(default="localhost", description="Server hostname or IP address")
+    port: int = Field(default=8000, ge=1, le=65535, description="Server port number")
 
     @property
     def address(self) -> str:
@@ -32,13 +32,30 @@ class ServerConfigModel(BaseModel):
         return f"{self.url}{API_PREFIX}"
 
 
+class SecurityConfigModel(BaseModel):
+    """Security headers configuration model."""
+
+    hsts_max_age: int = Field(default=31536000, ge=0, description="HSTS max-age in seconds (1 year default)")
+    content_security_policy: str = Field(
+        default="default-src 'self'", description="Content Security Policy header value"
+    )
+
+
+class RateLimitConfigModel(BaseModel):
+    """Rate limit configuration model."""
+
+    enabled: bool = Field(default=True, description="Whether rate limiting is enabled")
+    rate_limit: str = Field(default="100/minute", description="Rate limit for API endpoints (format: count/period)")
+    storage_uri: str = Field(default="", description="Storage URI for rate limit data (empty string for in-memory)")
+
+
 class CertificateConfigModel(BaseModel):
     """Certificate configuration model."""
 
-    directory: str
-    ssl_keyfile: str
-    ssl_certfile: str
-    days_valid: int = Field(gt=0)
+    directory: str = Field(default="certs", description="Directory where SSL certificate and key files are stored")
+    ssl_keyfile: str = Field(default="key.pem", description="Filename of the SSL key file")
+    ssl_certfile: str = Field(default="cert.pem", description="Filename of the SSL certificate file")
+    days_valid: int = Field(default=365, ge=1, description="Number of days the certificate is valid")
 
     @property
     def ssl_key_file_path(self) -> Path:
@@ -54,8 +71,10 @@ class CertificateConfigModel(BaseModel):
 class AppConfigModel(BaseModel):
     """Application configuration model."""
 
-    server: ServerConfigModel
-    certificate: CertificateConfigModel
+    server: ServerConfigModel = Field(default_factory=ServerConfigModel)
+    security: SecurityConfigModel = Field(default_factory=SecurityConfigModel)
+    rate_limit: RateLimitConfigModel = Field(default_factory=RateLimitConfigModel)
+    certificate: CertificateConfigModel = Field(default_factory=CertificateConfigModel)
 
 
 # API Response Models

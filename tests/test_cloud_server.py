@@ -2,7 +2,7 @@
 
 import asyncio
 from collections.abc import Generator
-from unittest.mock import MagicMock, call, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from fastapi import FastAPI, HTTPException, Request
@@ -10,8 +10,9 @@ from fastapi.routing import APIRoute
 from fastapi.security import APIKeyHeader
 from fastapi.testclient import TestClient
 
-from python_cloud_server.cloud_server import CloudServer, RequestLoggingMiddleware, SecurityHeadersMiddleware
+from python_cloud_server.cloud_server import CloudServer
 from python_cloud_server.constants import API_PREFIX
+from python_cloud_server.middleware import RequestLoggingMiddleware, SecurityHeadersMiddleware
 from python_cloud_server.models import AppConfigModel, BaseResponse, ResponseCode
 
 
@@ -47,6 +48,12 @@ class TestCloudServer:
         assert mock_cloud_server.app.version == "0.1.0"
         assert mock_cloud_server.app.root_path == API_PREFIX
         assert isinstance(mock_cloud_server.api_key_header, APIKeyHeader)
+
+    def test_request_middleware_added(self, mock_cloud_server: CloudServer) -> None:
+        """Test that all middleware is added to the app."""
+        middlewares = [middleware.cls for middleware in mock_cloud_server.app.user_middleware]
+        assert RequestLoggingMiddleware in middlewares
+        assert SecurityHeadersMiddleware in middlewares
 
     def test_add_authenticated_route(self, mock_cloud_server: CloudServer) -> None:
         """Test _add_authenticated_route adds routes with authentication."""
@@ -118,53 +125,18 @@ class TestCloudServer:
         assert "No stored token hash found" in exc_info.value.detail
 
 
-class TestRequestLogging:
-    """Unit tests for request logging middleware."""
+class TestMiddleware:
+    """Unit tests for middleware setup."""
 
     def test_request_logging_middleware_added(self, mock_cloud_server: CloudServer) -> None:
         """Test that RequestLoggingMiddleware is added to the app."""
         middlewares = [middleware.cls for middleware in mock_cloud_server.app.user_middleware]
         assert RequestLoggingMiddleware in middlewares
 
-    def test_request_logging_middleware_logs_request(
-        self, mock_cloud_server: CloudServer, mock_verify_token: MagicMock
-    ) -> None:
-        """Test that RequestLoggingMiddleware logs requests."""
-        mock_verify_token.return_value = True
-        app = mock_cloud_server.app
-        client = TestClient(app)
-
-        with patch.object(mock_cloud_server.logger, "info") as mock_logger_info:
-            client.get("/health", headers={"X-API-Key": "valid_key"})
-            mock_logger_info.assert_has_calls(
-                [
-                    call("Request: %s %s from %s", "GET", "/health", "testclient"),
-                    call("Response: %s %s -> %d", "GET", "/health", 200),
-                ]
-            )
-
-
-class TestSecurityHeaders:
-    """Unit tests for security headers middleware."""
-
     def test_security_headers_middleware_added(self, mock_cloud_server: CloudServer) -> None:
         """Test that SecurityHeadersMiddleware is added to the app."""
         middlewares = [middleware.cls for middleware in mock_cloud_server.app.user_middleware]
         assert SecurityHeadersMiddleware in middlewares
-
-    def test_security_headers_set(self, mock_cloud_server: CloudServer) -> None:
-        """Test that security headers are set in the response."""
-        app = mock_cloud_server.app
-        client = TestClient(app)
-
-        response = client.get("/health", headers={"X-API-Key": "valid_key"})
-
-        assert response.headers.get("X-Content-Type-Options") == "nosniff"
-        assert response.headers.get("X-Frame-Options") == "DENY"
-        assert response.headers.get("X-XSS-Protection") == "1; mode=block"
-        assert response.headers.get("Strict-Transport-Security") == "max-age=31536000; includeSubDomains"
-        assert response.headers.get("Referrer-Policy") == "strict-origin-when-cross-origin"
-        assert response.headers.get("Content-Security-Policy") == "default-src 'self'"
 
 
 class TestRateLimiting:

@@ -1,5 +1,6 @@
 """Pydantic models for the server."""
 
+from datetime import datetime
 from enum import IntEnum
 from pathlib import Path
 
@@ -79,6 +80,12 @@ class BaseResponse(BaseModel):
 
     code: ResponseCode = Field(..., description="Response code indicating the result status")
     message: str = Field(..., description="Human-readable message describing the response")
+    timestamp: str = Field(..., description="Timestamp of the response in ISO 8601 format")
+
+    @staticmethod
+    def current_timestamp() -> str:
+        """Get the current timestamp in ISO 8601 format."""
+        return datetime.now().isoformat() + "Z"
 
 
 class GetHealthResponse(BaseResponse):

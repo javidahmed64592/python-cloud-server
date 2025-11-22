@@ -22,6 +22,14 @@ def mock_verify_token() -> Generator[MagicMock, None, None]:
 
 
 @pytest.fixture
+def mock_timestamp() -> Generator[MagicMock, None, None]:
+    """Mock the current_timestamp method to return a fixed timestamp."""
+    fixed_timestamp = "2025-11-22T12:00:00.000000Z"
+    with patch("python_cloud_server.models.BaseResponse.current_timestamp", return_value=fixed_timestamp):
+        yield fixed_timestamp
+
+
+@pytest.fixture
 def mock_cloud_server() -> CloudServer:
     """Provide a CloudServer instance for testing."""
     return CloudServer()
@@ -116,7 +124,7 @@ class TestHealthEndpoint:
         assert response.code == ResponseCode.OK
         assert response.message == "Server is healthy"
 
-    def test_health_endpoint_with_valid_api_key(self, mock_verify_token: MagicMock) -> None:
+    def test_health_endpoint_with_valid_api_key(self, mock_verify_token: MagicMock, mock_timestamp: str) -> None:
         """Test /health endpoint with valid API key returns 200."""
         mock_verify_token.return_value = True
         app = create_app()
@@ -124,7 +132,11 @@ class TestHealthEndpoint:
 
         response = client.get("/health", headers={"X-API-Key": "valid_key"})
         assert response.status_code == ResponseCode.OK
-        assert response.json() == {"code": ResponseCode.OK, "message": "Server is healthy"}
+        assert response.json() == {
+            "code": ResponseCode.OK,
+            "message": "Server is healthy",
+            "timestamp": mock_timestamp,
+        }
 
     def test_health_endpoint_without_api_key(self) -> None:
         """Test /health endpoint without API key returns 401."""

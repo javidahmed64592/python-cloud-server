@@ -80,7 +80,11 @@ class CloudServer:
 
     async def get_health(self) -> GetHealthResponse:
         """Get server health."""
-        return GetHealthResponse(code=ResponseCode.OK, message="Server is healthy")
+        return GetHealthResponse(
+            code=ResponseCode.OK,
+            message="Server is healthy",
+            timestamp=GetHealthResponse.current_timestamp(),
+        )
 
 
 def create_app() -> FastAPI:

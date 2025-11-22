@@ -24,6 +24,7 @@ dependencies = [
     "pydantic>=2.12.4",
     "pyhere>=1.0.3",
     "python-dotenv>=1.2.1",
+    "slowapi>=0.1.9",
     "uvicorn[standard]>=0.38.0",
 ]
 

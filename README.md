@@ -34,6 +34,7 @@ Built for local development with production-ready patterns and designed for futu
 - Certificate generation with RSA-4096 keys
 - Authentication middleware for all protected endpoints
 - Rate limiting to prevent abuse and DoS attacks
+- Security headers (HSTS, CSP, X-Frame-Options, etc.) on all responses
 - Environment-based configuration for sensitive data
 
 🏗️ **Architecture**
@@ -75,6 +76,10 @@ The server uses a `config.json` file for configuration:
     "ssl_keyfile": "key.pem",
     "ssl_certfile": "cert.pem",
     "days_valid": 365
+  },
+  "security": {
+    "hsts_max_age": 31536000,
+    "content_security_policy": "default-src 'self'"
   },
   "rate_limit": {
     "enabled": true,

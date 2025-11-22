@@ -7,6 +7,7 @@ All endpoints are mounted under the `/api` prefix.
 <!-- omit from toc -->
 ## Table of Contents
 - [Authentication](#authentication)
+- [Security Headers](#security-headers)
 - [Rate Limiting](#rate-limiting)
 - [Endpoints](#endpoints)
   - [GET /api/health](#get-apihealth)
@@ -24,6 +25,30 @@ X-API-Key: your-api-token-here
 **Error Responses**:
 - `401 Unauthorized`: Missing or invalid API key
 
+## Security Headers
+
+All API responses include security headers to protect against common web vulnerabilities:
+
+**Headers Included**:
+- `Strict-Transport-Security`: Forces HTTPS connections (HSTS)
+- `X-Content-Type-Options`: Prevents MIME-type sniffing
+- `X-Frame-Options`: Prevents clickjacking attacks
+- `Content-Security-Policy`: Controls which resources can be loaded
+- `X-XSS-Protection`: Enables browser XSS filtering
+- `Referrer-Policy`: Controls referrer information sent with requests
+
+**Configuration** (`config.json`):
+```json
+{
+  "security": {
+    "hsts_max_age": 31536000,
+    "content_security_policy": "default-src 'self'"
+  }
+}
+```
+
+- `hsts_max_age`: Duration in seconds that browsers should remember to only access the site via HTTPS (default: 1 year)
+- `content_security_policy`: CSP directive controlling resource loading (default: only allow resources from same origin)
 ## Rate Limiting
 
 API endpoints are rate-limited to prevent abuse. When the rate limit is exceeded, the server responds with:
@@ -34,7 +59,7 @@ API endpoints are rate-limited to prevent abuse. When the rate limit is exceeded
 
 Default rate limit: **100 requests per minute** per IP address.
 
-Rate limits can be configured in `config.json`. See the main [README.md](../README.md#rate-limiting) for configuration details.
+Rate limits can be configured in `config.json`.
 
 ## Endpoints
 

@@ -126,7 +126,7 @@ class CertificateHandler:
             logger.exception("Permission denied when writing certificate files: %s", self.cert_file.parent)
             raise
         except OSError:
-            logger.exception("Failed to generate certificate files.")
+            logger.exception("Failed to generate certificate files!")
             raise
 
 
@@ -140,7 +140,7 @@ def generate_self_signed_certificate() -> None:
         handler = CertificateHandler(config.certificate)
         handler.generate_self_signed_cert()
     except (OSError, PermissionError):
-        logger.exception("Failed to generate certificates.")
+        logger.exception("Failed to generate certificates!")
         sys.exit(1)
     except Exception:
         logger.exception("Unexpected error during certificate generation!")

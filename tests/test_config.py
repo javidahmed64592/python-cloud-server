@@ -1,5 +1,6 @@
 """Unit tests for the python_cloud_server.config module."""
 
+import json
 from unittest.mock import MagicMock
 
 import pytest
@@ -20,7 +21,7 @@ class TestLoadConfig:
     ) -> None:
         """Test successful loading of config."""
         mock_exists.return_value = True
-        mock_open_file.return_value.read.return_value = str(mock_app_config.model_dump()).replace("'", '"')
+        mock_open_file.return_value.read.return_value = json.dumps(mock_app_config.model_dump())
 
         config = load_config()
 
@@ -79,7 +80,7 @@ class TestLoadConfig:
     ) -> None:
         """Test loading config that fails validation."""
         mock_exists.return_value = True
-        mock_open_file.return_value.read.return_value = '{"server": {"host": "localhost"}}'  # Incomplete config
+        mock_open_file.return_value.read.return_value = json.dumps({"server": {"host": "localhost", "port": 999999}})
 
         with pytest.raises(SystemExit):
             load_config()

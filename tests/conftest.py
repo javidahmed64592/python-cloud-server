@@ -29,6 +29,13 @@ def mock_exists() -> Generator[MagicMock, None, None]:
 
 
 @pytest.fixture
+def mock_mkdir() -> Generator[MagicMock, None, None]:
+    """Mock Path.mkdir method."""
+    with patch("pathlib.Path.mkdir") as mock_mkdir:
+        yield mock_mkdir
+
+
+@pytest.fixture
 def mock_open_file() -> Generator[MagicMock, None, None]:
     """Mock the Path.open() method."""
     with patch("pathlib.Path.open", mock_open()) as mock_file:

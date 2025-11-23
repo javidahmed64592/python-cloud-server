@@ -1,7 +1,8 @@
 """Cloud server application module."""
 
 import logging
-from collections.abc import Callable
+from collections.abc import AsyncGenerator, Callable
+from contextlib import asynccontextmanager
 from importlib.metadata import metadata
 from typing import Any
 
@@ -31,11 +32,18 @@ class CloudServer:
         self.logger = logging.getLogger(__name__)
 
         package_metadata = metadata(PACKAGE_NAME)
+
+        @asynccontextmanager
+        async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+            """Handle application lifespan events."""
+            yield
+
         self.app = FastAPI(
             title=package_metadata["Name"],
             description=package_metadata["Summary"],
             version=package_metadata["Version"],
             root_path=API_PREFIX,
+            lifespan=lifespan,
         )
         self.api_key_header = APIKeyHeader(name=API_KEY_HEADER_NAME, auto_error=False)
 

@@ -39,6 +39,7 @@ class TestSetupLogging:
         root_logger = logging.getLogger()
         for handler in root_logger.handlers:
             assert handler.formatter is not None
+            assert handler.formatter._fmt is not None
             assert "[%(asctime)s]" in handler.formatter._fmt
 
 

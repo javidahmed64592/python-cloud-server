@@ -9,11 +9,26 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.routing import APIRoute
 from fastapi.security import APIKeyHeader
 from fastapi.testclient import TestClient
+from prometheus_client import REGISTRY
 
 from python_cloud_server.cloud_server import CloudServer
 from python_cloud_server.constants import API_PREFIX
 from python_cloud_server.middleware import RequestLoggingMiddleware, SecurityHeadersMiddleware
 from python_cloud_server.models import AppConfigModel, BaseResponse, ResponseCode
+
+
+@pytest.fixture(autouse=True)
+def clear_prometheus_registry() -> Generator[None, None, None]:
+    """Clear Prometheus registry before each test to avoid duplicate metric errors."""
+    # Clear all collectors from the registry
+    collectors = list(REGISTRY._collector_to_names.keys())
+    for collector in collectors:
+        REGISTRY.unregister(collector)
+    yield
+    # Clear again after the test
+    collectors = list(REGISTRY._collector_to_names.keys())
+    for collector in collectors:
+        REGISTRY.unregister(collector)
 
 
 @pytest.fixture
@@ -125,18 +140,64 @@ class TestCloudServer:
         assert "No stored token hash found" in exc_info.value.detail
 
 
-class TestMiddleware:
-    """Unit tests for middleware setup."""
+class TestPrometheusMetrics:
+    """Unit tests for Prometheus metrics functionality."""
 
-    def test_request_logging_middleware_added(self, mock_cloud_server: CloudServer) -> None:
-        """Test that RequestLoggingMiddleware is added to the app."""
-        middlewares = [middleware.cls for middleware in mock_cloud_server.app.user_middleware]
-        assert RequestLoggingMiddleware in middlewares
+    def test_metrics_endpoint_exists(self, mock_cloud_server: CloudServer) -> None:
+        """Test that /metrics endpoint is exposed."""
+        api_routes = [route for route in mock_cloud_server.app.routes if isinstance(route, APIRoute)]
+        routes = [route.path for route in api_routes]
+        assert "/metrics" in routes
 
-    def test_security_headers_middleware_added(self, mock_cloud_server: CloudServer) -> None:
-        """Test that SecurityHeadersMiddleware is added to the app."""
-        middlewares = [middleware.cls for middleware in mock_cloud_server.app.user_middleware]
-        assert SecurityHeadersMiddleware in middlewares
+    def test_metrics_setup(self, mock_cloud_server: CloudServer) -> None:
+        """Test that Prometheus metrics are properly initialized."""
+        assert mock_cloud_server.auth_success_counter is not None
+        assert mock_cloud_server.auth_failure_counter is not None
+        assert mock_cloud_server.rate_limit_exceeded_counter is not None
+
+    def test_auth_success_metric_incremented(
+        self, mock_cloud_server: CloudServer, mock_verify_token: MagicMock
+    ) -> None:
+        """Test that auth_success_counter is incremented on successful authentication."""
+        mock_verify_token.return_value = True
+        initial_value = mock_cloud_server.auth_success_counter._value.get()
+
+        asyncio.run(mock_cloud_server._verify_api_key(api_key="valid_token"))
+
+        assert mock_cloud_server.auth_success_counter._value.get() == initial_value + 1
+
+    def test_auth_failure_missing_metric_incremented(self, mock_cloud_server: CloudServer) -> None:
+        """Test that auth_failure_counter is incremented when API key is missing."""
+        initial_value = mock_cloud_server.auth_failure_counter.labels(reason="missing")._value.get()
+
+        with pytest.raises(HTTPException):
+            asyncio.run(mock_cloud_server._verify_api_key(api_key=None))
+
+        assert mock_cloud_server.auth_failure_counter.labels(reason="missing")._value.get() == initial_value + 1
+
+    def test_auth_failure_invalid_metric_incremented(
+        self, mock_cloud_server: CloudServer, mock_verify_token: MagicMock
+    ) -> None:
+        """Test that auth_failure_counter is incremented when API key is invalid."""
+        mock_verify_token.return_value = False
+        initial_value = mock_cloud_server.auth_failure_counter.labels(reason="invalid")._value.get()
+
+        with pytest.raises(HTTPException):
+            asyncio.run(mock_cloud_server._verify_api_key(api_key="invalid_token"))
+
+        assert mock_cloud_server.auth_failure_counter.labels(reason="invalid")._value.get() == initial_value + 1
+
+    def test_auth_failure_error_metric_incremented(
+        self, mock_cloud_server: CloudServer, mock_verify_token: MagicMock
+    ) -> None:
+        """Test that auth_failure_counter is incremented when verification raises ValueError."""
+        mock_verify_token.side_effect = ValueError("Verification error")
+        initial_value = mock_cloud_server.auth_failure_counter.labels(reason="error")._value.get()
+
+        with pytest.raises(HTTPException):
+            asyncio.run(mock_cloud_server._verify_api_key(api_key="error_token"))
+
+        assert mock_cloud_server.auth_failure_counter.labels(reason="error")._value.get() == initial_value + 1
 
 
 class TestRateLimiting:

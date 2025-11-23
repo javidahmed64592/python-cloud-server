@@ -75,4 +75,5 @@ def generate_new_token() -> None:
     """
     new_token = generate_token()
     save_hashed_token(new_token)
-    logger.info("New API token generated and saved. Token: %s", new_token)
+    logger.info("New API token generated and saved.")
+    print(f"Token: {new_token}")  # Prevent logging token to log file

@@ -7,6 +7,7 @@ All endpoints are mounted under the `/api` prefix.
 <!-- omit from toc -->
 ## Table of Contents
 - [Authentication](#authentication)
+- [Logging Configuration](#logging-configuration)
 - [Request Logging](#request-logging)
 - [Security Headers](#security-headers)
 - [Rate Limiting](#rate-limiting)
@@ -25,6 +26,28 @@ X-API-Key: your-api-token-here
 
 **Error Responses**:
 - `401 Unauthorized`: Missing or invalid API key
+
+## Logging Configuration
+
+The server uses Python's built-in logging system with both console and rotating file handlers for comprehensive log management.
+
+**Log Files**:
+- Location: `logs/server.log` (relative to project root)
+- Rotation: Automatic when file reaches 10 MB
+- Backup Count: 5 backup files retained (e.g., `server.log.1`, `server.log.2`, etc.)
+- Total Storage: Up to 60 MB (10 MB active + 5 × 10 MB backups)
+
+**Log Format**:
+```
+[DD/MM/YYYY | HH:MM:SS] (LEVEL) module: message
+```
+
+**Example**:
+```
+[22/11/2025 | 14:30:45] (INFO) cloud_server: Server starting on https://localhost:8443/api
+[22/11/2025 | 14:30:46] (INFO) request_logging_middleware: Request: GET /api/health from 192.168.1.100
+[22/11/2025 | 14:30:46] (INFO) request_logging_middleware: Response: GET /api/health -> 200
+```
 
 ## Request Logging
 

@@ -19,6 +19,10 @@ RUN uv build --wheel
 # Stage 2: Runtime stage
 FROM python:3.12-slim
 
+# Build arguments for environment-specific config
+ARG ENV=dev
+ARG PORT=8443
+
 WORKDIR /app
 
 # Create non-root user for security
@@ -38,17 +42,21 @@ RUN uv pip install --system --no-cache /tmp/*.whl && \
 
 # Copy runtime files (.here is needed for pyhere to find project root)
 COPY --chown=cloudserver:cloudserver .here .here
-COPY --chown=cloudserver:cloudserver config.prod.json config.json
+
+# Conditionally copy the appropriate config file based on ENV
+COPY --chown=cloudserver:cloudserver config.json /tmp/config.dev.json
+COPY --chown=cloudserver:cloudserver config.prod.json /tmp/config.prod.json
+RUN if [ "$ENV" = "prod" ]; then cp /tmp/config.prod.json /app/config.json; else cp /tmp/config.dev.json /app/config.json; fi
 
 # Switch to non-root user
 USER cloudserver
 
 # Expose HTTPS port
-EXPOSE 8443
+EXPOSE $PORT
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD python -c "import urllib.request; urllib.request.urlopen('https://localhost:8443/api/metrics', context=__import__('ssl')._create_unverified_context()).read()" || exit 1
+    CMD python -c "import urllib.request; urllib.request.urlopen('https://localhost:$PORT/api/metrics', context=__import__('ssl')._create_unverified_context()).read()" || exit 1
 
 # Default command: generate certificates if missing, then start server
 CMD ["sh", "-c", "if [ ! -f certs/cert.pem ] || [ ! -f certs/key.pem ]; then echo 'Generating self-signed certificates...'; generate-certificate; fi && python-cloud-server"]

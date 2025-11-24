@@ -46,7 +46,7 @@ def save_hashed_token(token: str) -> None:
 
 
 def load_hashed_token() -> str | None:
-    """Load the hashed token from the .env file.
+    """Load the hashed token from environment variable.
 
     :return str | None: The hashed token string, or None if not found
     """

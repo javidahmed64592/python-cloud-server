@@ -3,6 +3,7 @@ version: "3.8"
 services:
   # Python Cloud Server
   python-cloud-server:
+    image: python-cloud-server:latest
     build:
       context: .
       dockerfile: Dockerfile

@@ -23,7 +23,7 @@ scrape_configs:
       # Skip certificate verification for self-signed certificates
       insecure_skip_verify: true
     static_configs:
-      - targets: ['python-cloud-server:8443']
+      - targets: ['python-cloud-server:${PROMETHEUS_PORT}']
         labels:
           service: 'cloud-storage'
           environment: 'development'

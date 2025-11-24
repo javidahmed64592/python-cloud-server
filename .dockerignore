@@ -37,8 +37,6 @@ htmlcov/
 
 # Documentation
 docs/
-*.md
-!README.md
 
 # Logs (will be created at runtime)
 logs/

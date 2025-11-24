@@ -16,6 +16,8 @@ services:
       # Persist certificates and logs
       - ./certs:/app/certs
       - ./logs:/app/logs
+      # Override production config with dev config for local development
+      - ./config.json:/app/config.json:ro
     networks:
       - monitoring
     restart: unless-stopped

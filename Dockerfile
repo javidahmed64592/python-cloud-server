@@ -10,7 +10,7 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 # Copy project files
 COPY pyproject.toml README.md LICENSE ./
 COPY .here .here
-COPY config.json ./
+COPY config.prod.json config.json
 COPY python_cloud_server/ ./python_cloud_server/
 
 # Build the wheel
@@ -38,7 +38,7 @@ RUN uv pip install --system --no-cache /tmp/*.whl && \
 
 # Copy runtime files (.here is needed for pyhere to find project root)
 COPY --chown=cloudserver:cloudserver .here .here
-COPY --chown=cloudserver:cloudserver config.json ./
+COPY --chown=cloudserver:cloudserver config.prod.json config.json
 
 # Switch to non-root user
 USER cloudserver

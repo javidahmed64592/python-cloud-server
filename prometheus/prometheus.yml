@@ -1,0 +1,42 @@
+# Prometheus Configuration for Python Cloud Server
+global:
+  scrape_interval: 15s      # Default scrape interval
+  evaluation_interval: 15s  # Evaluate rules every 15s
+  scrape_timeout: 10s       # Timeout for each scrape
+
+# Alertmanager configuration (optional, for future use)
+# alerting:
+#   alertmanagers:
+#     - static_configs:
+#         - targets: []
+
+# Load rules once and periodically evaluate them
+# rule_files:
+#   - "alerts.yml"
+
+# Scrape configurations
+scrape_configs:
+  # Python Cloud Server metrics
+  - job_name: 'python-cloud-server'
+    scheme: https
+    tls_config:
+      # Skip certificate verification for self-signed certificates
+      insecure_skip_verify: true
+    static_configs:
+      - targets: ['python-cloud-server:8443']
+        labels:
+          service: 'cloud-storage'
+          environment: 'development'
+
+    # Scrape the /api/metrics endpoint for Prometheus metrics
+    metrics_path: '/api/metrics'
+
+    # Optional: Add basic auth or bearer token if needed
+    # bearer_token: 'your-api-key-here'
+
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+        labels:
+          service: 'prometheus'

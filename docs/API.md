@@ -15,6 +15,9 @@ All endpoints are mounted under the `/api` prefix.
   - [GET /api/metrics](#get-apimetrics)
     - [Standard HTTP Metrics (via `prometheus-fastapi-instrumentator`)](#standard-http-metrics-via-prometheus-fastapi-instrumentator)
     - [Custom Application Metrics](#custom-application-metrics)
+  - [Accessing Dashboards](#accessing-dashboards)
+    - [Prometheus Dashboard](#prometheus-dashboard)
+    - [Grafana Dashboards](#grafana-dashboards)
 - [Endpoints](#endpoints)
   - [GET /api/health](#get-apihealth)
 - [Request and Response Models (Pydantic)](#request-and-response-models-pydantic)
@@ -99,6 +102,7 @@ All API responses include security headers to protect against common web vulnera
 
 - `hsts_max_age`: Duration in seconds that browsers should remember to only access the site via HTTPS (default: 1 year)
 - `content_security_policy`: CSP directive controlling resource loading (default: only allow resources from same origin)
+
 ## Rate Limiting
 
 API endpoints are rate-limited to prevent abuse. When the rate limit is exceeded, the server responds with:
@@ -138,6 +142,25 @@ The server exposes Prometheus-compatible metrics for monitoring and observabilit
 
 **Rate Limiting Metrics**:
 - `rate_limit_exceeded_total{endpoint}`: Counter tracking requests that exceeded rate limits, labeled by endpoint path
+
+### Accessing Dashboards
+
+The application includes pre-configured monitoring dashboards for visualization:
+
+#### Prometheus Dashboard
+- **URL**: http://localhost:9090
+- **Purpose**: Query and visualize raw metrics data
+- **Features**: Built-in query interface, graphing, and alerting
+
+#### Grafana Dashboards
+- **URL**: http://localhost:3000
+- **Credentials**: admin / admin (change after first login)
+- **Pre-configured Dashboards**:
+  - **Authentication Metrics**: Tracks successful and failed authentication attempts, including reasons for failures
+  - **Rate Limiting Metrics**: Monitors requests that exceed rate limits by endpoint
+
+To access the dashboards, the containers for Grafana and Prometheus must be running.
+See the [Docker documentation](./DOCKER_DEPLOYMENT.md) for information on how to run these.
 
 ## Endpoints
 

@@ -8,10 +8,10 @@ WORKDIR /build
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
 # Copy project files
-COPY pyproject.toml README.md LICENSE ./
+COPY python_cloud_server/ ./python_cloud_server/
 COPY .here .here
 COPY config.prod.json config.json
-COPY python_cloud_server/ ./python_cloud_server/
+COPY pyproject.toml LICENSE README.md ./
 
 # Build the wheel
 RUN uv build --wheel

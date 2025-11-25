@@ -138,7 +138,7 @@ Expected response:
 uv run generate-new-token
 
 # 2. Start all services (FastAPI, Prometheus, Grafana)
-docker-compose up -d
+docker compose up -d
 
 # 3. Access services:
 # - API Server: https://localhost:8443/api

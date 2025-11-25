@@ -58,9 +58,9 @@ uv run -m mypy .                 # Type checking
 uv run -m ruff check .           # Linting
 
 # Docker Development
-docker-compose up --build -d     # Build + start all services
-docker-compose logs -f python-cloud-server  # View logs
-docker-compose down              # Stop and remove containers
+docker compose up --build -d     # Build + start all services
+docker compose logs -f python-cloud-server  # View logs
+docker compose down              # Stop and remove containers
 ```
 
 ### Testing Patterns

@@ -39,7 +39,6 @@ This guide provides comprehensive instructions for deploying the Python Cloud Se
 
 ```bash
 docker --version
-docker-compose --version
 ```
 
 ## Quick Start
@@ -69,13 +68,13 @@ This will:
 
 ```bash
 # Start all services (FastAPI server, Prometheus, Grafana)
-docker-compose up -d
+docker compose up -d
 
 # View logs
-docker-compose logs -f
+docker compose logs -f
 
 # Stop services
-docker-compose down
+docker compose down
 ```
 
 ## Configuration
@@ -124,29 +123,29 @@ Modify `config.json` to customize:
 
 ```bash
 # Stop containers if required
-docker-compose down
+docker compose down
 
 # Build and start in background
-docker-compose up --build -d
+docker compose up --build -d
 ```
 
 ### Managing Containers
 
 ```bash
 # View running containers
-docker-compose ps
+docker compose ps
 
 # Stop services
-docker-compose stop
+docker compose stop
 
 # Start stopped services
-docker-compose start
+docker compose start
 
 # Restart services
-docker-compose restart python-cloud-server
+docker compose restart python-cloud-server
 
 # Remove containers and volumes
-docker-compose down -v
+docker compose down -v
 ```
 
 ## Accessing Services
@@ -222,11 +221,11 @@ curl -k -H "X-API-Key: YOUR_RAW_TOKEN" https://localhost:8443/api/health
 
 ```bash
 # All services
-docker-compose logs -f
+docker compose logs -f
 
 # Specific service
-docker-compose logs -f python-cloud-server
+docker compose logs -f python-cloud-server
 
 # Last 100 lines
-docker-compose logs --tail=100 prometheus
+docker compose logs --tail=100 prometheus
 ```

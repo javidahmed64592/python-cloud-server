@@ -73,7 +73,7 @@ grafana/
 ## Accessing Dashboards
 
 1. Generate API key (if not done): `uv run generate-new-token`
-2. Start services: `docker-compose up -d`
+2. Start services: `docker compose up -d`
 3. Open Grafana: http://localhost:3000
 4. Login with default credentials: `admin/admin`
 5. Navigate to: Dashboards → Browse → Python Cloud Server folder
@@ -94,7 +94,7 @@ grafana/
 1. Create dashboard in Grafana UI
 2. Export as JSON: Dashboard settings → JSON Model → Copy to clipboard
 3. Save JSON file in `grafana/dashboards/`
-4. Restart Grafana: `docker-compose restart grafana`
+4. Restart Grafana: `docker compose restart grafana`
 
 ## Available Metrics
 

@@ -16,15 +16,15 @@ jobs:
 
       - name: Build and start services with docker-compose
         run: |
-          docker-compose up --build -d
+          docker compose up --build -d
           sleep 10  # Wait for services to start
 
       - name: Check if services are running
-        run: docker-compose ps
+        run: docker compose ps
 
       - name: Health check
         run: |
           curl -k https://localhost:8443/api/metrics || exit 1
 
       - name: Stop services
-        run: docker-compose down
+        run: docker compose down

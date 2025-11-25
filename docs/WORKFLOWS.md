@@ -41,3 +41,38 @@ It consists of the following jobs:
   - Install dependencies with `uv sync --extra dev`
   - Run pytest with coverage report using `uv run -m pytest --cov-report html`
   - Upload coverage report as artifact
+
+## Docker Workflow
+
+The CI workflow runs on pushes and pull requests to the `main` branch.
+It consists of the following jobs:
+
+### docker-compose-dev
+- **Runner**: Ubuntu Latest
+- **Steps**:
+  - Checkout code
+  - Install uv with caching
+  - Set up Python from `.python-version`
+  - Install dependencies with `uv sync`
+  - Generate API token hash
+  - Create directories with proper permissions
+  - Build and start services with docker-compose
+  - Check if services are running
+  - Show server logs
+  - Health check
+  - Stop services
+
+### docker-compose-prod
+- **Runner**: Ubuntu Latest
+- **Steps**:
+  - Checkout code
+  - Install uv with caching
+  - Set up Python from `.python-version`
+  - Install dependencies with `uv sync`
+  - Generate API token hash
+  - Create directories with proper permissions
+  - Build production image
+  - Run production container
+  - Show server logs
+  - Health check
+  - Stop container

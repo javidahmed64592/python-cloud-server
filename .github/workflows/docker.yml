@@ -1,0 +1,30 @@
+name: Docker
+
+on:
+  push:
+    branches: [main, add-docker]
+  pull_request:
+    branches: [main, add-docker]
+
+jobs:
+  docker-compose-dev:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build and start services with docker-compose
+        run: |
+          docker-compose up --build -d
+          sleep 10  # Wait for services to start
+
+      - name: Check if services are running
+        run: docker-compose ps
+
+      - name: Health check
+        run: |
+          curl -k https://localhost:8443/api/metrics || exit 1
+
+      - name: Stop services
+        run: docker-compose down

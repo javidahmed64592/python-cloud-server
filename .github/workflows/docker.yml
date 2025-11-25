@@ -32,6 +32,11 @@ jobs:
         run: |
           uv run generate-new-token
 
+      - name: Create directories with proper permissions
+        run: |
+          mkdir -p certs logs
+          chmod 777 certs logs
+
       - name: Build and start services with docker-compose
         run: |
           docker compose up --build -d

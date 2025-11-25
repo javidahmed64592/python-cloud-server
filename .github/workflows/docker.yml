@@ -40,7 +40,7 @@ jobs:
       - name: Build and start services with docker-compose
         run: |
           docker compose up --build -d
-          sleep 30  # Wait for services to start
+          sleep 10  # Wait for services to start
 
       - name: Check if services are running
         run: docker compose ps
@@ -101,7 +101,7 @@ jobs:
       - name: Run production container
         run: |
           docker run -d --name python-cloud-server -e API_TOKEN_HASH=$(grep API_TOKEN_HASH .env | cut -d '=' -f2) -p 443:443 python-cloud-server:prod
-          sleep 30  # Wait for container to start
+          sleep 10  # Wait for container to start
 
       - name: Show server logs
         run: docker logs python-cloud-server

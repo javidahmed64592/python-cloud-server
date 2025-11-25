@@ -36,6 +36,7 @@ jobs:
         run: |
           mkdir -p certs logs
           chmod 777 certs logs
+          sudo chown -R 1000:1000 certs logs
 
       - name: Build and start services with docker-compose
         run: |

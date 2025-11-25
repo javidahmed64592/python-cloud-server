@@ -17,6 +17,8 @@ Built for local development with production-ready security patterns and designed
   - [Configuration](#configuration)
   - [First-Time Setup](#first-time-setup)
   - [Running the Server](#running-the-server)
+- [Docker Deployment](#docker-deployment)
+- [Metrics \& Monitoring](#metrics--monitoring)
 - [API Documentation](#api-documentation)
 - [Security](#security)
 - [License](#license)
@@ -37,6 +39,13 @@ Built for local development with production-ready security patterns and designed
 - Security headers (HSTS, CSP, X-Frame-Options, etc.) on all responses
 - Request/response logging for security monitoring and debugging
 - Environment-based configuration for sensitive data
+
+📊 **Monitoring & Observability**
+- Prometheus metrics endpoint (`/metrics`) with standard HTTP metrics
+- Custom authentication and rate limiting metrics
+- Docker Compose setup with Grafana dashboards for visualization
+- Pre-configured dashboards for authentication and performance monitoring
+- Request/response logging with rotating file handlers
 
 ## Quick Start
 
@@ -62,14 +71,8 @@ The server uses a `config.json` file for configuration:
 ```json
 {
   "server": {
-    "host": "localhost",
+    "host": "0.0.0.0",
     "port": 8443
-  },
-  "certificate": {
-    "directory": "certs",
-    "ssl_keyfile": "key.pem",
-    "ssl_certfile": "cert.pem",
-    "days_valid": 365
   },
   "security": {
     "hsts_max_age": 31536000,
@@ -79,6 +82,12 @@ The server uses a `config.json` file for configuration:
     "enabled": true,
     "rate_limit": "100/minute",
     "storage_uri": ""
+  },
+  "certificate": {
+    "directory": "certs",
+    "ssl_keyfile": "key.pem",
+    "ssl_certfile": "cert.pem",
+    "days_valid": 365
   }
 }
 ```
@@ -119,6 +128,52 @@ Expected response:
   "timestamp": "2025-11-22T12:00:00.000000Z"
 }
 ```
+
+## Docker Deployment
+
+🐳 **Run with Docker Compose** (includes Prometheus + Grafana):
+
+```sh
+# 1. Generate API key (automatically creates .env file)
+uv run generate-new-token
+
+# 2. Start all services (FastAPI, Prometheus, Grafana)
+docker-compose up -d
+
+# 3. Access services:
+# - API Server: https://localhost:8443/api
+# - Prometheus: http://localhost:9090
+# - Grafana: http://localhost:3000 (admin/admin)
+```
+
+**What's included:**
+- FastAPI server with auto-generated SSL certificates
+- Prometheus for metrics collection
+- Grafana with pre-configured dashboards:
+  - Authentication metrics (success/failure rates, reasons)
+  - Rate limiting violations by endpoint
+  - HTTP performance metrics (latency percentiles, request rates)
+
+For detailed Docker deployment instructions, see [`docs/DOCKER_DEPLOYMENT.md`](docs/DOCKER_DEPLOYMENT.md).
+
+## Metrics & Monitoring
+
+The server exposes Prometheus-compatible metrics at `/api/metrics`:
+
+**Available Metrics:**
+- `auth_success_total` - Successful authentication attempts
+- `auth_failure_total{reason}` - Failed authentications (by reason: missing, invalid, error)
+- `rate_limit_exceeded_total{endpoint}` - Rate limit violations per endpoint
+- `http_requests_total` - Total HTTP requests (method, handler, status)
+- `http_request_duration_seconds` - Request latency histogram
+
+**Access Metrics:**
+```sh
+curl -k https://localhost:8443/api/metrics
+```
+
+**Visualization:**
+Use the Docker Compose setup to access pre-built Grafana dashboards at `http://localhost:3000`.
 
 ## API Documentation
 

@@ -28,12 +28,9 @@ jobs:
         run: |
           uv sync
 
-      - name: Generate  API token hash
+      - name: Generate API token hash
         run: |
           uv run generate-new-token
-          # Retrieve API_TOKEN_HASH from the generated .env file
-          API_TOKEN_HASH=$(grep API_TOKEN_HASH .env | cut -d '=' -f2)
-          echo "API_TOKEN_HASH=$API_TOKEN_HASH" >> $GITHUB_ENV
 
       - name: Build and start services with docker-compose
         run: |
@@ -42,6 +39,9 @@ jobs:
 
       - name: Check if services are running
         run: docker compose ps
+
+      - name: Show server logs
+        run: docker compose logs python-cloud-server
 
       - name: Health check
         run: |

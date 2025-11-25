@@ -48,6 +48,14 @@ COPY --chown=cloudserver:cloudserver config.json /tmp/config.dev.json
 COPY --chown=cloudserver:cloudserver config.prod.json /tmp/config.prod.json
 RUN if [ "$ENV" = "prod" ]; then cp /tmp/config.prod.json /app/config.json; else cp /tmp/config.dev.json /app/config.json; fi
 
+# Create startup script
+RUN echo '#!/bin/sh\n\
+    if [ ! -f certs/cert.pem ] || [ ! -f certs/key.pem ]; then\n\
+    echo "Generating self-signed certificates..."\n\
+    uv run generate-certificate\n\
+    fi\n\
+    exec python-cloud-server' > /app/start.sh && chmod +x /app/start.sh && chown cloudserver:cloudserver /app/start.sh
+
 # Switch to non-root user
 USER cloudserver
 
@@ -59,4 +67,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD python -c "import urllib.request; urllib.request.urlopen('https://localhost:$PORT/api/metrics', context=__import__('ssl')._create_unverified_context()).read()" || exit 1
 
 # Default command: generate certificates if missing, then start server
-CMD ["sh", "-c", "if [ ! -f certs/cert.pem ] || [ ! -f certs/key.pem ]; then echo 'Generating self-signed certificates...'; generate-certificate; fi && python-cloud-server"]
+CMD ["/app/start.sh"]

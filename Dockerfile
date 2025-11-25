@@ -46,15 +46,21 @@ COPY --chown=cloudserver:cloudserver .here .here
 # Conditionally copy the appropriate config file based on ENV
 COPY --chown=cloudserver:cloudserver config.json /tmp/config.dev.json
 COPY --chown=cloudserver:cloudserver config.prod.json /tmp/config.prod.json
-RUN if [ "$ENV" = "prod" ]; then cp /tmp/config.prod.json /app/config.json; else cp /tmp/config.dev.json /app/config.json; fi
+RUN if [ "$ENV" = "prod" ]; then cp /tmp/config.prod.json /app/config.json; else cp /tmp/config.dev.json /app/config.json; fi && \
+    chown cloudserver:cloudserver /app/config.json
 
 # Create startup script
 RUN echo '#!/bin/sh\n\
     if [ ! -f certs/cert.pem ] || [ ! -f certs/key.pem ]; then\n\
     echo "Generating self-signed certificates..."\n\
-    uv run generate-certificate\n\
+    generate-certificate\n\
     fi\n\
-    exec python-cloud-server' > /app/start.sh && chmod +x /app/start.sh && chown cloudserver:cloudserver /app/start.sh
+    exec python-cloud-server' > /app/start.sh && \
+    chmod +x /app/start.sh && \
+    chown cloudserver:cloudserver /app/start.sh
+
+# Ensure all directories have correct permissions
+RUN chown -R cloudserver:cloudserver /app/certs /app/logs
 
 # Switch to non-root user
 USER cloudserver

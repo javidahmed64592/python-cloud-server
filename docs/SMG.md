@@ -8,6 +8,9 @@ This document outlines how to configure and setup a development environment to w
 - [Backend (Python)](#backend-python)
   - [Directory Structure](#directory-structure)
   - [Installing Dependencies](#installing-dependencies)
+  - [Setting Up Certificates and Authentication](#setting-up-certificates-and-authentication)
+    - [Generating SSL Certificates](#generating-ssl-certificates)
+    - [Generating API Authentication Tokens](#generating-api-authentication-tokens)
   - [Running the Backend](#running-the-backend)
   - [Testing, Linting, and Type Checking](#testing-linting-and-type-checking)
 
@@ -56,6 +59,37 @@ To include development dependencies:
 ```sh
 uv sync --extra dev
 ```
+
+### Setting Up Certificates and Authentication
+
+Before running the server, you need to generate SSL certificates and an API authentication token.
+
+#### Generating SSL Certificates
+
+The server requires self-signed SSL certificates for HTTPS support:
+
+```sh
+uv run generate-certificate
+```
+
+This command:
+- Creates a self-signed certificate valid for 365 days
+- Generates RSA-4096 key pairs
+- Saves certificates to the `certs/` directory (`cert.pem` and `key.pem`)
+
+#### Generating API Authentication Tokens
+
+Generate a secure API token for authenticating requests:
+
+```sh
+uv run generate-new-token
+```
+
+This command:
+- Creates a cryptographically secure token using Python's `secrets` module
+- Hashes the token with SHA-256 for safe storage
+- Stores the hash in `.env` file
+- Displays the plain token (save it securely - it won't be shown again)
 
 ### Running the Backend
 

@@ -1,0 +1,125 @@
+name: Docker
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  docker-compose-dev:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+      - name: "Set up Python"
+        uses: actions/setup-python@v5
+        with:
+          python-version-file: ".python-version"
+      - name: Install dependencies
+        run: |
+          uv sync
+
+      - name: Generate API token hash
+        run: |
+          uv run generate-new-token
+
+      - name: Create directories with proper permissions
+        run: |
+          mkdir -p certs logs
+          chmod 777 certs logs
+          sudo chown -R 1000:1000 certs logs
+
+      - name: Build and start services with docker-compose
+        run: |
+          docker compose up --build -d
+          sleep 10  # Wait for services to start
+
+      - name: Check if services are running
+        run: docker compose ps
+
+      - name: Show server logs
+        run: docker compose logs python-cloud-server
+
+      - name: Health check
+        run: |
+          for i in {1..5}; do
+            if curl -k https://localhost:8443/api/metrics; then
+              echo "Health check passed"
+              break
+            else
+              echo "Health check failed, attempt $i/5"
+              if [ $i -eq 5 ]; then
+                exit 1
+              fi
+              sleep 10
+            fi
+          done
+
+      - name: Stop services
+        run: docker compose down
+
+  docker-production:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+      - name: "Set up Python"
+        uses: actions/setup-python@v5
+        with:
+          python-version-file: ".python-version"
+      - name: Install dependencies
+        run: |
+          uv sync
+
+      - name: Generate API token hash
+        run: |
+          uv run generate-new-token
+
+      - name: Create directories with proper permissions
+        run: |
+          mkdir -p certs logs
+          chmod 777 certs logs
+          sudo chown -R 1000:1000 certs logs
+
+      - name: Build production image
+        run: |
+          docker build --build-arg ENV=prod --build-arg PORT=443 -t python-cloud-server:prod .
+
+      - name: Run production container
+        run: |
+          docker run -d --name python-cloud-server -e API_TOKEN_HASH=$(grep API_TOKEN_HASH .env | cut -d '=' -f2) -p 443:443 python-cloud-server:prod
+          sleep 10  # Wait for container to start
+
+      - name: Show server logs
+        run: docker logs python-cloud-server
+
+      - name: Health check
+        run: |
+          for i in {1..5}; do
+            if curl -k https://localhost:443/api/metrics; then
+              echo "Health check passed"
+              break
+            else
+              echo "Health check failed, attempt $i/5"
+              if [ $i -eq 5 ]; then
+                exit 1
+              fi
+              sleep 10
+            fi
+          done
+
+      - name: Stop container
+        run: docker stop python-cloud-server

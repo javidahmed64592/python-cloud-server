@@ -223,6 +223,14 @@ class CloudServer:
         :param Request request: The incoming HTTP request
         :return GetHealthResponse: Health status response
         """
+        if not self.hashed_token:
+            return GetHealthResponse(
+                code=ResponseCode.INTERNAL_SERVER_ERROR,
+                message="Server token is not configured",
+                timestamp=GetHealthResponse.current_timestamp(),
+                status=ServerHealthStatus.UNHEALTHY,
+            )
+
         return GetHealthResponse(
             code=ResponseCode.OK,
             message="Server is healthy",

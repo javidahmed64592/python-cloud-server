@@ -271,6 +271,16 @@ class TestHealthEndpoint:
         response = asyncio.run(mock_cloud_server.get_health(request))
         assert response.code == ResponseCode.OK
         assert response.message == "Server is healthy"
+        assert response.status == ServerHealthStatus.HEALTHY
+
+    def test_get_health_token_not_configured(self, mock_cloud_server: CloudServer) -> None:
+        """Test the /health endpoint method when token is not configured."""
+        mock_cloud_server.hashed_token = None
+        request = MagicMock()
+        response = asyncio.run(mock_cloud_server.get_health(request))
+        assert response.code == ResponseCode.INTERNAL_SERVER_ERROR
+        assert response.message == "Server token is not configured"
+        assert response.status == ServerHealthStatus.UNHEALTHY
 
     def test_health_endpoint(
         self, mock_cloud_server: CloudServer, mock_verify_token: MagicMock, mock_timestamp: str
@@ -280,7 +290,7 @@ class TestHealthEndpoint:
         app = mock_cloud_server.app
         client = TestClient(app)
 
-        response = client.get("/health", headers={"X-API-Key": "valid_key"})
+        response = client.get("/health")
         assert response.status_code == ResponseCode.OK
         assert response.json() == {
             "code": ResponseCode.OK,

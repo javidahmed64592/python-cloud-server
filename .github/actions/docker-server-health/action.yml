@@ -10,7 +10,7 @@ runs:
     - name: Health check
       run: |
         for i in {1..5}; do
-          if curl -k https://localhost:${{ inputs.port }}/api/metrics; then
+          if curl -k https://localhost:${{ inputs.port }}/api/health; then
             echo "Health check passed"
             break
           else

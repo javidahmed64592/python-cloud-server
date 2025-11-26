@@ -25,7 +25,7 @@ services:
           "CMD",
           "sh",
           "-c",
-          'python -c "import urllib.request; urllib.request.urlopen(''https://localhost:$${PORT:-8443}/api/metrics'', context=__import__(''ssl'')._create_unverified_context()).read()"',
+          'python -c "import urllib.request; urllib.request.urlopen(''https://localhost:$${PORT:-8443}/api/health'', context=__import__(''ssl'')._create_unverified_context()).read()"',
         ]
       interval: 30s
       timeout: 10s

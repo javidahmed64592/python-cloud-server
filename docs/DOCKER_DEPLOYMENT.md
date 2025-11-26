@@ -155,8 +155,8 @@ docker compose down -v
 **Base URL**: `https://localhost:8443`
 
 **API Endpoints**:
-- Health Check: `GET /api/health` (requires authentication)
-- Metrics: `GET /api/metrics` (no authentication required)
+- Health Check: `GET /api/health` (does not require token)
+- Metrics: `GET /api/metrics`
 
 **Example Request**:
 ```bash

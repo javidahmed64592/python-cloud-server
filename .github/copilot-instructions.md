@@ -76,7 +76,7 @@ docker compose down              # Stop and remove containers
 - **Stage 1 (builder)**: Uses `uv` to build wheel, copies prod config
 - **Stage 2 (runtime)**: Installs wheel, switches to non-root user, auto-generates certs on startup
 - **Build Args**: `ENV=prod` (chooses config), `PORT=443` (exposes port)
-- **Health Check**: Curls `/api/metrics` with unverified SSL context
+- **Health Check**: Curls `/api/health` with unverified SSL context
 
 ## Project-Specific Conventions
 

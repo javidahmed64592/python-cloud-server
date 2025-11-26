@@ -1,5 +1,6 @@
 """Configuration handling for the server."""
 
+import argparse
 import json
 import logging
 import sys
@@ -23,7 +24,6 @@ from python_cloud_server.models import AppConfigModel
 ROOT_DIR = here()
 LOG_DIR = ROOT_DIR / LOG_DIR_NAME
 LOG_FILE_PATH = LOG_DIR / LOG_FILE_NAME
-CONFIG_PATH = ROOT_DIR / CONFIG_FILE_NAME
 
 
 def setup_logging() -> None:
@@ -66,29 +66,46 @@ setup_logging()
 logger = logging.getLogger(__name__)
 
 
-def load_config() -> AppConfigModel:
+def load_config(config_file: str) -> AppConfigModel:
     """Load configuration from the config.json file.
 
+    :param str config_file: Name of the configuration file
     :return AppConfigModel: The validated configuration model
     :raise SystemExit: If configuration file is missing, invalid JSON, or fails validation
     """
-    if not CONFIG_PATH.exists():
-        logger.error("Configuration file not found: %s", CONFIG_PATH)
+    config_path = ROOT_DIR / config_file
+    if not config_path.exists():
+        logger.error("Configuration file not found: %s", config_path)
         sys.exit(1)
 
     config_data = {}
     try:
-        with CONFIG_PATH.open() as f:
+        with config_path.open() as f:
             config_data = json.load(f)
     except json.JSONDecodeError:
-        logger.exception("JSON parsing error: %s", CONFIG_PATH)
+        logger.exception("JSON parsing error: %s", config_path)
         sys.exit(1)
     except OSError:
-        logger.exception("JSON read error: %s", CONFIG_PATH)
+        logger.exception("JSON read error: %s", config_path)
         sys.exit(1)
 
     try:
         return AppConfigModel(**config_data)
     except ValidationError:
-        logger.exception("Invalid configuration in: %s", CONFIG_PATH)
+        logger.exception("Invalid configuration in: %s", config_path)
         sys.exit(1)
+
+
+def parse_args() -> argparse.Namespace:
+    """Parse command-line arguments.
+
+    :return argparse.Namespace: Parsed arguments
+    """
+    parser = argparse.ArgumentParser(description="Python Cloud Server")
+    parser.add_argument(
+        "--config-file",
+        type=str,
+        default=CONFIG_FILE_NAME,
+        help="Path to the configuration file (default: config.json)",
+    )
+    return parser.parse_args()

@@ -22,6 +22,7 @@ from python_cloud_server.constants import (
 from python_cloud_server.models import AppConfigModel
 
 ROOT_DIR = here()
+CONFIG_DIR = ROOT_DIR / "configuration"
 LOG_DIR = ROOT_DIR / LOG_DIR_NAME
 LOG_FILE_PATH = LOG_DIR / LOG_FILE_NAME
 
@@ -73,7 +74,7 @@ def load_config(config_file: str) -> AppConfigModel:
     :return AppConfigModel: The validated configuration model
     :raise SystemExit: If configuration file is missing, invalid JSON, or fails validation
     """
-    config_path = ROOT_DIR / config_file
+    config_path = CONFIG_DIR / config_file
     if not config_path.exists():
         logger.error("Configuration file not found: %s", config_path)
         sys.exit(1)

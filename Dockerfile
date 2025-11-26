@@ -10,7 +10,7 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 # Copy project files
 COPY python_cloud_server/ ./python_cloud_server/
 COPY .here .here
-COPY config.prod.json config.json
+COPY configuration/config.prod.json configuration/config.json
 COPY pyproject.toml LICENSE README.md ./
 
 # Build the wheel
@@ -43,8 +43,8 @@ RUN uv pip install --system --no-cache /tmp/*.whl && \
 COPY --chown=cloudserver:cloudserver .here .here
 
 # Conditionally copy the appropriate config file based on ENV
-COPY --chown=cloudserver:cloudserver config.json /tmp/config.dev.json
-COPY --chown=cloudserver:cloudserver config.prod.json /tmp/config.prod.json
+COPY --chown=cloudserver:cloudserver configuration/config.json /tmp/config.dev.json
+COPY --chown=cloudserver:cloudserver configuration/config.prod.json /tmp/config.prod.json
 RUN if [ "$ENV" = "prod" ]; then cp /tmp/config.prod.json /app/config.json; else cp /tmp/config.dev.json /app/config.json; fi && \
     chown cloudserver:cloudserver /app/config.json
 

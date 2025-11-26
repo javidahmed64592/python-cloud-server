@@ -58,7 +58,7 @@ RUN echo '#!/bin/sh\n\
     fi\n\
     if [ ! -f certs/cert.pem ] || [ ! -f certs/key.pem ]; then\n\
     echo "Generating self-signed certificates..."\n\
-    generate-certificate\n\
+    generate-certificate --config-file="$CONFIG_FILE"\n\
     fi\n\
     exec python-cloud-server --config-file="$CONFIG_FILE"' > /app/start.sh && \
     chmod +x /app/start.sh && \

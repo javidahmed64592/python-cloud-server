@@ -38,7 +38,7 @@ COPY --from=builder /build/dist/*.whl /tmp/
 RUN uv pip install --system --no-cache /tmp/*.whl && \
     rm /tmp/*.whl
 
-# Create configuration directory and copy config files
+# Create configuration directory
 RUN mkdir -p /app/configuration && \
     chown cloudserver:cloudserver /app/configuration
 
@@ -56,6 +56,10 @@ RUN echo '#!/bin/sh\n\
     CONFIG_FILE="config.prod.json"\n\
     else\n\
     CONFIG_FILE="config.json"\n\
+    fi\n\
+    if [ ! -f .env ]; then\n\
+    echo "Generating new token..."\n\
+    generate-new-token\n\
     fi\n\
     if [ ! -f certs/cert.pem ] || [ ! -f certs/key.pem ]; then\n\
     echo "Generating self-signed certificates..."\n\

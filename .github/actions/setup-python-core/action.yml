@@ -17,7 +17,3 @@ runs:
       run: |
         uv sync
       shell: bash
-    - name: Generate API token hash
-      run: |
-        uv run generate-new-token
-      shell: bash

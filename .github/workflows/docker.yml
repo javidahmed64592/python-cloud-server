@@ -59,6 +59,7 @@ jobs:
       - name: Start services with docker compose
         env:
           IMAGE_TAG: prod
+          ENV: prod
           PORT: 443
         run: |
           docker compose up -d

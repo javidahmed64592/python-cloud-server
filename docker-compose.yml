@@ -9,6 +9,7 @@ services:
     ports:
       - "${PORT:-8443}:${PORT:-8443}"
     environment:
+      - ENV=${ENV:-dev}
       # Load API token hash from .env file
       - API_TOKEN_HASH=${API_TOKEN_HASH}
     volumes:

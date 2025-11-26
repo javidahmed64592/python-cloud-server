@@ -25,7 +25,7 @@ jobs:
           chmod 777 certs logs
           sudo chown -R 1000:1000 certs logs
 
-      - name: Build and start services with docker-compose
+      - name: Build and start services with docker compose
         run: |
           docker compose up --build -d
           sleep 10  # Wait for services to start
@@ -73,9 +73,9 @@ jobs:
         run: |
           docker build --build-arg ENV=prod --build-arg PORT=443 -t python-cloud-server:prod .
 
-      - name: Run production container
+      - name: Start services with docker compose
         run: |
-          docker run -d --name python-cloud-server -e API_TOKEN_HASH=$(grep API_TOKEN_HASH .env | cut -d '=' -f2) -p 443:443 python-cloud-server:prod
+          docker compose up -d
           sleep 10  # Wait for container to start
 
       - name: Show server logs
@@ -96,5 +96,7 @@ jobs:
             fi
           done
 
-      - name: Stop container
-        run: docker stop python-cloud-server
+      - uses: ./.github/actions/check-docker-containers
+
+      - name: Stop services
+        run: docker compose down

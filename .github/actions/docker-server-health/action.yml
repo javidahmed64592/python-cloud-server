@@ -1,0 +1,24 @@
+name: Docker Server Health Check
+description: Perform health check on the server container
+inputs:
+  port:
+    description: Port to check
+    required: true
+runs:
+  using: composite
+  steps:
+    - name: Health check
+      run: |
+        for i in {1..5}; do
+          if curl -k https://localhost:${{ inputs.port }}/api/metrics; then
+            echo "Health check passed"
+            break
+          else
+            echo "Health check failed, attempt $i/5"
+            if [ $i -eq 5 ]; then
+              exit 1
+            fi
+            sleep 10
+          fi
+        done
+      shell: bash

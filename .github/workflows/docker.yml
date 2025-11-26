@@ -30,20 +30,9 @@ jobs:
       - name: Show server logs
         run: docker compose logs python-cloud-server
 
-      - name: Health check
-        run: |
-          for i in {1..5}; do
-            if curl -k https://localhost:8443/api/metrics; then
-              echo "Health check passed"
-              break
-            else
-              echo "Health check failed, attempt $i/5"
-              if [ $i -eq 5 ]; then
-                exit 1
-              fi
-              sleep 10
-            fi
-          done
+      - uses: ./.github/actions/docker-server-health
+        with:
+          port: 8443
 
       - uses: ./.github/actions/check-docker-containers
 
@@ -78,20 +67,9 @@ jobs:
       - name: Show server logs
         run: docker logs python-cloud-server
 
-      - name: Health check
-        run: |
-          for i in {1..5}; do
-            if curl -k https://localhost:443/api/metrics; then
-              echo "Health check passed"
-              break
-            else
-              echo "Health check failed, attempt $i/5"
-              if [ $i -eq 5 ]; then
-                exit 1
-              fi
-              sleep 10
-            fi
-          done
+      - uses: ./.github/actions/docker-server-health
+        with:
+          port: 443
 
       - uses: ./.github/actions/check-docker-containers
 

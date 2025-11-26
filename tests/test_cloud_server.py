@@ -38,6 +38,14 @@ def mock_verify_token() -> Generator[MagicMock, None, None]:
         yield mock_verify
 
 
+@pytest.fixture(autouse=True)
+def mock_load_hashed_token() -> Generator[MagicMock, None, None]:
+    """Mock the load_hashed_token function."""
+    with patch("python_cloud_server.cloud_server.load_hashed_token") as mock_load:
+        mock_load.return_value = "mock_hashed_token"
+        yield mock_load
+
+
 @pytest.fixture
 def mock_timestamp() -> Generator[str, None, None]:
     """Mock the current_timestamp method to return a fixed timestamp."""

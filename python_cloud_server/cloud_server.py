@@ -145,6 +145,22 @@ class CloudServer:
             return self.limiter.limit(self.config.rate_limit.rate_limit)(route_function)  # type: ignore[no-any-return]
         return route_function
 
+    def _add_unauthenticated_route(
+        self, endpoint: str, handler_function: Callable, response_model: type[BaseModel]
+    ) -> None:
+        """Add an unauthenticated API route.
+
+        :param str endpoint: The API endpoint path
+        :param Callable handler_function: The handler function for the endpoint
+        :param BaseModel response_model: The Pydantic model for the response
+        """
+        self.app.add_api_route(
+            endpoint,
+            handler_function,
+            methods=["GET"],
+            response_model=response_model,
+        )
+
     def _add_authenticated_route(
         self, endpoint: str, handler_function: Callable, response_model: type[BaseModel]
     ) -> None:
@@ -164,7 +180,7 @@ class CloudServer:
 
     def _setup_routes(self) -> None:
         """Set up API routes."""
-        self._add_authenticated_route("/health", self._limit_route(self.get_health), GetHealthResponse)
+        self._add_unauthenticated_route("/health", self._limit_route(self.get_health), GetHealthResponse)
 
     async def _verify_api_key(
         self, api_key: str | None = Security(APIKeyHeader(name=API_KEY_HEADER_NAME, auto_error=False))

@@ -70,6 +70,25 @@ class TestCloudServer:
         assert RequestLoggingMiddleware in middlewares
         assert SecurityHeadersMiddleware in middlewares
 
+    def test_add_unauthenticated_route(self, mock_cloud_server: CloudServer) -> None:
+        """Test _add_unauthenticated_route adds routes without authentication."""
+
+        # Define a test endpoint and handler
+        async def test_handler(request: Request) -> dict:
+            return {"test": "response"}
+
+        # Add a test route
+        mock_cloud_server._add_unauthenticated_route("/test", test_handler, BaseResponse)
+
+        # Verify the route was added
+        api_routes = [route for route in mock_cloud_server.app.routes if isinstance(route, APIRoute)]
+        routes = [route.path for route in api_routes]
+        assert "/test" in routes
+
+        # Find the specific route
+        test_route = next((route for route in api_routes if route.path == "/test"), None)
+        assert test_route is not None
+
     def test_add_authenticated_route(self, mock_cloud_server: CloudServer) -> None:
         """Test _add_authenticated_route adds routes with authentication."""
 
@@ -253,10 +272,10 @@ class TestHealthEndpoint:
         assert response.code == ResponseCode.OK
         assert response.message == "Server is healthy"
 
-    def test_health_endpoint_with_valid_api_key(
+    def test_health_endpoint(
         self, mock_cloud_server: CloudServer, mock_verify_token: MagicMock, mock_timestamp: str
     ) -> None:
-        """Test /health endpoint with valid API key returns 200."""
+        """Test /health endpoint returns 200."""
         mock_verify_token.return_value = True
         app = mock_cloud_server.app
         client = TestClient(app)
@@ -268,27 +287,6 @@ class TestHealthEndpoint:
             "message": "Server is healthy",
             "timestamp": mock_timestamp,
         }
-
-    def test_health_endpoint_without_api_key(self, mock_cloud_server: CloudServer) -> None:
-        """Test /health endpoint without API key returns 401."""
-        app = mock_cloud_server.app
-        client = TestClient(app)
-
-        response = client.get("/health")
-        assert response.status_code == ResponseCode.UNAUTHORIZED
-        assert response.json()["detail"] == "Missing API key"
-
-    def test_health_endpoint_with_invalid_api_key(
-        self, mock_cloud_server: CloudServer, mock_verify_token: MagicMock
-    ) -> None:
-        """Test /health endpoint with invalid API key returns 401."""
-        mock_verify_token.return_value = False
-        app = mock_cloud_server.app
-        client = TestClient(app)
-
-        response = client.get("/health", headers={"X-API-Key": "invalid_key"})
-        assert response.status_code == ResponseCode.UNAUTHORIZED
-        assert response.json()["detail"] == "Invalid API key"
 
 
 class TestCloudServerRun:

@@ -27,7 +27,6 @@ WORKDIR /app
 
 # Create non-root user for security
 RUN useradd -m -u 1000 cloudserver && \
-    mkdir -p /app/certs /app/logs && \
     chown -R cloudserver:cloudserver /app
 
 # Install uv in runtime stage
@@ -58,9 +57,6 @@ RUN echo '#!/bin/sh\n\
     exec python-cloud-server' > /app/start.sh && \
     chmod +x /app/start.sh && \
     chown cloudserver:cloudserver /app/start.sh
-
-# Ensure all directories have correct permissions
-RUN chown -R cloudserver:cloudserver /app/certs /app/logs
 
 # Switch to non-root user
 USER cloudserver

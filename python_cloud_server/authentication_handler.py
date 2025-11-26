@@ -54,17 +54,18 @@ def load_hashed_token() -> str | None:
     return os.getenv(ENV_VAR_NAME)
 
 
-def verify_token(token: str) -> bool:
+def verify_token(token: str, hashed_token: str) -> bool:
     """Verify a token against the stored hash.
 
     :param str token: The plain text token to verify
+    :param str hashed_token: The stored hashed token for comparison
     :return bool: True if the token matches the stored hash, False otherwise
     """
-    if (stored_hash := load_hashed_token()) is None:
+    if not hashed_token:
         msg = "No stored token hash found for verification."
         raise ValueError(msg)
 
-    return hash_token(token) == stored_hash
+    return hash_token(token) == hashed_token
 
 
 def generate_new_token() -> None:

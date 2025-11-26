@@ -17,7 +17,7 @@ from slowapi import Limiter
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
 
-from python_cloud_server.authentication_handler import verify_token
+from python_cloud_server.authentication_handler import load_hashed_token, verify_token
 from python_cloud_server.constants import API_KEY_HEADER_NAME, API_PREFIX, PACKAGE_NAME
 from python_cloud_server.middleware import RequestLoggingMiddleware, SecurityHeadersMiddleware
 from python_cloud_server.models import AppConfigModel, GetHealthResponse, ResponseCode
@@ -33,6 +33,7 @@ class CloudServer:
         """
         self.config = config
         self.logger = logging.getLogger(__name__)
+        self.hashed_token = load_hashed_token()
 
         package_metadata = metadata(PACKAGE_NAME)
 
@@ -112,6 +113,16 @@ class CloudServer:
             self.config.rate_limit.storage_uri or "in-memory",
         )
 
+    def _limit_route(self, route_function: Callable[..., Any]) -> Callable[..., Any]:
+        """Apply rate limiting to a route function if enabled.
+
+        :param Callable route_function: The route handler function
+        :return Callable: The potentially rate-limited route handler
+        """
+        if self.limiter is not None:
+            return self.limiter.limit(self.config.rate_limit.rate_limit)(route_function)  # type: ignore[no-any-return]
+        return route_function
+
     def _setup_metrics(self) -> None:
         """Set up Prometheus metrics."""
         self.instrumentator = Instrumentator()
@@ -134,16 +145,6 @@ class CloudServer:
         )
 
         self.logger.info("Prometheus metrics enabled: authentication, rate limiting")
-
-    def _limit_route(self, route_function: Callable[..., Any]) -> Callable[..., Any]:
-        """Apply rate limiting to a route function if enabled.
-
-        :param Callable route_function: The route handler function
-        :return Callable: The potentially rate-limited route handler
-        """
-        if self.limiter is not None:
-            return self.limiter.limit(self.config.rate_limit.rate_limit)(route_function)  # type: ignore[no-any-return]
-        return route_function
 
     def _add_unauthenticated_route(
         self, endpoint: str, handler_function: Callable, response_model: type[BaseModel]
@@ -199,7 +200,7 @@ class CloudServer:
             )
 
         try:
-            if not verify_token(api_key):
+            if not verify_token(api_key, self.hashed_token):
                 self.logger.warning("Invalid API key attempt!")
                 self.auth_failure_counter.labels(reason="invalid").inc()
                 raise HTTPException(

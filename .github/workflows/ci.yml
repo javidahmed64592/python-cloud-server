@@ -12,40 +12,28 @@ jobs:
   validate-pyproject:
     runs-on: ubuntu-latest
     steps:
-      - uses: ./.github/actions/setup-python
-      - name: Install dependencies
-        run: |
-          uv sync --extra dev
+      - uses: ./.github/actions/setup-python-dev
       - name: Validate pyproject.toml
         run: |
           uv run validate-pyproject pyproject.toml
   ruff:
     runs-on: ubuntu-latest
     steps:
-      - uses: ./.github/actions/setup-python
-      - name: Install dependencies
-        run: |
-          uv sync --extra dev
+      - uses: ./.github/actions/setup-python-dev
       - name: Check with ruff
         run: |
           uv run -m ruff check
   mypy:
     runs-on: ubuntu-latest
     steps:
-      - uses: ./.github/actions/setup-python
-      - name: Install dependencies
-        run: |
-          uv sync --extra dev
+      - uses: ./.github/actions/setup-python-dev
       - name: Check with mypy
         run: |
           uv run -m mypy .
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: ./.github/actions/setup-python
-      - name: Install dependencies
-        run: |
-          uv sync --extra dev
+      - uses: ./.github/actions/setup-python-dev
       - name: Test with pytest
         run: |
           uv run -m pytest --cov-report html
@@ -57,10 +45,7 @@ jobs:
   version-check:
     runs-on: ubuntu-latest
     steps:
-      - uses: ./.github/actions/setup-python
-      - name: Install dependencies
-        run: |
-          uv sync --extra dev
+      - uses: ./.github/actions/setup-python-dev
       - name: Check version consistency
         run: |
           echo "Checking version consistency across all package files..."

@@ -13,11 +13,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: ./.github/actions/setup-python
-      - name: Install dependencies
-        run: |
-          uv sync
-
+      - uses: ./.github/actions/setup-python-core
       - name: Generate API token hash
         run: |
           uv run generate-new-token
@@ -61,11 +57,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: ./.github/actions/setup-python
-      - name: Install dependencies
-        run: |
-          uv sync
-
+      - uses: ./.github/actions/setup-python-core
       - name: Generate API token hash
         run: |
           uv run generate-new-token

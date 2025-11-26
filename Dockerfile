@@ -44,11 +44,11 @@ RUN mkdir -p /app/configuration && \
 
 # Copy included files from installed wheel
 RUN SITE_PACKAGES_DIR=$(find /usr/local/lib -name "site-packages" -type d | head -1) && \
-    cp "${SITE_PACKAGES_DIR}/python_cloud_server/.here" /app/.here && \
-    cp "${SITE_PACKAGES_DIR}/python_cloud_server/configuration/config.json" /app/configuration/config.json && \
-    cp "${SITE_PACKAGES_DIR}/python_cloud_server/configuration/config.prod.json" /app/configuration/config.prod.json && \
-    cp "${SITE_PACKAGES_DIR}/python_cloud_server/LICENSE" /app/LICENSE && \
-    cp "${SITE_PACKAGES_DIR}/python_cloud_server/README.md" /app/README.md
+    cp "${SITE_PACKAGES_DIR}/.here" /app/.here && \
+    cp "${SITE_PACKAGES_DIR}/configuration/config.json" /app/configuration/config.json && \
+    cp "${SITE_PACKAGES_DIR}/configuration/config.prod.json" /app/configuration/config.prod.json && \
+    cp "${SITE_PACKAGES_DIR}/LICENSE" /app/LICENSE && \
+    cp "${SITE_PACKAGES_DIR}/README.md" /app/README.md
 
 # Create startup script
 RUN echo '#!/bin/sh\n\

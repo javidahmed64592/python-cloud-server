@@ -109,4 +109,4 @@ def parse_args() -> argparse.Namespace:
         default=CONFIG_FILE_NAME,
         help="Path to the configuration file (default: config.json)",
     )
-    return parser.parse_args()
+    return parser.parse_known_args()[0]

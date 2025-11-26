@@ -73,6 +73,16 @@ jobs:
         run: |
           docker build --build-arg ENV=prod --build-arg PORT=443 -t python-cloud-server:prod .
 
+      - name: Override docker-compose for production
+        run: |
+          cat > docker-compose.override.yml << 'EOF'
+          services:
+            python-cloud-server:
+              image: python-cloud-server:prod
+              ports:
+                - "443:443"
+          EOF
+
       - name: Start services with docker compose
         run: |
           docker compose up -d

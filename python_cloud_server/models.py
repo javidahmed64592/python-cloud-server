@@ -1,7 +1,7 @@
 """Pydantic models for the server."""
 
 from datetime import datetime
-from enum import IntEnum
+from enum import IntEnum, StrEnum, auto
 from pathlib import Path
 
 from pydantic import BaseModel, Field
@@ -94,6 +94,14 @@ class ResponseCode(IntEnum):
     SERVICE_UNAVAILABLE = 503
 
 
+class ServerHealthStatus(StrEnum):
+    """Server health status indicators."""
+
+    HEALTHY = auto()
+    DEGRADED = auto()
+    UNHEALTHY = auto()
+
+
 class BaseResponse(BaseModel):
     """Base response model for all API endpoints."""
 
@@ -109,3 +117,5 @@ class BaseResponse(BaseModel):
 
 class GetHealthResponse(BaseResponse):
     """Response model for the health endpoint."""
+
+    status: ServerHealthStatus = Field(..., description="Health status of the server")

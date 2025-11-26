@@ -20,7 +20,7 @@ from slowapi.util import get_remote_address
 from python_cloud_server.authentication_handler import load_hashed_token, verify_token
 from python_cloud_server.constants import API_KEY_HEADER_NAME, API_PREFIX, PACKAGE_NAME
 from python_cloud_server.middleware import RequestLoggingMiddleware, SecurityHeadersMiddleware
-from python_cloud_server.models import AppConfigModel, GetHealthResponse, ResponseCode
+from python_cloud_server.models import AppConfigModel, GetHealthResponse, ResponseCode, ServerHealthStatus
 
 
 class CloudServer:
@@ -227,6 +227,7 @@ class CloudServer:
             code=ResponseCode.OK,
             message="Server is healthy",
             timestamp=GetHealthResponse.current_timestamp(),
+            status=ServerHealthStatus.HEALTHY,
         )
 
     def run(self) -> None:

@@ -14,7 +14,7 @@ from prometheus_client import REGISTRY
 from python_cloud_server.cloud_server import CloudServer
 from python_cloud_server.constants import API_PREFIX
 from python_cloud_server.middleware import RequestLoggingMiddleware, SecurityHeadersMiddleware
-from python_cloud_server.models import AppConfigModel, BaseResponse, ResponseCode
+from python_cloud_server.models import AppConfigModel, BaseResponse, ResponseCode, ServerHealthStatus
 
 
 @pytest.fixture(autouse=True)
@@ -286,6 +286,7 @@ class TestHealthEndpoint:
             "code": ResponseCode.OK,
             "message": "Server is healthy",
             "timestamp": mock_timestamp,
+            "status": ServerHealthStatus.HEALTHY,
         }
 
 

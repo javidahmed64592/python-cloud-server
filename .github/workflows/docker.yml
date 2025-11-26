@@ -23,8 +23,6 @@ jobs:
           sudo chown -R 1000:1000 certs logs
 
       - name: Build and start services with docker compose
-        env:
-          PORT: 8443
         run: |
           docker compose up --build -d
           sleep 10  # Wait for services to start

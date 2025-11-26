@@ -9,8 +9,8 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
 # Copy project files
 COPY python_cloud_server/ ./python_cloud_server/
-COPY .here .here
-COPY pyproject.toml LICENSE README.md ./
+COPY configuration ./configuration/
+COPY pyproject.toml .here LICENSE README.md ./
 
 # Build the wheel
 RUN uv build --wheel
@@ -38,16 +38,17 @@ COPY --from=builder /build/dist/*.whl /tmp/
 RUN uv pip install --system --no-cache /tmp/*.whl && \
     rm /tmp/*.whl
 
-# Copy runtime files (.here is needed for pyhere to find project root)
-COPY --chown=cloudserver:cloudserver .here .here
-
 # Create configuration directory and copy config files
 RUN mkdir -p /app/configuration && \
     chown cloudserver:cloudserver /app/configuration
 
-# Copy config files
-COPY --chown=cloudserver:cloudserver configuration/config.json /app/configuration/config.json
-COPY --chown=cloudserver:cloudserver configuration/config.prod.json /app/configuration/config.prod.json
+# Copy included files from installed wheel
+RUN SITE_PACKAGES_DIR=$(find /usr/local/lib -name "site-packages" -type d | head -1) && \
+    cp "${SITE_PACKAGES_DIR}/python_cloud_server/.here" /app/.here && \
+    cp "${SITE_PACKAGES_DIR}/python_cloud_server/configuration/config.json" /app/configuration/config.json && \
+    cp "${SITE_PACKAGES_DIR}/python_cloud_server/configuration/config.prod.json" /app/configuration/config.prod.json && \
+    cp "${SITE_PACKAGES_DIR}/python_cloud_server/LICENSE" /app/LICENSE && \
+    cp "${SITE_PACKAGES_DIR}/python_cloud_server/README.md" /app/README.md
 
 # Create startup script
 RUN echo '#!/bin/sh\n\

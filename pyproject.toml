@@ -47,6 +47,15 @@ python-cloud-server = "python_cloud_server.main:run"
 generate-certificate = "python_cloud_server.certificate_handler:generate_self_signed_certificate"
 generate-new-token = "python_cloud_server.authentication_handler:generate_new_token"
 
+[tool.hatch.build]
+include = [
+  "configuration/**",
+  "python_cloud_server/**",
+  ".here",
+  "LICENSE",
+  "README.md",
+]
+
 [tool.pytest.ini_options]
 addopts = [
     "-vv",

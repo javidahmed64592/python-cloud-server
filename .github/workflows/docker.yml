@@ -54,7 +54,7 @@ jobs:
       - name: Check Prometheus is running
         run: |
           for i in {1..5}; do
-            if curl -k https://localhost:9090; then
+            if curl http://localhost:9090; then
               echo "Health check passed"
               break
             else
@@ -69,7 +69,7 @@ jobs:
       - name: Check Grafana is running
         run: |
           for i in {1..5}; do
-            if curl -k https://localhost:3000; then
+            if curl http://localhost:3000; then
               echo "Health check passed"
               break
             else

@@ -1,9 +1,29 @@
 name: Check Docker Containers
 description: Checks the status of Docker containers
 
+inputs:
+  port:
+    description: Port to check
+    required: true
+
 runs:
   using: composite
   steps:
+    - name: Check server is running
+      run: |
+        for i in {1..5}; do
+          if curl -k https://localhost:${{ inputs.port }}/api/health; then
+            echo "Health check passed"
+            break
+          else
+            echo "Health check failed, attempt $i/5"
+            if [ $i -eq 5 ]; then
+              exit 1
+            fi
+            sleep 5
+          fi
+        done
+      shell: bash
     - name: Check Prometheus is running
       run: |
         for i in {1..5}; do

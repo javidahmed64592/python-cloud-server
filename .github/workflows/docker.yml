@@ -30,11 +30,9 @@ jobs:
       - name: Show server logs
         run: docker compose logs python-cloud-server
 
-      - uses: ./.github/actions/docker-server-health
+      - uses: ./.github/actions/docker-check-containers
         with:
           port: 8443
-
-      - uses: ./.github/actions/docker-check-containers
 
       - name: Stop services
         run: docker compose down
@@ -68,11 +66,9 @@ jobs:
       - name: Show server logs
         run: docker logs python-cloud-server
 
-      - uses: ./.github/actions/docker-server-health
+      - uses: ./.github/actions/docker-check-containers
         with:
           port: 443
-
-      - uses: ./.github/actions/docker-check-containers
 
       - name: Stop services
         run: docker compose down

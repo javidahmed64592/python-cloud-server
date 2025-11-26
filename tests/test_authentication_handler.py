@@ -101,7 +101,7 @@ class TestAuthenticationHandler:
     def test_verify_token_no_stored_hash(self) -> None:
         """Test the verify_token function when no stored hash is provided."""
         with pytest.raises(ValueError, match="No stored token hash found for verification."):
-            verify_token("sometoken", None)
+            verify_token("sometoken", "")
 
     def test_generate_new_token(
         self,

@@ -45,13 +45,13 @@ def save_hashed_token(token: str) -> None:
     dotenv.set_key(ENV_FILE, ENV_VAR_NAME, hashed)
 
 
-def load_hashed_token() -> str | None:
+def load_hashed_token() -> str:
     """Load the hashed token from environment variable.
 
-    :return str | None: The hashed token string, or None if not found
+    :return str: The hashed token string, or an empty string if not found
     """
     dotenv.load_dotenv(ENV_FILE)
-    return os.getenv(ENV_VAR_NAME)
+    return os.getenv(ENV_VAR_NAME, "")
 
 
 def verify_token(token: str, hashed_token: str) -> bool:

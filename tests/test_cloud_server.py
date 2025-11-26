@@ -283,7 +283,7 @@ class TestHealthEndpoint:
 
     def test_get_health_token_not_configured(self, mock_cloud_server: CloudServer) -> None:
         """Test the /health endpoint method when token is not configured."""
-        mock_cloud_server.hashed_token = None
+        mock_cloud_server.hashed_token = ""
         request = MagicMock()
         response = asyncio.run(mock_cloud_server.get_health(request))
         assert response.code == ResponseCode.INTERNAL_SERVER_ERROR

@@ -21,12 +21,12 @@ scrape_configs:
     tls_config:
       insecure_skip_verify: true
     static_configs:
-      - targets: ['python-cloud-server:${PROMETHEUS_PORT}']
+      - targets: ['python-cloud-server:443']
         labels:
           service: 'cloud-storage'
-          environment: 'development'
+          environment: 'prod'
 
-    metrics_path: '/api/metrics'
+    metrics_path: '/metrics'
 
   # Prometheus self-monitoring
   - job_name: 'prometheus'

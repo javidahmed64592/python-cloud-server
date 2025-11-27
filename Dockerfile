@@ -60,6 +60,7 @@ RUN echo '#!/bin/sh\n\
     if [ ! -f .env ]; then\n\
     echo "Generating new token..."\n\
     generate-new-token\n\
+    export $(grep -v "^#" .env | xargs)\n\
     fi\n\
     if [ ! -f certs/cert.pem ] || [ ! -f certs/key.pem ]; then\n\
     echo "Generating self-signed certificates..."\n\

@@ -10,8 +10,8 @@ services:
       - "${PORT:-8443}:${PORT:-8443}"
     environment:
       - ENV=${ENV:-dev}
-      # Load API token hash from .env file
-      - API_TOKEN_HASH=${API_TOKEN_HASH}
+      # Load API token hash from .env file (optional - will be generated if missing)
+      - API_TOKEN_HASH=${API_TOKEN_HASH:-}
     volumes:
       # Persist certificates and logs
       - ./certs:/app/certs

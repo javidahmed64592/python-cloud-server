@@ -1,7 +1,7 @@
 services:
   # Python Cloud Server
   python-cloud-server:
-    image: python-cloud-server:${IMAGE_TAG:-dev}
+    image: python-cloud-server:${ENV:-dev}
     build:
       context: .
       dockerfile: Dockerfile

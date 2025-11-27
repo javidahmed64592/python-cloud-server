@@ -10,7 +10,7 @@ import uvicorn
 from fastapi import FastAPI, HTTPException, Request, Security
 from fastapi.responses import JSONResponse
 from fastapi.security import APIKeyHeader
-from prometheus_client import Counter
+from prometheus_client import Counter, Gauge
 from prometheus_fastapi_instrumentator import Instrumentator
 from pydantic import BaseModel
 from slowapi import Limiter
@@ -129,6 +129,12 @@ class CloudServer:
         self.instrumentator.instrument(self.app).expose(self.app, endpoint="/metrics")
 
         # Set up custom metrics
+        self.token_configured_gauge = Gauge(
+            "token_configured",
+            "Whether API token is properly configured (1=configured, 0=not configured)",
+        )
+        self.token_configured_gauge.set(1 if self.hashed_token else 0)
+
         self.auth_success_counter = Counter(
             "auth_success_total",
             "Total number of successful authentication attempts",
@@ -144,7 +150,7 @@ class CloudServer:
             ["endpoint"],
         )
 
-        self.logger.info("Prometheus metrics enabled: authentication, rate limiting")
+        self.logger.info("Prometheus metrics enabled.")
 
     def _add_unauthenticated_route(
         self, endpoint: str, handler_function: Callable, response_model: type[BaseModel]
@@ -224,6 +230,7 @@ class CloudServer:
         :return GetHealthResponse: Health status response
         """
         if not self.hashed_token:
+            self.token_configured_gauge.set(0)
             return GetHealthResponse(
                 code=ResponseCode.INTERNAL_SERVER_ERROR,
                 message="Server token is not configured",
@@ -231,6 +238,7 @@ class CloudServer:
                 status=ServerHealthStatus.UNHEALTHY,
             )
 
+        self.token_configured_gauge.set(1)
         return GetHealthResponse(
             code=ResponseCode.OK,
             message="Server is healthy",

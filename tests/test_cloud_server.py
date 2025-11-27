@@ -178,9 +178,20 @@ class TestPrometheusMetrics:
 
     def test_metrics_setup(self, mock_cloud_server: CloudServer) -> None:
         """Test that Prometheus metrics are properly initialized."""
+        assert mock_cloud_server.token_configured_gauge is not None
         assert mock_cloud_server.auth_success_counter is not None
         assert mock_cloud_server.auth_failure_counter is not None
         assert mock_cloud_server.rate_limit_exceeded_counter is not None
+
+    def test_set_token_configured_gauge(self, mock_cloud_server: CloudServer) -> None:
+        """Test that token_configured_gauge is set correctly."""
+        # Initially, the token is configured in the mock_cloud_server fixture
+        assert mock_cloud_server.token_configured_gauge._value.get() == 1
+
+        # Simulate token not configured
+        mock_cloud_server.hashed_token = ""
+        asyncio.run(mock_cloud_server.get_health(MagicMock()))
+        assert mock_cloud_server.token_configured_gauge._value.get() == 0
 
     def test_auth_success_metric_incremented(
         self, mock_cloud_server: CloudServer, mock_verify_token: MagicMock
@@ -277,18 +288,23 @@ class TestHealthEndpoint:
         """Test the /health endpoint method."""
         request = MagicMock()
         response = asyncio.run(mock_cloud_server.get_health(request))
+
         assert response.code == ResponseCode.OK
         assert response.message == "Server is healthy"
         assert response.status == ServerHealthStatus.HEALTHY
+        assert mock_cloud_server.token_configured_gauge._value.get() == 1
 
     def test_get_health_token_not_configured(self, mock_cloud_server: CloudServer) -> None:
         """Test the /health endpoint method when token is not configured."""
         mock_cloud_server.hashed_token = ""
         request = MagicMock()
+
         response = asyncio.run(mock_cloud_server.get_health(request))
+
         assert response.code == ResponseCode.INTERNAL_SERVER_ERROR
         assert response.message == "Server token is not configured"
         assert response.status == ServerHealthStatus.UNHEALTHY
+        assert mock_cloud_server.token_configured_gauge._value.get() == 0
 
     def test_health_endpoint(
         self, mock_cloud_server: CloudServer, mock_verify_token: MagicMock, mock_timestamp: str

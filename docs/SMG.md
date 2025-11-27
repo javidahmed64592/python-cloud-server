@@ -99,7 +99,7 @@ Start the FastAPI server:
 uv run python-cloud-server
 ```
 
-The backend will be available at `http://localhost:8443/api` by default.
+The backend will be available at `http://localhost:443/api` by default.
 
 ### Testing, Linting, and Type Checking
 

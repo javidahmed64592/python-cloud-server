@@ -7,7 +7,7 @@ services:
       dockerfile: Dockerfile
     container_name: python-cloud-server
     ports:
-      - "${PORT:-8443}:${PORT:-8443}"
+      - "443:443"
     environment:
       - ENV=${ENV:-dev}
       # Load API token hash from .env file (optional - will be generated if missing)
@@ -25,7 +25,7 @@ services:
           "CMD",
           "sh",
           "-c",
-          'python -c "import urllib.request; urllib.request.urlopen(''https://localhost:$${PORT:-8443}/api/health'', context=__import__(''ssl'')._create_unverified_context()).read()"',
+          'python -c "import urllib.request; urllib.request.urlopen(''https://localhost:443/api/health'', context=__import__(''ssl'')._create_unverified_context()).read()"',
         ]
       interval: 30s
       timeout: 10s

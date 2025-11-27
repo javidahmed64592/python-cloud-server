@@ -14,7 +14,7 @@ FastAPI-based secure HTTPS server with production-grade security patterns. Curre
 
 ### Configuration System
 
-- `config.json` (dev) / `config.prod.json` (prod) loaded via `config.py:load_config()`
+- `config.json` loaded via `config.py:load_config()`
 - Validated using Pydantic models in `models.py` (AppConfigModel hierarchy)
 - Logging configured automatically on `config.py` import with rotating file handler
 - Environment variables stored in `.env` (API_TOKEN_HASH only, never commit)
@@ -54,7 +54,7 @@ uv run generate-certificate      # Create self-signed SSL certs (certs/ dir)
 uv run generate-new-token        # Generate API key, save hash to .env
 
 # Development
-uv run python-cloud-server       # Start server (https://localhost:8443/api)
+uv run python-cloud-server       # Start server (https://localhost:443/api)
 uv run -m pytest                 # Run tests with coverage
 uv run -m mypy .                 # Type checking
 uv run -m ruff check .           # Linting
@@ -77,9 +77,9 @@ docker compose down              # Stop and remove containers
 
 - **Stage 1 (builder)**: Uses `uv` to build wheel, copies `configuration/` directory and other required files
 - **Stage 2 (runtime)**: Installs wheel, copies runtime files (.here, configs, LICENSE, README.md) from wheel to /app
-- **Startup Script**: `/app/start.sh` selects config based on ENV, generates token/certs if missing, starts server
-- **Config Selection**: Uses `config.prod.json` if ENV=prod, otherwise `config.json`
-- **Build Args**: `ENV=prod` (chooses config), `PORT=443` (exposes port)
+- **Startup Script**: `/app/start.sh` generates token/certs if missing, starts server
+- **Config Selection**: Uses `config.json` for all environments
+- **Build Args**: `PORT=443` (exposes port)
 - **Health Check**: Curls `/api/health` with unverified SSL context (no auth required)
 - **User**: Switches to non-root user `cloudserver` (UID 1000)
 
@@ -165,7 +165,6 @@ All PRs must pass:
 
 ### Configuration Files
 
-- `configuration/config.json` - Development config (default)
-- `configuration/config.prod.json` - Production config (used in Docker with ENV=prod)
+- `configuration/config.json` - Configuration (used for all environments)
 - `.env` - API token hash (auto-created by generate-new-token)
-- **Docker**: Startup script selects config file based on ENV variable
+- **Docker**: Startup script uses config.json for all environments

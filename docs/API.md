@@ -51,7 +51,7 @@ The server uses Python's built-in logging system with both console and rotating 
 
 **Example**:
 ```
-[22/11/2025 | 14:30:45] (INFO) cloud_server: Server starting on https://localhost:8443/api
+[22/11/2025 | 14:30:45] (INFO) cloud_server: Server starting on https://localhost:443/api
 [22/11/2025 | 14:30:46] (INFO) request_logging_middleware: Request: GET /api/health from 192.168.1.100
 [22/11/2025 | 14:30:46] (INFO) request_logging_middleware: Response: GET /api/health -> 200
 ```
@@ -186,7 +186,7 @@ See the [Docker documentation](./DOCKER_DEPLOYMENT.md) for information on how to
 
 **Example Request**:
 ```bash
-curl -k https://localhost:8443/api/health
+curl -k https://localhost:443/api/health
 ```
 
 **Example Response** (200 OK - Healthy):

@@ -97,7 +97,7 @@ The Docker startup script automatically handles token generation with the follow
 
 The `docker-compose.yml` defines three services:
 
-1. **python-cloud-server** (Port 8443)
+1. **python-cloud-server** (Port 443)
    - FastAPI application with HTTPS
    - Auto-generates self-signed certificates on first run (if not present)
    - Uses existing `.env` file if available, otherwise generates a new token on startup
@@ -171,7 +171,7 @@ docker compose down -v
 
 ### Python Cloud Server
 
-**Base URL**: `https://localhost:8443`
+**Base URL**: `https://localhost:443`
 
 **API Endpoints**:
 - Health Check: `GET /api/health` (publicly accessible, no authentication required)
@@ -180,7 +180,7 @@ docker compose down -v
 **Example Request**:
 ```bash
 # Using curl (with self-signed cert)
-curl -k https://localhost:8443/api/health
+curl -k https://localhost:443/api/health
 ```
 
 ### Prometheus

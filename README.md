@@ -73,7 +73,7 @@ The server uses a `config.json` file for configuration:
 {
   "server": {
     "host": "0.0.0.0",
-    "port": 8443
+    "port": 443
   },
   "security": {
     "hsts_max_age": 31536000,
@@ -113,11 +113,11 @@ The server uses a `config.json` file for configuration:
 uv run python-cloud-server
 ```
 
-The server will start on `https://localhost:8443` with the API mounted at `https://localhost:8443/api`.
+The server will start on `https://localhost:443` with the API mounted at `https://localhost:443/api`.
 
 **Testing the API**:
 ```sh
-curl -k https://localhost:8443/api/health
+curl -k https://localhost:443/api/health
 ```
 
 Expected response:
@@ -142,7 +142,7 @@ uv run generate-new-token
 docker compose up -d
 
 # 3. Access services:
-# - API Server: https://localhost:8443/api
+# - API Server: https://localhost:443/api
 # - Prometheus: http://localhost:9090
 # - Grafana: http://localhost:3000 (admin/admin)
 ```
@@ -170,7 +170,7 @@ The server exposes Prometheus-compatible metrics at `/api/metrics`:
 
 **Access Metrics:**
 ```sh
-curl -k https://localhost:8443/api/metrics
+curl -k https://localhost:443/api/metrics
 ```
 
 **Visualization:**
@@ -180,8 +180,8 @@ Use the Docker Compose setup to access pre-built Grafana dashboards at `http://l
 
 Interactive API documentation is available when the server is running:
 
-- **Swagger UI**: https://localhost:8443/api/docs
-- **ReDoc**: https://localhost:8443/api/redoc
+- **Swagger UI**: https://localhost:443/api/docs
+- **ReDoc**: https://localhost:443/api/redoc
 
 For server-specific endpoint information, see [`docs/API.md`](docs/API.md).
 

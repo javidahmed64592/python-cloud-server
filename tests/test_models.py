@@ -14,6 +14,7 @@ from python_cloud_server.models import (
     ResponseCode,
     SecurityConfigModel,
     ServerConfigModel,
+    ServerHealthStatus,
 )
 
 
@@ -112,7 +113,7 @@ class TestAppConfigModel:
 
 
 # API Response Models
-class TestResonseCode:
+class TestResponseCode:
     """Unit tests for the ResponseCode enum."""
 
     @pytest.mark.parametrize(
@@ -136,6 +137,22 @@ class TestResonseCode:
         assert response_code.value == status_code
 
 
+class TestServerHealthStatus:
+    """Unit tests for the ServerHealthStatus enum."""
+
+    @pytest.mark.parametrize(
+        ("server_health_status", "status"),
+        [
+            (ServerHealthStatus.HEALTHY, "HEALTHY"),
+            (ServerHealthStatus.DEGRADED, "DEGRADED"),
+            (ServerHealthStatus.UNHEALTHY, "UNHEALTHY"),
+        ],
+    )
+    def test_enum_values(self, server_health_status: ServerHealthStatus, status: str) -> None:
+        """Test the enum values."""
+        assert server_health_status.name == status
+
+
 class TestBaseResponse:
     """Unit tests for the BaseResponse class."""
 
@@ -155,6 +172,7 @@ class TestGetHealthResponse:
             "code": ResponseCode.OK,
             "message": "Server is healthy",
             "timestamp": "2025-11-22T12:00:00Z",
+            "status": ServerHealthStatus.HEALTHY,
         }
         response = GetHealthResponse(**config_dict)
         assert response.model_dump() == config_dict

@@ -117,8 +117,7 @@ The server will start on `https://localhost:8443` with the API mounted at `https
 
 **Testing the API**:
 ```sh
-# Replace YOUR_TOKEN with the token from step 2
-curl -k -H "X-API-Key: YOUR_TOKEN" https://localhost:8443/api/health
+curl -k https://localhost:8443/api/health
 ```
 
 Expected response:
@@ -126,7 +125,8 @@ Expected response:
 {
   "code": 200,
   "message": "Server is healthy",
-  "timestamp": "2025-11-22T12:00:00.000000Z"
+  "timestamp": "2025-11-22T12:00:00.000000Z",
+  "status": "HEALTHY"
 }
 ```
 

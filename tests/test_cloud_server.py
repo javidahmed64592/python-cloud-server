@@ -14,7 +14,7 @@ from prometheus_client import REGISTRY
 from python_cloud_server.cloud_server import CloudServer
 from python_cloud_server.constants import API_PREFIX
 from python_cloud_server.middleware import RequestLoggingMiddleware, SecurityHeadersMiddleware
-from python_cloud_server.models import AppConfigModel, BaseResponse, ResponseCode
+from python_cloud_server.models import AppConfigModel, BaseResponse, ResponseCode, ServerHealthStatus
 
 
 @pytest.fixture(autouse=True)
@@ -36,6 +36,14 @@ def mock_verify_token() -> Generator[MagicMock, None, None]:
     """Mock the verify_token function."""
     with patch("python_cloud_server.cloud_server.verify_token") as mock_verify:
         yield mock_verify
+
+
+@pytest.fixture(autouse=True)
+def mock_load_hashed_token() -> Generator[MagicMock, None, None]:
+    """Mock the load_hashed_token function."""
+    with patch("python_cloud_server.cloud_server.load_hashed_token") as mock_load:
+        mock_load.return_value = "mock_hashed_token"
+        yield mock_load
 
 
 @pytest.fixture
@@ -69,6 +77,25 @@ class TestCloudServer:
         middlewares = [middleware.cls for middleware in mock_cloud_server.app.user_middleware]
         assert RequestLoggingMiddleware in middlewares
         assert SecurityHeadersMiddleware in middlewares
+
+    def test_add_unauthenticated_route(self, mock_cloud_server: CloudServer) -> None:
+        """Test _add_unauthenticated_route adds routes without authentication."""
+
+        # Define a test endpoint and handler
+        async def test_handler(request: Request) -> dict:
+            return {"test": "response"}
+
+        # Add a test route
+        mock_cloud_server._add_unauthenticated_route("/test", test_handler, BaseResponse)
+
+        # Verify the route was added
+        api_routes = [route for route in mock_cloud_server.app.routes if isinstance(route, APIRoute)]
+        routes = [route.path for route in api_routes]
+        assert "/test" in routes
+
+        # Find the specific route
+        test_route = next((route for route in api_routes if route.path == "/test"), None)
+        assert test_route is not None
 
     def test_add_authenticated_route(self, mock_cloud_server: CloudServer) -> None:
         """Test _add_authenticated_route adds routes with authentication."""
@@ -151,9 +178,20 @@ class TestPrometheusMetrics:
 
     def test_metrics_setup(self, mock_cloud_server: CloudServer) -> None:
         """Test that Prometheus metrics are properly initialized."""
+        assert mock_cloud_server.token_configured_gauge is not None
         assert mock_cloud_server.auth_success_counter is not None
         assert mock_cloud_server.auth_failure_counter is not None
         assert mock_cloud_server.rate_limit_exceeded_counter is not None
+
+    def test_set_token_configured_gauge(self, mock_cloud_server: CloudServer) -> None:
+        """Test that token_configured_gauge is set correctly."""
+        # Initially, the token is configured in the mock_cloud_server fixture
+        assert mock_cloud_server.token_configured_gauge._value.get() == 1
+
+        # Simulate token not configured
+        mock_cloud_server.hashed_token = ""
+        asyncio.run(mock_cloud_server.get_health(MagicMock()))
+        assert mock_cloud_server.token_configured_gauge._value.get() == 0
 
     def test_auth_success_metric_incremented(
         self, mock_cloud_server: CloudServer, mock_verify_token: MagicMock
@@ -250,45 +288,40 @@ class TestHealthEndpoint:
         """Test the /health endpoint method."""
         request = MagicMock()
         response = asyncio.run(mock_cloud_server.get_health(request))
+
         assert response.code == ResponseCode.OK
         assert response.message == "Server is healthy"
+        assert response.status == ServerHealthStatus.HEALTHY
+        assert mock_cloud_server.token_configured_gauge._value.get() == 1
 
-    def test_health_endpoint_with_valid_api_key(
+    def test_get_health_token_not_configured(self, mock_cloud_server: CloudServer) -> None:
+        """Test the /health endpoint method when token is not configured."""
+        mock_cloud_server.hashed_token = ""
+        request = MagicMock()
+
+        response = asyncio.run(mock_cloud_server.get_health(request))
+
+        assert response.code == ResponseCode.INTERNAL_SERVER_ERROR
+        assert response.message == "Server token is not configured"
+        assert response.status == ServerHealthStatus.UNHEALTHY
+        assert mock_cloud_server.token_configured_gauge._value.get() == 0
+
+    def test_health_endpoint(
         self, mock_cloud_server: CloudServer, mock_verify_token: MagicMock, mock_timestamp: str
     ) -> None:
-        """Test /health endpoint with valid API key returns 200."""
+        """Test /health endpoint returns 200."""
         mock_verify_token.return_value = True
         app = mock_cloud_server.app
         client = TestClient(app)
 
-        response = client.get("/health", headers={"X-API-Key": "valid_key"})
+        response = client.get("/health")
         assert response.status_code == ResponseCode.OK
         assert response.json() == {
             "code": ResponseCode.OK,
             "message": "Server is healthy",
             "timestamp": mock_timestamp,
+            "status": ServerHealthStatus.HEALTHY,
         }
-
-    def test_health_endpoint_without_api_key(self, mock_cloud_server: CloudServer) -> None:
-        """Test /health endpoint without API key returns 401."""
-        app = mock_cloud_server.app
-        client = TestClient(app)
-
-        response = client.get("/health")
-        assert response.status_code == ResponseCode.UNAUTHORIZED
-        assert response.json()["detail"] == "Missing API key"
-
-    def test_health_endpoint_with_invalid_api_key(
-        self, mock_cloud_server: CloudServer, mock_verify_token: MagicMock
-    ) -> None:
-        """Test /health endpoint with invalid API key returns 401."""
-        mock_verify_token.return_value = False
-        app = mock_cloud_server.app
-        client = TestClient(app)
-
-        response = client.get("/health", headers={"X-API-Key": "invalid_key"})
-        assert response.status_code == ResponseCode.UNAUTHORIZED
-        assert response.json()["detail"] == "Invalid API key"
 
 
 class TestCloudServerRun:

@@ -23,8 +23,10 @@ FastAPI-based secure HTTPS server with production-grade security patterns. Curre
 
 - **Token Generation**: `uv run generate-new-token` creates secure token + SHA-256 hash
 - **Hash Storage**: Only hash stored in `.env` (API_TOKEN_HASH), raw token shown once
+- **Token Loading**: `load_hashed_token()` loads hash from .env on server startup, stored in `CloudServer.hashed_token`
 - **Verification Flow**: Request → `_verify_api_key()` dependency → `verify_token()` → hash comparison
 - **Metrics**: Success/failure counters with labeled reasons (missing/invalid/error)
+- **Health Endpoint**: `/api/health` does NOT require authentication, reports unhealthy if token not configured
 - Header: `X-API-Key` (defined in `constants.API_KEY_HEADER_NAME`)
 
 ### Rate Limiting
@@ -73,10 +75,13 @@ docker compose down              # Stop and remove containers
 
 ### Docker Multi-Stage Build
 
-- **Stage 1 (builder)**: Uses `uv` to build wheel, copies prod config
-- **Stage 2 (runtime)**: Installs wheel, switches to non-root user, auto-generates certs on startup
+- **Stage 1 (builder)**: Uses `uv` to build wheel, copies `configuration/` directory and other required files
+- **Stage 2 (runtime)**: Installs wheel, copies runtime files (.here, configs, LICENSE, README.md) from wheel to /app
+- **Startup Script**: `/app/start.sh` selects config based on ENV, generates token/certs if missing, starts server
+- **Config Selection**: Uses `config.prod.json` if ENV=prod, otherwise `config.json`
 - **Build Args**: `ENV=prod` (chooses config), `PORT=443` (exposes port)
-- **Health Check**: Curls `/api/metrics` with unverified SSL context
+- **Health Check**: Curls `/api/health` with unverified SSL context (no auth required)
+- **User**: Switches to non-root user `cloudserver` (UID 1000)
 
 ## Project-Specific Conventions
 
@@ -98,8 +103,9 @@ docker compose down              # Stop and remove containers
 
 - **Prefix**: All routes under `/api` (API_PREFIX constant)
 - **Authentication**: Applied via `dependencies=[Security(self._verify_api_key)]` in route registration
+- **Unauthenticated Endpoints**: `/health` and `/metrics` do not require authentication
 - **Response Models**: All endpoints return `BaseResponse` subclasses with code/message/timestamp
-- **Metrics Endpoint**: `/metrics` excluded from authentication (Prometheus scraping)
+- **Health Status**: `/health` includes `status` field (HEALTHY/DEGRADED/UNHEALTHY), reports unhealthy if no token configured
 
 ### Logging Format
 
@@ -128,11 +134,19 @@ docker compose down              # Stop and remove containers
 
 All PRs must pass:
 
+**CI Workflow:**
+
 1. `validate-pyproject` - pyproject.toml schema validation
 2. `ruff` - linting (120 char line length, strict rules in pyproject.toml)
 3. `mypy` - 100% type coverage (strict mode)
 4. `pytest` - 99% code coverage, HTML report uploaded
 5. `version-check` - pyproject.toml vs uv.lock version consistency
+
+**Docker Workflow:**
+
+1. `docker-development` - Build and test dev image with docker compose
+2. `docker-production` - Build and test prod image with ENV=prod, PORT=443
+3. **Reusable Action**: `.github/actions/docker-check-containers` checks health of Python Cloud Server, Prometheus, and Grafana
 
 ## Quick Reference
 
@@ -151,6 +165,7 @@ All PRs must pass:
 
 ### Configuration Files
 
-- `config.json` - Development config (default)
-- `config.prod.json` - Production config (used in Docker with ENV=prod)
+- `configuration/config.json` - Development config (default)
+- `configuration/config.prod.json` - Production config (used in Docker with ENV=prod)
 - `.env` - API token hash (auto-created by generate-new-token)
+- **Docker**: Startup script selects config file based on ENV variable

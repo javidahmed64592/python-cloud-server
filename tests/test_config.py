@@ -7,6 +7,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from python_cloud_server.config import load_config, setup_logging
+from python_cloud_server.constants import CONFIG_FILE_NAME
 from python_cloud_server.models import AppConfigModel
 
 
@@ -57,7 +58,7 @@ class TestLoadConfig:
         mock_exists.return_value = True
         mock_open_file.return_value.read.return_value = json.dumps(mock_app_config.model_dump())
 
-        config = load_config()
+        config = load_config(CONFIG_FILE_NAME)
 
         assert isinstance(config, AppConfigModel)
         assert config == mock_app_config
@@ -72,7 +73,7 @@ class TestLoadConfig:
         mock_exists.return_value = False
 
         with pytest.raises(SystemExit):
-            load_config()
+            load_config(CONFIG_FILE_NAME)
 
         mock_sys_exit.assert_called_once_with(1)
 
@@ -87,7 +88,7 @@ class TestLoadConfig:
         mock_open_file.return_value.read.return_value = "invalid json"
 
         with pytest.raises(SystemExit):
-            load_config()
+            load_config(CONFIG_FILE_NAME)
 
         mock_sys_exit.assert_called_with(1)
 
@@ -102,7 +103,7 @@ class TestLoadConfig:
         mock_open_file.side_effect = OSError("File read error")
 
         with pytest.raises(SystemExit):
-            load_config()
+            load_config(CONFIG_FILE_NAME)
 
         mock_sys_exit.assert_called_with(1)
 
@@ -117,6 +118,6 @@ class TestLoadConfig:
         mock_open_file.return_value.read.return_value = json.dumps({"server": {"host": "localhost", "port": 999999}})
 
         with pytest.raises(SystemExit):
-            load_config()
+            load_config(CONFIG_FILE_NAME)
 
         mock_sys_exit.assert_called_once_with(1)

@@ -1,16 +1,17 @@
 services:
   # Python Cloud Server
   python-cloud-server:
-    image: python-cloud-server:dev
+    image: python-cloud-server:${ENV:-dev}
     build:
       context: .
       dockerfile: Dockerfile
     container_name: python-cloud-server
     ports:
-      - "8443:8443"
+      - "${PORT:-8443}:${PORT:-8443}"
     environment:
-      # Load API token hash from .env file
-      - API_TOKEN_HASH=${API_TOKEN_HASH}
+      - ENV=${ENV:-dev}
+      # Load API token hash from .env file (optional - will be generated if missing)
+      - API_TOKEN_HASH=${API_TOKEN_HASH:-}
     volumes:
       # Persist certificates and logs
       - ./certs:/app/certs
@@ -22,9 +23,9 @@ services:
       test:
         [
           "CMD",
-          "python",
+          "sh",
           "-c",
-          "import urllib.request; urllib.request.urlopen('https://localhost:8443/api/metrics', context=__import__('ssl')._create_unverified_context()).read()",
+          'python -c "import urllib.request; urllib.request.urlopen(''https://localhost:$${PORT:-8443}/api/health'', context=__import__(''ssl'')._create_unverified_context()).read()"',
         ]
       interval: 30s
       timeout: 10s
@@ -46,9 +47,6 @@ services:
       - "--web.console.libraries=/usr/share/prometheus/console_libraries"
       - "--web.console.templates=/usr/share/prometheus/consoles"
       - "--web.enable-lifecycle"
-      - "--enable-feature=expand-env"
-    environment:
-      - PROMETHEUS_PORT=8443
     networks:
       - monitoring
     restart: unless-stopped

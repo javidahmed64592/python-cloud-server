@@ -44,35 +44,40 @@ It consists of the following jobs:
 
 ## Docker Workflow
 
-The CI workflow runs on pushes and pull requests to the `main` branch.
+The Docker workflow runs on pushes and pull requests to the `main` branch.
 It consists of the following jobs:
 
-### docker-compose-dev
+### docker-development
 - **Runner**: Ubuntu Latest
 - **Steps**:
   - Checkout code
-  - Install uv with caching
-  - Set up Python from `.python-version`
-  - Install dependencies with `uv sync`
-  - Generate API token hash
+  - Install uv with caching and set up Python from `.python-version`
   - Create directories with proper permissions
-  - Build and start services with docker-compose
-  - Check if services are running
+  - Build and start services with docker compose
   - Show server logs
-  - Health check
+  - **Health check** using reusable composite action `.github/actions/docker-check-containers` that checks Python Cloud Server, Prometheus, and Grafana
   - Stop services
 
-### docker-compose-prod
+### docker-production
 - **Runner**: Ubuntu Latest
 - **Steps**:
   - Checkout code
-  - Install uv with caching
-  - Set up Python from `.python-version`
-  - Install dependencies with `uv sync`
-  - Generate API token hash
+  - Install uv with caching and set up Python from `.python-version`
   - Create directories with proper permissions
-  - Build production image
-  - Run production container
+  - Build production image with `ENV=prod` and `PORT=443` build arguments
+  - Start services with docker compose using production environment variables
   - Show server logs
-  - Health check
-  - Stop container
+  - **Health check** using reusable composite action `.github/actions/docker-check-containers` that checks Python Cloud Server, Prometheus, and Grafana
+  - Stop services
+
+### docker-check-containers (Composite Action)
+- **Location**: `.github/actions/docker-check-containers/action.yml`
+- **Purpose**: Centralized health check logic for Docker containers
+- **Inputs**:
+  - `port` (required): Port to check for Python Cloud Server health endpoint
+  - `num-retries` (optional, default: 5): Number of retries for health checks
+  - `timeout-seconds` (optional, default: 5): Timeout between retries
+- **Checks**:
+  - Python Cloud Server: Curls `https://localhost:{port}/api/health` (no authentication required)
+  - Prometheus: Curls `http://localhost:9090`
+  - Grafana: Curls `http://localhost:3000`

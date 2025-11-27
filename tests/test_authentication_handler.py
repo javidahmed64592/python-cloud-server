@@ -38,13 +38,6 @@ def mock_saved_hashed_token() -> Generator[MagicMock, None, None]:
         yield mock_save
 
 
-@pytest.fixture
-def mock_load_hashed_token() -> Generator[MagicMock, None, None]:
-    """Mock the load_hashed_token function."""
-    with patch("python_cloud_server.authentication_handler.load_hashed_token") as mock_load:
-        yield mock_load
-
-
 class TestAuthenticationHandler:
     """Unit tests for the authentication handler functions."""
 
@@ -97,21 +90,18 @@ class TestAuthenticationHandler:
     )
     def test_verify_token(
         self,
-        mock_load_hashed_token: MagicMock,
         input_token: str,
         stored_hash: str,
         expected: bool,  # noqa: FBT001
     ) -> None:
         """Test the verify_token function."""
-        mock_load_hashed_token.return_value = stored_hash
-        result = verify_token(input_token)
+        result = verify_token(input_token, stored_hash)
         assert result == expected
 
-    def test_verify_token_no_stored_hash(self, mock_load_hashed_token: MagicMock) -> None:
-        """Test the verify_token function when no stored hash is found."""
-        mock_load_hashed_token.return_value = None
-        with pytest.raises(ValueError, match=r"No stored token hash found for verification."):
-            verify_token("anytoken")
+    def test_verify_token_no_stored_hash(self) -> None:
+        """Test the verify_token function when no stored hash is provided."""
+        with pytest.raises(ValueError, match="No stored token hash found for verification."):
+            verify_token("sometoken", "")
 
     def test_generate_new_token(
         self,

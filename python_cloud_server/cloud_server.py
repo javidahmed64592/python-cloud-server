@@ -10,17 +10,17 @@ import uvicorn
 from fastapi import FastAPI, HTTPException, Request, Security
 from fastapi.responses import JSONResponse
 from fastapi.security import APIKeyHeader
-from prometheus_client import Counter
+from prometheus_client import Counter, Gauge
 from prometheus_fastapi_instrumentator import Instrumentator
 from pydantic import BaseModel
 from slowapi import Limiter
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
 
-from python_cloud_server.authentication_handler import verify_token
+from python_cloud_server.authentication_handler import load_hashed_token, verify_token
 from python_cloud_server.constants import API_KEY_HEADER_NAME, API_PREFIX, PACKAGE_NAME
 from python_cloud_server.middleware import RequestLoggingMiddleware, SecurityHeadersMiddleware
-from python_cloud_server.models import AppConfigModel, GetHealthResponse, ResponseCode
+from python_cloud_server.models import AppConfigModel, GetHealthResponse, ResponseCode, ServerHealthStatus
 
 
 class CloudServer:
@@ -33,6 +33,7 @@ class CloudServer:
         """
         self.config = config
         self.logger = logging.getLogger(__name__)
+        self.hashed_token = load_hashed_token()
 
         package_metadata = metadata(PACKAGE_NAME)
 
@@ -112,12 +113,28 @@ class CloudServer:
             self.config.rate_limit.storage_uri or "in-memory",
         )
 
+    def _limit_route(self, route_function: Callable[..., Any]) -> Callable[..., Any]:
+        """Apply rate limiting to a route function if enabled.
+
+        :param Callable route_function: The route handler function
+        :return Callable: The potentially rate-limited route handler
+        """
+        if self.limiter is not None:
+            return self.limiter.limit(self.config.rate_limit.rate_limit)(route_function)  # type: ignore[no-any-return]
+        return route_function
+
     def _setup_metrics(self) -> None:
         """Set up Prometheus metrics."""
         self.instrumentator = Instrumentator()
         self.instrumentator.instrument(self.app).expose(self.app, endpoint="/metrics")
 
         # Set up custom metrics
+        self.token_configured_gauge = Gauge(
+            "token_configured",
+            "Whether API token is properly configured (1=configured, 0=not configured)",
+        )
+        self.token_configured_gauge.set(1 if self.hashed_token else 0)
+
         self.auth_success_counter = Counter(
             "auth_success_total",
             "Total number of successful authentication attempts",
@@ -133,17 +150,23 @@ class CloudServer:
             ["endpoint"],
         )
 
-        self.logger.info("Prometheus metrics enabled: authentication, rate limiting")
+        self.logger.info("Prometheus metrics enabled.")
 
-    def _limit_route(self, route_function: Callable[..., Any]) -> Callable[..., Any]:
-        """Apply rate limiting to a route function if enabled.
+    def _add_unauthenticated_route(
+        self, endpoint: str, handler_function: Callable, response_model: type[BaseModel]
+    ) -> None:
+        """Add an unauthenticated API route.
 
-        :param Callable route_function: The route handler function
-        :return Callable: The potentially rate-limited route handler
+        :param str endpoint: The API endpoint path
+        :param Callable handler_function: The handler function for the endpoint
+        :param BaseModel response_model: The Pydantic model for the response
         """
-        if self.limiter is not None:
-            return self.limiter.limit(self.config.rate_limit.rate_limit)(route_function)  # type: ignore[no-any-return]
-        return route_function
+        self.app.add_api_route(
+            endpoint,
+            handler_function,
+            methods=["GET"],
+            response_model=response_model,
+        )
 
     def _add_authenticated_route(
         self, endpoint: str, handler_function: Callable, response_model: type[BaseModel]
@@ -164,7 +187,7 @@ class CloudServer:
 
     def _setup_routes(self) -> None:
         """Set up API routes."""
-        self._add_authenticated_route("/health", self._limit_route(self.get_health), GetHealthResponse)
+        self._add_unauthenticated_route("/health", self._limit_route(self.get_health), GetHealthResponse)
 
     async def _verify_api_key(
         self, api_key: str | None = Security(APIKeyHeader(name=API_KEY_HEADER_NAME, auto_error=False))
@@ -183,7 +206,7 @@ class CloudServer:
             )
 
         try:
-            if not verify_token(api_key):
+            if not verify_token(api_key, self.hashed_token):
                 self.logger.warning("Invalid API key attempt!")
                 self.auth_failure_counter.labels(reason="invalid").inc()
                 raise HTTPException(
@@ -206,10 +229,21 @@ class CloudServer:
         :param Request request: The incoming HTTP request
         :return GetHealthResponse: Health status response
         """
+        if not self.hashed_token:
+            self.token_configured_gauge.set(0)
+            return GetHealthResponse(
+                code=ResponseCode.INTERNAL_SERVER_ERROR,
+                message="Server token is not configured",
+                timestamp=GetHealthResponse.current_timestamp(),
+                status=ServerHealthStatus.UNHEALTHY,
+            )
+
+        self.token_configured_gauge.set(1)
         return GetHealthResponse(
             code=ResponseCode.OK,
             message="Server is healthy",
             timestamp=GetHealthResponse.current_timestamp(),
+            status=ServerHealthStatus.HEALTHY,
         )
 
     def run(self) -> None:

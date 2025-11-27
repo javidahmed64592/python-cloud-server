@@ -168,7 +168,7 @@ See the [Docker documentation](./DOCKER_DEPLOYMENT.md) for information on how to
 
 **Purpose**: Simple health check of the server.
 
-**Authentication**: Required (X-API-Key header)
+**Authentication**: Not required (publicly accessible)
 
 **Rate Limiting**: Subject to rate limits (default: 100/minute)
 
@@ -178,22 +178,38 @@ See the [Docker documentation](./DOCKER_DEPLOYMENT.md) for information on how to
 - `code` (int): HTTP status code
 - `message` (string): Status message
 - `timestamp` (string): ISO 8601 timestamp
+- `status` (string): Health status indicator (HEALTHY/DEGRADED/UNHEALTHY)
+
+**Health Status Indicators**:
+- `HEALTHY`: Server is fully operational and token is configured
+- `UNHEALTHY`: Server token is not configured (returns 500 status code)
 
 **Example Request**:
 ```bash
-curl -k -H "X-API-Key: your-token" https://localhost:8443/api/health
+curl -k https://localhost:8443/api/health
 ```
 
-**Example Response** (200 OK):
+**Example Response** (200 OK - Healthy):
 ```json
 {
   "code": 200,
   "message": "Server is healthy",
-  "timestamp": "2025-11-22T12:00:00.000000Z"
+  "timestamp": "2025-11-22T12:00:00.000000Z",
+  "status": "HEALTHY"
+}
+```
+
+**Example Response** (500 Internal Server Error - Unhealthy):
+```json
+{
+  "code": 500,
+  "message": "Server token is not configured",
+  "timestamp": "2025-11-22T12:00:00.000000Z",
+  "status": "UNHEALTHY"
 }
 ```
 
 ## Request and Response Models (Pydantic)
 
 The primary Pydantic models are defined in `python_cloud_server/models.py`:
-- GetHealthResponse: { code: int, message: str, timestamp: str }
+- GetHealthResponse: { code: int, message: str, timestamp: str, status: str }

@@ -7,13 +7,15 @@ This directory contains Grafana provisioning configuration and custom dashboards
 ## Table of Contents
 - [Directory Structure](#directory-structure)
 - [Dashboards](#dashboards)
-  - [1. Authentication Metrics Dashboard](#1-authentication-metrics-dashboard)
-  - [2. Rate Limiting \& Performance Metrics Dashboard](#2-rate-limiting--performance-metrics-dashboard)
+  - [1. Health Metrics Dashboard](#1-health-metrics-dashboard)
+  - [2. Authentication Metrics Dashboard](#2-authentication-metrics-dashboard)
+  - [3. Rate Limiting \& Performance Metrics Dashboard](#3-rate-limiting--performance-metrics-dashboard)
 - [Accessing Dashboards](#accessing-dashboards)
 - [Customizing Dashboards](#customizing-dashboards)
   - [Adding New Panels](#adding-new-panels)
   - [Creating New Dashboards](#creating-new-dashboards)
 - [Available Metrics](#available-metrics)
+  - [Health Metrics](#health-metrics)
   - [Authentication Metrics](#authentication-metrics)
   - [Rate Limiting Metrics](#rate-limiting-metrics)
   - [HTTP Metrics (from prometheus-fastapi-instrumentator)](#http-metrics-from-prometheus-fastapi-instrumentator)
@@ -30,12 +32,31 @@ grafana/
 │       └── dashboards.yml          # Dashboard provisioning configuration
 └── dashboards/
     ├── authentication-metrics.json # Authentication monitoring dashboard
+    ├── health-metrics.json         # Health monitoring dashboard
     └── rate-limiting-metrics.json  # Rate limiting & performance dashboard
 ```
 
 ## Dashboards
 
-### 1. Authentication Metrics Dashboard
+### 1. Health Metrics Dashboard
+
+**UID**: `health-metrics`
+**Path**: `/d/health-metrics`
+
+**Panels**:
+- **API Token Configuration Status**: Gauge showing if API token is configured
+- **Health Checks (Last 5 Minutes)**: Gauge of recent health check requests
+- **Health Check Average Response Time**: Gauge of average response time for health checks
+- **Token Configuration Status Over Time**: Timeseries of token configuration status
+- **Health Check Request Rate (per second)**: Timeseries of health check request rates
+- **Health Check Response Time Percentiles**: Timeseries of p50, p95, p99 response times
+
+**Use Cases**:
+- Monitor server health and configuration status
+- Track health check performance and frequency
+- Detect configuration issues (e.g., missing API token)
+
+### 2. Authentication Metrics Dashboard
 
 **UID**: `auth-metrics`
 **Path**: `/d/auth-metrics`
@@ -52,7 +73,7 @@ grafana/
 - Detect brute force attacks (high failure rates)
 - Identify common authentication issues
 
-### 2. Rate Limiting & Performance Metrics Dashboard
+### 3. Rate Limiting & Performance Metrics Dashboard
 
 **UID**: `rate-limit-metrics`
 **Path**: `/d/rate-limit-metrics`
@@ -97,6 +118,9 @@ grafana/
 4. Restart Grafana: `docker compose restart grafana`
 
 ## Available Metrics
+
+### Health Metrics
+- `token_configured` - Binary metric indicating if API token is configured (0 or 1)
 
 ### Authentication Metrics
 - `auth_success_total` - Successful authentication count

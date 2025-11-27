@@ -9,9 +9,8 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
 # Copy project files
 COPY python_cloud_server/ ./python_cloud_server/
-COPY .here .here
-COPY config.prod.json config.json
-COPY pyproject.toml LICENSE README.md ./
+COPY configuration ./configuration/
+COPY pyproject.toml .here LICENSE README.md ./
 
 # Build the wheel
 RUN uv build --wheel
@@ -27,7 +26,6 @@ WORKDIR /app
 
 # Create non-root user for security
 RUN useradd -m -u 1000 cloudserver && \
-    mkdir -p /app/certs /app/logs && \
     chown -R cloudserver:cloudserver /app
 
 # Install uv in runtime stage
@@ -40,27 +38,37 @@ COPY --from=builder /build/dist/*.whl /tmp/
 RUN uv pip install --system --no-cache /tmp/*.whl && \
     rm /tmp/*.whl
 
-# Copy runtime files (.here is needed for pyhere to find project root)
-COPY --chown=cloudserver:cloudserver .here .here
+# Create configuration directory
+RUN mkdir -p /app/configuration && \
+    chown cloudserver:cloudserver /app/configuration
 
-# Conditionally copy the appropriate config file based on ENV
-COPY --chown=cloudserver:cloudserver config.json /tmp/config.dev.json
-COPY --chown=cloudserver:cloudserver config.prod.json /tmp/config.prod.json
-RUN if [ "$ENV" = "prod" ]; then cp /tmp/config.prod.json /app/config.json; else cp /tmp/config.dev.json /app/config.json; fi && \
-    chown cloudserver:cloudserver /app/config.json
+# Copy included files from installed wheel
+RUN SITE_PACKAGES_DIR=$(find /usr/local/lib -name "site-packages" -type d | head -1) && \
+    cp "${SITE_PACKAGES_DIR}/.here" /app/.here && \
+    cp "${SITE_PACKAGES_DIR}/configuration/config.json" /app/configuration/config.json && \
+    cp "${SITE_PACKAGES_DIR}/configuration/config.prod.json" /app/configuration/config.prod.json && \
+    cp "${SITE_PACKAGES_DIR}/LICENSE" /app/LICENSE && \
+    cp "${SITE_PACKAGES_DIR}/README.md" /app/README.md
 
 # Create startup script
 RUN echo '#!/bin/sh\n\
+    if [ "$ENV" = "prod" ]; then\n\
+    CONFIG_FILE="config.prod.json"\n\
+    else\n\
+    CONFIG_FILE="config.json"\n\
+    fi\n\
+    if [ ! -f .env ]; then\n\
+    echo "Generating new token..."\n\
+    generate-new-token\n\
+    export $(grep -v "^#" .env | xargs)\n\
+    fi\n\
     if [ ! -f certs/cert.pem ] || [ ! -f certs/key.pem ]; then\n\
     echo "Generating self-signed certificates..."\n\
-    generate-certificate\n\
+    generate-certificate --config-file="$CONFIG_FILE"\n\
     fi\n\
-    exec python-cloud-server' > /app/start.sh && \
+    exec python-cloud-server --config-file="$CONFIG_FILE"' > /app/start.sh && \
     chmod +x /app/start.sh && \
     chown cloudserver:cloudserver /app/start.sh
-
-# Ensure all directories have correct permissions
-RUN chown -R cloudserver:cloudserver /app/certs /app/logs
 
 # Switch to non-root user
 USER cloudserver
@@ -70,7 +78,7 @@ EXPOSE $PORT
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD python -c "import urllib.request; urllib.request.urlopen('https://localhost:$PORT/api/metrics', context=__import__('ssl')._create_unverified_context()).read()" || exit 1
+    CMD python -c "import urllib.request; urllib.request.urlopen('https://localhost:$PORT/api/health', context=__import__('ssl')._create_unverified_context()).read()" || exit 1
 
 # Default command: generate certificates if missing, then start server
 CMD ["/app/start.sh"]

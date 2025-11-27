@@ -61,8 +61,9 @@ This will:
 - Automatically save the hash to `.env` as `API_TOKEN_HASH`
 
 **Important**:
-- Save the displayed raw token - you'll need it for API requests
+- Save the displayed raw token - you'll need it for authenticated API requests
 - The `.env` file is automatically created/updated by the command
+- **The same `.env` file is shared between local development and Docker containers**, allowing you to use the same token across both environments
 
 ### 2. Start Services
 
@@ -77,6 +78,19 @@ docker compose logs -f
 docker compose down
 ```
 
+**Token Management in Docker**:
+
+The Docker startup script automatically handles token generation with the following logic:
+
+1. **Existing `.env` file**: If you've already run `uv run generate-new-token` locally, the Docker container will use the existing token hash from your `.env` file. This means:
+   - You can generate a token once during development and use it consistently across local and Docker environments
+   - The same API token works for both `uv run python-cloud-server` and `docker compose up`
+   - No need to regenerate tokens when switching between environments
+
+2. **No `.env` file**: If no `.env` file exists (e.g., fresh checkout), the Docker startup script will automatically generate a new token. However:
+   - The auto-generated token is only displayed in the container logs
+   - It's recommended to generate tokens locally using `uv run generate-new-token` so you can save the raw token for API requests
+
 ## Configuration
 
 ### Docker Compose Services
@@ -85,7 +99,8 @@ The `docker-compose.yml` defines three services:
 
 1. **python-cloud-server** (Port 8443)
    - FastAPI application with HTTPS
-   - Auto-generates self-signed certificates on first run
+   - Auto-generates self-signed certificates on first run (if not present)
+   - Uses existing `.env` file if available, otherwise generates a new token on startup
    - Exposes `/api/metrics` endpoint for Prometheus
 
 2. **prometheus** (Port 9090)
@@ -107,6 +122,10 @@ Configure the FastAPI server using environment variables in `docker-compose.yml`
 environment:
   - API_TOKEN_HASH=${API_TOKEN_HASH}
 ```
+
+The `API_TOKEN_HASH` is loaded from your local `.env` file.
+If the `.env` file exists when you run `docker compose up`, the container will use that token hash.
+Otherwise, the container startup script will generate a new token and create the `.env` file.
 
 ### Server Configuration
 
@@ -155,13 +174,13 @@ docker compose down -v
 **Base URL**: `https://localhost:8443`
 
 **API Endpoints**:
-- Health Check: `GET /api/health` (requires authentication)
-- Metrics: `GET /api/metrics` (no authentication required)
+- Health Check: `GET /api/health` (publicly accessible, no authentication required)
+- Metrics: `GET /api/metrics` (publicly accessible, no authentication required)
 
 **Example Request**:
 ```bash
 # Using curl (with self-signed cert)
-curl -k -H "X-API-Key: YOUR_RAW_TOKEN" https://localhost:8443/api/health
+curl -k https://localhost:8443/api/health
 ```
 
 ### Prometheus

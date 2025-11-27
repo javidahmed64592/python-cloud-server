@@ -9,15 +9,12 @@ on:
       - main
 
 jobs:
-  docker-compose-dev:
+  docker-development:
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup-python-core
-      - name: Generate API token hash
-        run: |
-          uv run generate-new-token
 
       - name: Create directories with proper permissions
         run: |
@@ -25,31 +22,17 @@ jobs:
           chmod 777 certs logs
           sudo chown -R 1000:1000 certs logs
 
-      - name: Build and start services with docker-compose
+      - name: Build and start services with docker compose
         run: |
           docker compose up --build -d
-          sleep 10  # Wait for services to start
-
-      - name: Check if services are running
-        run: docker compose ps
+          sleep 5  # Wait for services to start
 
       - name: Show server logs
         run: docker compose logs python-cloud-server
 
-      - name: Health check
-        run: |
-          for i in {1..5}; do
-            if curl -k https://localhost:8443/api/metrics; then
-              echo "Health check passed"
-              break
-            else
-              echo "Health check failed, attempt $i/5"
-              if [ $i -eq 5 ]; then
-                exit 1
-              fi
-              sleep 10
-            fi
-          done
+      - uses: ./.github/actions/docker-check-containers
+        with:
+          port: 8443
 
       - name: Stop services
         run: docker compose down
@@ -60,9 +43,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup-python-core
-      - name: Generate API token hash
-        run: |
-          uv run generate-new-token
 
       - name: Create directories with proper permissions
         run: |
@@ -74,28 +54,20 @@ jobs:
         run: |
           docker build --build-arg ENV=prod --build-arg PORT=443 -t python-cloud-server:prod .
 
-      - name: Run production container
+      - name: Start services with docker compose
+        env:
+          ENV: prod
+          PORT: 443
         run: |
-          docker run -d --name python-cloud-server -e API_TOKEN_HASH=$(grep API_TOKEN_HASH .env | cut -d '=' -f2) -p 443:443 python-cloud-server:prod
-          sleep 10  # Wait for container to start
+          docker compose up -d
+          sleep 5  # Wait for container to start
 
       - name: Show server logs
         run: docker logs python-cloud-server
 
-      - name: Health check
-        run: |
-          for i in {1..5}; do
-            if curl -k https://localhost:443/api/metrics; then
-              echo "Health check passed"
-              break
-            else
-              echo "Health check failed, attempt $i/5"
-              if [ $i -eq 5 ]; then
-                exit 1
-              fi
-              sleep 10
-            fi
-          done
+      - uses: ./.github/actions/docker-check-containers
+        with:
+          port: 443
 
-      - name: Stop container
-        run: docker stop python-cloud-server
+      - name: Stop services
+        run: docker compose down

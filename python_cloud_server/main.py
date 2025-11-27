@@ -4,7 +4,7 @@ import logging
 import sys
 
 from python_cloud_server.cloud_server import CloudServer
-from python_cloud_server.config import load_config
+from python_cloud_server.config import load_config, parse_args
 
 logger = logging.getLogger(__name__)
 
@@ -14,7 +14,8 @@ def run() -> None:
 
     :raise SystemExit: If configuration fails to load or SSL certificate files are missing
     """
-    config = load_config()
+    args = parse_args()
+    config = load_config(args.config_file)
     try:
         server = CloudServer(config=config)
         server.run()

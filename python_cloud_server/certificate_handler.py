@@ -11,7 +11,7 @@ from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.x509.oid import NameOID
 
-from python_cloud_server.config import load_config
+from python_cloud_server.config import load_config, parse_args
 from python_cloud_server.models import CertificateConfigModel
 
 logger = logging.getLogger(__name__)
@@ -136,7 +136,8 @@ def generate_self_signed_certificate() -> None:
     :raise SystemExit: If certificate generation fails
     """
     try:
-        config = load_config()
+        args = parse_args()
+        config = load_config(args.config_file)
         handler = CertificateHandler(config.certificate)
         handler.generate_self_signed_cert()
     except (OSError, PermissionError):

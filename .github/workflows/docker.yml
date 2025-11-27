@@ -32,7 +32,7 @@ jobs:
 
       - uses: ./.github/actions/docker-check-containers
         with:
-          port: 8443
+          port: 443
 
       - name: Stop services
         run: docker compose down

@@ -20,7 +20,7 @@ FROM python:3.12-slim
 
 # Build arguments for environment-specific config
 ARG ENV=dev
-ARG PORT=8443
+ARG PORT=443
 
 WORKDIR /app
 
@@ -46,17 +46,12 @@ RUN mkdir -p /app/configuration && \
 RUN SITE_PACKAGES_DIR=$(find /usr/local/lib -name "site-packages" -type d | head -1) && \
     cp "${SITE_PACKAGES_DIR}/.here" /app/.here && \
     cp "${SITE_PACKAGES_DIR}/configuration/config.json" /app/configuration/config.json && \
-    cp "${SITE_PACKAGES_DIR}/configuration/config.prod.json" /app/configuration/config.prod.json && \
     cp "${SITE_PACKAGES_DIR}/LICENSE" /app/LICENSE && \
     cp "${SITE_PACKAGES_DIR}/README.md" /app/README.md
 
 # Create startup script
 RUN echo '#!/bin/sh\n\
-    if [ "$ENV" = "prod" ]; then\n\
-    CONFIG_FILE="config.prod.json"\n\
-    else\n\
     CONFIG_FILE="config.json"\n\
-    fi\n\
     if [ ! -f .env ]; then\n\
     echo "Generating new token..."\n\
     generate-new-token\n\

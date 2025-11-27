@@ -8,7 +8,7 @@ import pytest
 from python_cloud_server.main import run
 from python_cloud_server.models import AppConfigModel
 
-TEST_PORT = 8443
+TEST_PORT = 443
 
 
 @pytest.fixture

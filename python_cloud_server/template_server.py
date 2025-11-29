@@ -44,17 +44,12 @@ class TemplateServer(ABC):
 
         package_metadata = metadata(PACKAGE_NAME)
 
-        @asynccontextmanager
-        async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
-            """Handle application lifespan events."""
-            yield
-
         self.app = FastAPI(
             title=package_metadata["Name"],
             description=package_metadata["Summary"],
             version=package_metadata["Version"],
             root_path=API_PREFIX,
-            lifespan=lifespan,
+            lifespan=self.lifespan,
         )
         self.api_key_header = APIKeyHeader(name=API_KEY_HEADER_NAME, auto_error=False)
 
@@ -63,6 +58,46 @@ class TemplateServer(ABC):
         self._setup_rate_limiting()
         self._setup_metrics()
         self.setup_routes()
+
+    @staticmethod
+    @asynccontextmanager
+    async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+        """Handle application lifespan events."""
+        yield
+
+    async def _verify_api_key(
+        self, api_key: str | None = Security(APIKeyHeader(name=API_KEY_HEADER_NAME, auto_error=False))
+    ) -> None:
+        """Verify the API key from the request header.
+
+        :param str | None api_key: The API key from the X-API-Key header
+        :raise HTTPException: If the API key is missing or invalid
+        """
+        if api_key is None:
+            self.logger.warning("Missing API key in request!")
+            self.auth_failure_counter.labels(reason="missing").inc()
+            raise HTTPException(
+                status_code=ResponseCode.UNAUTHORIZED,
+                detail="Missing API key",
+            )
+
+        try:
+            if not verify_token(api_key, self.hashed_token):
+                self.logger.warning("Invalid API key attempt!")
+                self.auth_failure_counter.labels(reason="invalid").inc()
+                raise HTTPException(
+                    status_code=ResponseCode.UNAUTHORIZED,
+                    detail="Invalid API key",
+                )
+            self.logger.debug("API key validated successfully.")
+            self.auth_success_counter.inc()
+        except ValueError as e:
+            self.logger.exception("Error verifying API key!")
+            self.auth_failure_counter.labels(reason="error").inc()
+            raise HTTPException(
+                status_code=ResponseCode.UNAUTHORIZED,
+                detail=str(e),
+            ) from e
 
     def _setup_request_logging(self) -> None:
         """Set up request logging middleware."""
@@ -83,6 +118,22 @@ class TemplateServer(ABC):
             self.config.security.content_security_policy,
         )
 
+    async def _rate_limit_exception_handler(self, request: Request, exc: RateLimitExceeded) -> JSONResponse:
+        """Handle rate limit exceeded exceptions and track metrics.
+
+        :param Request request: The incoming HTTP request
+        :param RateLimitExceeded exc: The rate limit exceeded exception
+        :return JSONResponse: HTTP 429 JSON response
+        """
+        self.rate_limit_exceeded_counter.labels(endpoint=request.url.path).inc()
+
+        # Return JSON response with 429 status
+        return JSONResponse(
+            status_code=429,
+            content={"detail": "Rate limit exceeded"},
+            headers={"Retry-After": str(exc.retry_after)} if hasattr(exc, "retry_after") else {},
+        )
+
     def _setup_rate_limiting(self) -> None:
         """Set up rate limiting middleware."""
         if not self.config.rate_limit.enabled:
@@ -90,29 +141,13 @@ class TemplateServer(ABC):
             self.limiter = None
             return
 
-        async def _rate_limit_exception_handler(request: Request, exc: RateLimitExceeded) -> JSONResponse:
-            """Handle rate limit exceeded exceptions and track metrics.
-
-            :param Request request: The incoming HTTP request
-            :param RateLimitExceeded exc: The rate limit exceeded exception
-            :return JSONResponse: HTTP 429 JSON response
-            """
-            self.rate_limit_exceeded_counter.labels(endpoint=request.url.path).inc()
-
-            # Return JSON response with 429 status
-            return JSONResponse(
-                status_code=429,
-                content={"detail": "Rate limit exceeded"},
-                headers={"Retry-After": str(exc.retry_after)} if hasattr(exc, "retry_after") else {},
-            )
-
         self.limiter = Limiter(
             key_func=get_remote_address,
             storage_uri=self.config.rate_limit.storage_uri,
         )
 
         self.app.state.limiter = self.limiter
-        self.app.add_exception_handler(RateLimitExceeded, _rate_limit_exception_handler)  # type: ignore[arg-type]
+        self.app.add_exception_handler(RateLimitExceeded, self._rate_limit_exception_handler)  # type: ignore[arg-type]
 
         self.logger.info(
             "Rate limiting enabled: rate=%s, storage=%s",
@@ -159,96 +194,6 @@ class TemplateServer(ABC):
 
         self.logger.info("Prometheus metrics enabled.")
 
-    def _add_unauthenticated_route(
-        self, endpoint: str, handler_function: Callable, response_model: type[BaseModel]
-    ) -> None:
-        """Add an unauthenticated API route.
-
-        :param str endpoint: The API endpoint path
-        :param Callable handler_function: The handler function for the endpoint
-        :param BaseModel response_model: The Pydantic model for the response
-        """
-        self.app.add_api_route(
-            endpoint,
-            handler_function,
-            methods=["GET"],
-            response_model=response_model,
-        )
-
-    def _add_authenticated_route(
-        self, endpoint: str, handler_function: Callable, response_model: type[BaseModel]
-    ) -> None:
-        """Add an authenticated API route.
-
-        :param str endpoint: The API endpoint path
-        :param Callable handler_function: The handler function for the endpoint
-        :param BaseModel response_model: The Pydantic model for the response
-        """
-        self.app.add_api_route(
-            endpoint,
-            handler_function,
-            methods=["GET"],
-            response_model=response_model,
-            dependencies=[Security(self._verify_api_key)],
-        )
-
-    async def _verify_api_key(
-        self, api_key: str | None = Security(APIKeyHeader(name=API_KEY_HEADER_NAME, auto_error=False))
-    ) -> None:
-        """Verify the API key from the request header.
-
-        :param str | None api_key: The API key from the X-API-Key header
-        :raise HTTPException: If the API key is missing or invalid
-        """
-        if api_key is None:
-            self.logger.warning("Missing API key in request!")
-            self.auth_failure_counter.labels(reason="missing").inc()
-            raise HTTPException(
-                status_code=ResponseCode.UNAUTHORIZED,
-                detail="Missing API key",
-            )
-
-        try:
-            if not verify_token(api_key, self.hashed_token):
-                self.logger.warning("Invalid API key attempt!")
-                self.auth_failure_counter.labels(reason="invalid").inc()
-                raise HTTPException(
-                    status_code=ResponseCode.UNAUTHORIZED,
-                    detail="Invalid API key",
-                )
-            self.logger.debug("API key validated successfully.")
-            self.auth_success_counter.inc()
-        except ValueError as e:
-            self.logger.exception("Error verifying API key!")
-            self.auth_failure_counter.labels(reason="error").inc()
-            raise HTTPException(
-                status_code=ResponseCode.UNAUTHORIZED,
-                detail=str(e),
-            ) from e
-
-    async def get_health(self, request: Request) -> GetHealthResponse:
-        """Get server health.
-
-        :param Request request: The incoming HTTP request
-        :return GetHealthResponse: Health status response
-        """
-        if not self.hashed_token:
-            self.token_configured_gauge.set(0)
-            return GetHealthResponse(
-                code=ResponseCode.INTERNAL_SERVER_ERROR,
-                message="Server token is not configured",
-                timestamp=GetHealthResponse.current_timestamp(),
-                status=ServerHealthStatus.UNHEALTHY,
-            )
-
-        self.token_configured_gauge.set(1)
-        return GetHealthResponse(
-            code=ResponseCode.OK,
-            message="Server is healthy",
-            timestamp=GetHealthResponse.current_timestamp(),
-            status=ServerHealthStatus.HEALTHY,
-        )
-
     def run(self) -> None:
         """Run the server using uvicorn.
 
@@ -281,7 +226,12 @@ class TemplateServer(ABC):
         :param Callable handler_function: The handler function for the endpoint
         :param BaseModel response_model: The Pydantic model for the response
         """
-        self._add_unauthenticated_route(endpoint, self._limit_route(handler_function), response_model)
+        self.app.add_api_route(
+            endpoint,
+            self._limit_route(handler_function),
+            methods=["GET"],
+            response_model=response_model,
+        )
 
     def add_authenticated_route(
         self, endpoint: str, handler_function: Callable, response_model: type[BaseModel]
@@ -292,7 +242,13 @@ class TemplateServer(ABC):
         :param Callable handler_function: The handler function for the endpoint
         :param BaseModel response_model: The Pydantic model for the response
         """
-        self._add_authenticated_route(endpoint, self._limit_route(handler_function), response_model)
+        self.app.add_api_route(
+            endpoint,
+            self._limit_route(handler_function),
+            methods=["GET"],
+            response_model=response_model,
+            dependencies=[Security(self._verify_api_key)],
+        )
 
     @abstractmethod
     def setup_routes(self) -> None:
@@ -308,3 +264,26 @@ class TemplateServer(ABC):
 
         """
         self.add_unauthenticated_route("/health", self.get_health, GetHealthResponse)
+
+    async def get_health(self, request: Request) -> GetHealthResponse:
+        """Get server health.
+
+        :param Request request: The incoming HTTP request
+        :return GetHealthResponse: Health status response
+        """
+        if not self.hashed_token:
+            self.token_configured_gauge.set(0)
+            return GetHealthResponse(
+                code=ResponseCode.INTERNAL_SERVER_ERROR,
+                message="Server token is not configured",
+                timestamp=GetHealthResponse.current_timestamp(),
+                status=ServerHealthStatus.UNHEALTHY,
+            )
+
+        self.token_configured_gauge.set(1)
+        return GetHealthResponse(
+            code=ResponseCode.OK,
+            message="Server is healthy",
+            timestamp=GetHealthResponse.current_timestamp(),
+            status=ServerHealthStatus.HEALTHY,
+        )

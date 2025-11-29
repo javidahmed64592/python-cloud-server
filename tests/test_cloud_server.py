@@ -79,14 +79,14 @@ class TestCloudServer:
         assert SecurityHeadersMiddleware in middlewares
 
     def test_add_unauthenticated_route(self, mock_cloud_server: CloudServer) -> None:
-        """Test _add_unauthenticated_route adds routes without authentication."""
+        """Test add_unauthenticated_route adds routes without authentication."""
 
         # Define a test endpoint and handler
         async def test_handler(request: Request) -> dict:
             return {"test": "response"}
 
         # Add a test route
-        mock_cloud_server._add_unauthenticated_route("/test", test_handler, BaseResponse)
+        mock_cloud_server.add_unauthenticated_route("/test", test_handler, BaseResponse)
 
         # Verify the route was added
         api_routes = [route for route in mock_cloud_server.app.routes if isinstance(route, APIRoute)]
@@ -98,14 +98,14 @@ class TestCloudServer:
         assert test_route is not None
 
     def test_add_authenticated_route(self, mock_cloud_server: CloudServer) -> None:
-        """Test _add_authenticated_route adds routes with authentication."""
+        """Test add_authenticated_route adds routes with authentication."""
 
         # Define a test endpoint and handler
         async def test_handler(request: Request) -> dict:
             return {"test": "response"}
 
         # Add a test route
-        mock_cloud_server._add_authenticated_route("/test", test_handler, BaseResponse)
+        mock_cloud_server.add_authenticated_route("/test", test_handler, BaseResponse)
 
         # Verify the route was added
         api_routes = [route for route in mock_cloud_server.app.routes if isinstance(route, APIRoute)]
@@ -123,7 +123,7 @@ class TestCloudServer:
         dependency = test_route.dependencies[0]
         assert dependency.dependency == mock_cloud_server._verify_api_key
 
-    def testsetup_routes(self, mock_cloud_server: CloudServer) -> None:
+    def test_setup_routes(self, mock_cloud_server: CloudServer) -> None:
         """Test that routes are set up correctly."""
         api_routes = [route for route in mock_cloud_server.app.routes if isinstance(route, APIRoute)]
         routes = [route.path for route in api_routes]

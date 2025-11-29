@@ -15,10 +15,11 @@ from python_cloud_server.models import (
     SecurityConfigModel,
     ServerConfigModel,
     ServerHealthStatus,
+    TemplateServerConfig,
 )
 
 
-# Application Configuration Models
+# Template Server Configuration Models
 class TestServerConfigModel:
     """Unit tests for the ServerConfigModel class."""
 
@@ -91,12 +92,12 @@ class TestCertificateConfigModel:
             CertificateConfigModel(**invalid_config_data)
 
 
-class TestAppConfigModel:
-    """Unit tests for the AppConfigModel class."""
+class TestTemplateServerConfig:
+    """Unit tests for the TemplateServerConfig class."""
 
     def test_model_dump(
         self,
-        mock_app_config: AppConfigModel,
+        mock_template_server_config: TemplateServerConfig,
         mock_server_config_dict: dict,
         mock_security_config_dict: dict,
         mock_rate_limit_config_dict: dict,
@@ -109,7 +110,7 @@ class TestAppConfigModel:
             "rate_limit": mock_rate_limit_config_dict,
             "certificate": mock_certificate_config_dict,
         }
-        assert mock_app_config.model_dump() == expected_dict
+        assert mock_template_server_config.model_dump() == expected_dict
 
 
 # API Response Models
@@ -176,3 +177,25 @@ class TestGetHealthResponse:
         }
         response = GetHealthResponse(**config_dict)
         assert response.model_dump() == config_dict
+
+
+# Cloud Server Configuration Models
+class TestAppConfigModel:
+    """Unit tests for the AppConfigModel class."""
+
+    def test_model_dump(
+        self,
+        mock_app_config: AppConfigModel,
+        mock_server_config_dict: dict,
+        mock_security_config_dict: dict,
+        mock_rate_limit_config_dict: dict,
+        mock_certificate_config_dict: dict,
+    ) -> None:
+        """Test the model_dump method."""
+        expected_dict = {
+            "server": mock_server_config_dict,
+            "security": mock_security_config_dict,
+            "rate_limit": mock_rate_limit_config_dict,
+            "certificate": mock_certificate_config_dict,
+        }
+        assert mock_app_config.model_dump() == expected_dict

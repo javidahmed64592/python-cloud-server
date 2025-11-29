@@ -9,7 +9,7 @@ from pydantic import BaseModel, Field
 from python_cloud_server.constants import API_PREFIX
 
 
-# Application Configuration Models
+# Template Server Configuration Models
 class ServerConfigModel(BaseModel):
     """Server configuration model."""
 
@@ -68,8 +68,8 @@ class CertificateConfigModel(BaseModel):
         return Path(self.directory) / self.ssl_certfile
 
 
-class AppConfigModel(BaseModel):
-    """Application configuration model."""
+class TemplateServerConfig(BaseModel):
+    """Template server configuration."""
 
     server: ServerConfigModel = Field(default_factory=ServerConfigModel)
     security: SecurityConfigModel = Field(default_factory=SecurityConfigModel)
@@ -119,3 +119,8 @@ class GetHealthResponse(BaseResponse):
     """Response model for the health endpoint."""
 
     status: ServerHealthStatus = Field(..., description="Health status of the server")
+
+
+# Cloud Server Configuration Models
+class AppConfigModel(TemplateServerConfig):
+    """Application configuration model."""

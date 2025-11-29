@@ -12,7 +12,6 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.routing import APIRoute
 from fastapi.security import APIKeyHeader
 from fastapi.testclient import TestClient
-from prometheus_client import REGISTRY
 from slowapi.errors import RateLimitExceeded
 from starlette.status import HTTP_429_TOO_MANY_REQUESTS
 
@@ -25,20 +24,6 @@ from python_cloud_server.models import (
     TemplateServerConfig,
 )
 from python_cloud_server.template_server import TemplateServer
-
-
-@pytest.fixture(autouse=True)
-def clear_prometheus_registry() -> Generator[None, None, None]:
-    """Clear Prometheus registry before each test to avoid duplicate metric errors."""
-    # Clear all collectors from the registry
-    collectors = list(REGISTRY._collector_to_names.keys())
-    for collector in collectors:
-        REGISTRY.unregister(collector)
-    yield
-    # Clear again after the test
-    collectors = list(REGISTRY._collector_to_names.keys())
-    for collector in collectors:
-        REGISTRY.unregister(collector)
 
 
 @pytest.fixture

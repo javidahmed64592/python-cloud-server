@@ -15,7 +15,7 @@ FastAPI-based secure HTTPS server with production-grade security patterns. Curre
 ### Configuration System
 
 - `config.json` loaded via `config.py:load_config()`
-- Validated using Pydantic models in `models.py` (AppConfigModel hierarchy)
+- Validated using Pydantic models in `models.py` (CloudServerConfig hierarchy)
 - Logging configured automatically on `config.py` import with rotating file handler
 - Environment variables stored in `.env` (API_TOKEN_HASH only, never commit)
 

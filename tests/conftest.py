@@ -4,13 +4,15 @@ from collections.abc import Generator
 from unittest.mock import MagicMock, mock_open, patch
 
 import pytest
+from prometheus_client import REGISTRY
 
 from python_cloud_server.models import (
-    AppConfigModel,
     CertificateConfigModel,
+    CloudServerConfig,
     RateLimitConfigModel,
     SecurityConfigModel,
     ServerConfigModel,
+    TemplateServerConfig,
 )
 
 
@@ -73,7 +75,21 @@ def mock_os_getenv() -> Generator[MagicMock, None, None]:
         yield mock_getenv
 
 
-# Application Configuration Models
+@pytest.fixture(autouse=True)
+def clear_prometheus_registry() -> Generator[None, None, None]:
+    """Clear Prometheus registry before each test to avoid duplicate metric errors."""
+    # Clear all collectors from the registry
+    collectors = list(REGISTRY._collector_to_names.keys())
+    for collector in collectors:
+        REGISTRY.unregister(collector)
+    yield
+    # Clear again after the test
+    collectors = list(REGISTRY._collector_to_names.keys())
+    for collector in collectors:
+        REGISTRY.unregister(collector)
+
+
+# Template Server Configuration Models
 @pytest.fixture
 def mock_server_config_dict() -> dict:
     """Provide a mock server configuration dictionary."""
@@ -135,14 +151,31 @@ def mock_certificate_config(mock_certificate_config_dict: dict) -> CertificateCo
 
 
 @pytest.fixture
+def mock_template_server_config(
+    mock_server_config: ServerConfigModel,
+    mock_security_config: SecurityConfigModel,
+    mock_rate_limit_config: RateLimitConfigModel,
+    mock_certificate_config: CertificateConfigModel,
+) -> TemplateServerConfig:
+    """Provide a mock TemplateServerConfig instance."""
+    return TemplateServerConfig(
+        server=mock_server_config,
+        security=mock_security_config,
+        rate_limit=mock_rate_limit_config,
+        certificate=mock_certificate_config,
+    )
+
+
+# Cloud Server Configuration Models
+@pytest.fixture
 def mock_app_config(
     mock_server_config: ServerConfigModel,
     mock_security_config: SecurityConfigModel,
     mock_rate_limit_config: RateLimitConfigModel,
     mock_certificate_config: CertificateConfigModel,
-) -> AppConfigModel:
-    """Provide a mock AppConfigModel instance."""
-    return AppConfigModel(
+) -> CloudServerConfig:
+    """Provide a mock CloudServerConfig instance."""
+    return CloudServerConfig(
         server=mock_server_config,
         security=mock_security_config,
         rate_limit=mock_rate_limit_config,

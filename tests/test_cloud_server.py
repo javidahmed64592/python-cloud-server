@@ -14,7 +14,7 @@ from prometheus_client import REGISTRY
 from python_cloud_server.cloud_server import CloudServer
 from python_cloud_server.constants import API_PREFIX
 from python_cloud_server.middleware import RequestLoggingMiddleware, SecurityHeadersMiddleware
-from python_cloud_server.models import AppConfigModel, BaseResponse, ResponseCode, ServerHealthStatus
+from python_cloud_server.models import BaseResponse, CloudServerConfig, ResponseCode, ServerHealthStatus
 
 
 @pytest.fixture(autouse=True)
@@ -55,7 +55,7 @@ def mock_timestamp() -> Generator[str, None, None]:
 
 
 @pytest.fixture
-def mock_cloud_server(mock_app_config: AppConfigModel) -> CloudServer:
+def mock_cloud_server(mock_app_config: CloudServerConfig) -> CloudServer:
     """Provide a CloudServer instance for testing."""
     return CloudServer(mock_app_config)
 
@@ -241,7 +241,7 @@ class TestPrometheusMetrics:
 class TestRateLimiting:
     """Unit tests for rate limiting functionality."""
 
-    def test_setup_rate_limiting_enabled(self, mock_app_config: AppConfigModel) -> None:
+    def test_setup_rate_limiting_enabled(self, mock_app_config: CloudServerConfig) -> None:
         """Test rate limiting setup when enabled."""
         mock_app_config.rate_limit.enabled = True
 
@@ -254,7 +254,7 @@ class TestRateLimiting:
         """Test rate limiting setup when disabled."""
         assert mock_cloud_server.limiter is None
 
-    def test_limit_route_with_limiter_enabled(self, mock_app_config: AppConfigModel) -> None:
+    def test_limit_route_with_limiter_enabled(self, mock_app_config: CloudServerConfig) -> None:
         """Test _limit_route when rate limiting is enabled."""
         mock_app_config.rate_limit.enabled = True
 

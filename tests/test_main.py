@@ -6,13 +6,13 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from python_cloud_server.main import run
-from python_cloud_server.models import AppConfigModel
+from python_cloud_server.models import CloudServerConfig
 
 TEST_PORT = 443
 
 
 @pytest.fixture
-def mock_load_config(mock_app_config: AppConfigModel) -> Generator[MagicMock, None, None]:
+def mock_load_config(mock_app_config: CloudServerConfig) -> Generator[MagicMock, None, None]:
     """Mock the load_config function."""
     with patch("python_cloud_server.main.load_config") as mock_config:
         mock_config.return_value = mock_app_config

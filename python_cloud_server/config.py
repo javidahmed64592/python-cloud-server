@@ -19,7 +19,7 @@ from python_cloud_server.constants import (
     LOG_LEVEL,
     LOG_MAX_BYTES,
 )
-from python_cloud_server.models import AppConfigModel
+from python_cloud_server.models import CloudServerConfig
 
 ROOT_DIR = here()
 CONFIG_DIR = ROOT_DIR / "configuration"
@@ -67,11 +67,11 @@ setup_logging()
 logger = logging.getLogger(__name__)
 
 
-def load_config(config_file: str) -> AppConfigModel:
+def load_config(config_file: str) -> CloudServerConfig:
     """Load configuration from the config.json file.
 
     :param str config_file: Name of the configuration file
-    :return AppConfigModel: The validated configuration model
+    :return CloudServerConfig: The validated configuration model
     :raise SystemExit: If configuration file is missing, invalid JSON, or fails validation
     """
     config_path = CONFIG_DIR / config_file
@@ -91,7 +91,7 @@ def load_config(config_file: str) -> AppConfigModel:
         sys.exit(1)
 
     try:
-        return AppConfigModel(**config_data)
+        return CloudServerConfig.model_validate(config_data)
     except ValidationError:
         logger.exception("Invalid configuration in: %s", config_path)
         sys.exit(1)

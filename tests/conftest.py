@@ -6,8 +6,8 @@ from unittest.mock import MagicMock, mock_open, patch
 import pytest
 
 from python_cloud_server.models import (
-    AppConfigModel,
     CertificateConfigModel,
+    CloudServerConfig,
     RateLimitConfigModel,
     SecurityConfigModel,
     ServerConfigModel,
@@ -158,9 +158,9 @@ def mock_app_config(
     mock_security_config: SecurityConfigModel,
     mock_rate_limit_config: RateLimitConfigModel,
     mock_certificate_config: CertificateConfigModel,
-) -> AppConfigModel:
-    """Provide a mock AppConfigModel instance."""
-    return AppConfigModel(
+) -> CloudServerConfig:
+    """Provide a mock CloudServerConfig instance."""
+    return CloudServerConfig(
         server=mock_server_config,
         security=mock_security_config,
         rate_limit=mock_rate_limit_config,

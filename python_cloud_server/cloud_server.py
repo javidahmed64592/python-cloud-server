@@ -20,16 +20,16 @@ from slowapi.util import get_remote_address
 from python_cloud_server.authentication_handler import load_hashed_token, verify_token
 from python_cloud_server.constants import API_KEY_HEADER_NAME, API_PREFIX, PACKAGE_NAME
 from python_cloud_server.middleware import RequestLoggingMiddleware, SecurityHeadersMiddleware
-from python_cloud_server.models import AppConfigModel, GetHealthResponse, ResponseCode, ServerHealthStatus
+from python_cloud_server.models import CloudServerConfig, GetHealthResponse, ResponseCode, ServerHealthStatus
 
 
 class CloudServer:
     """Cloud storage server application."""
 
-    def __init__(self, config: AppConfigModel) -> None:
+    def __init__(self, config: CloudServerConfig) -> None:
         """Initialize the CloudServer.
 
-        :param AppConfigModel config: Application configuration
+        :param CloudServerConfig config: Cloud server configuration
         """
         self.config = config
         self.logger = logging.getLogger(__name__)

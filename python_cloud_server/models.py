@@ -122,5 +122,5 @@ class GetHealthResponse(BaseResponse):
 
 
 # Cloud Server Configuration Models
-class AppConfigModel(TemplateServerConfig):
-    """Application configuration model."""
+class CloudServerConfig(TemplateServerConfig):
+    """Cloud server configuration."""

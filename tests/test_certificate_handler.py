@@ -12,7 +12,7 @@ from python_cloud_server.certificate_handler import (
     CertificateHandler,
     generate_self_signed_certificate,
 )
-from python_cloud_server.models import AppConfigModel, CertificateConfigModel
+from python_cloud_server.models import CertificateConfigModel, CloudServerConfig
 
 RSA_KEY_SIZE = 4096
 
@@ -163,7 +163,7 @@ class TestGenerateSelfSignedCertificate:
     """Unit tests for the generate_self_signed_certificate function."""
 
     def test_generate_self_signed_certificate_success(
-        self, mock_load_config: MagicMock, mock_app_config: AppConfigModel, tmp_path: Path
+        self, mock_load_config: MagicMock, mock_app_config: CloudServerConfig, tmp_path: Path
     ) -> None:
         """Test successful certificate generation via wrapper function."""
         # Use tmp_path for certificate directory to avoid permission issues
@@ -190,7 +190,7 @@ class TestGenerateSelfSignedCertificate:
             assert b"BEGIN CERTIFICATE" in cert_data
 
     def test_generate_self_signed_certificate_os_error(
-        self, mock_load_config: MagicMock, mock_app_config: AppConfigModel, mock_sys_exit: MagicMock, tmp_path: Path
+        self, mock_load_config: MagicMock, mock_app_config: CloudServerConfig, mock_sys_exit: MagicMock, tmp_path: Path
     ) -> None:
         """Test certificate generation wrapper handles OSError."""
         # Use tmp_path for certificate directory
@@ -208,7 +208,7 @@ class TestGenerateSelfSignedCertificate:
         mock_sys_exit.assert_called_once_with(1)
 
     def test_generate_self_signed_certificate_permission_error(
-        self, mock_load_config: MagicMock, mock_app_config: AppConfigModel, mock_sys_exit: MagicMock, tmp_path: Path
+        self, mock_load_config: MagicMock, mock_app_config: CloudServerConfig, mock_sys_exit: MagicMock, tmp_path: Path
     ) -> None:
         """Test certificate generation wrapper handles PermissionError."""
         # Use tmp_path for certificate directory
@@ -226,7 +226,7 @@ class TestGenerateSelfSignedCertificate:
         mock_sys_exit.assert_called_once_with(1)
 
     def test_generate_self_signed_certificate_unexpected_error(
-        self, mock_load_config: MagicMock, mock_app_config: AppConfigModel, mock_sys_exit: MagicMock, tmp_path: Path
+        self, mock_load_config: MagicMock, mock_app_config: CloudServerConfig, mock_sys_exit: MagicMock, tmp_path: Path
     ) -> None:
         """Test certificate generation wrapper handles unexpected exceptions."""
         # Use tmp_path for certificate directory

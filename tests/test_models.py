@@ -6,9 +6,9 @@ import pytest
 from pydantic import ValidationError
 
 from python_cloud_server.models import (
-    AppConfigModel,
     BaseResponse,
     CertificateConfigModel,
+    CloudServerConfig,
     GetHealthResponse,
     RateLimitConfigModel,
     ResponseCode,
@@ -180,12 +180,12 @@ class TestGetHealthResponse:
 
 
 # Cloud Server Configuration Models
-class TestAppConfigModel:
-    """Unit tests for the AppConfigModel class."""
+class TestCloudServerConfig:
+    """Unit tests for the CloudServerConfig class."""
 
     def test_model_dump(
         self,
-        mock_app_config: AppConfigModel,
+        mock_app_config: CloudServerConfig,
         mock_server_config_dict: dict,
         mock_security_config_dict: dict,
         mock_rate_limit_config_dict: dict,

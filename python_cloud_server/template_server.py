@@ -1,6 +1,7 @@
 """Template FastAPI server module."""
 
 import logging
+import sys
 from abc import ABC, abstractmethod
 from collections.abc import AsyncGenerator, Callable
 from contextlib import asynccontextmanager
@@ -199,23 +200,26 @@ class TemplateServer(ABC):
 
         :raise FileNotFoundError: If SSL certificate files are missing
         """
-        cert_file = self.config.certificate.ssl_cert_file_path
-        key_file = self.config.certificate.ssl_key_file_path
+        try:
+            cert_file = self.config.certificate.ssl_cert_file_path
+            key_file = self.config.certificate.ssl_key_file_path
 
-        if not (cert_file.exists() and key_file.exists()):
-            msg = "SSL certificate files are missing"
-            self.logger.error("%s. Expected: '%s' and '%s'", msg, cert_file, key_file)
-            raise FileNotFoundError(msg)
+            if not (cert_file.exists() and key_file.exists()):
+                self.logger.error("SSL certificate files are missing. Expected: '%s' and '%s'", cert_file, key_file)
+                sys.exit(1)
 
-        self.logger.info("Starting server: %s", self.config.server.full_url)
-        uvicorn.run(
-            self.app,
-            host=self.config.server.host,
-            port=self.config.server.port,
-            ssl_keyfile=str(key_file),
-            ssl_certfile=str(cert_file),
-        )
-        self.logger.info("Server stopped.")
+            self.logger.info("Starting server: %s", self.config.server.full_url)
+            uvicorn.run(
+                self.app,
+                host=self.config.server.host,
+                port=self.config.server.port,
+                ssl_keyfile=str(key_file),
+                ssl_certfile=str(cert_file),
+            )
+            self.logger.info("Server stopped.")
+        except OSError:
+            self.logger.exception("Failed to start - ran into an OSError!")
+            sys.exit(1)
 
     def add_unauthenticated_route(
         self, endpoint: str, handler_function: Callable, response_model: type[BaseModel]

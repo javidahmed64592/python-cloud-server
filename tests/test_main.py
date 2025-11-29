@@ -29,31 +29,9 @@ def mock_cloud_server_class() -> Generator[MagicMock, None, None]:
 class TestRun:
     """Unit tests for the run function."""
 
-    def test_run_success(self, mock_load_config: MagicMock, mock_cloud_server_class: MagicMock) -> None:
+    def test_run(self, mock_load_config: MagicMock, mock_cloud_server_class: MagicMock) -> None:
         """Test successful server run."""
         run()
 
         mock_load_config.assert_called_once()
         mock_cloud_server_class.return_value.run.assert_called_once()
-
-    def test_run_file_not_found_error(
-        self,
-        mock_load_config: MagicMock,
-        mock_cloud_server_class: MagicMock,
-    ) -> None:
-        """Test run handles FileNotFoundError."""
-        mock_cloud_server_class.return_value.run.side_effect = FileNotFoundError("SSL cert files missing")
-
-        with pytest.raises(SystemExit):
-            run()
-
-    def test_run_os_error(
-        self,
-        mock_load_config: MagicMock,
-        mock_cloud_server_class: MagicMock,
-    ) -> None:
-        """Test run handles OSError."""
-        mock_cloud_server_class.return_value.run.side_effect = OSError("SSL cert files missing")
-
-        with pytest.raises(SystemExit):
-            run()

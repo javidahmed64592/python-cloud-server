@@ -280,18 +280,28 @@ class TestTemplateServerRun:
         assert call_kwargs["port"] == mock_template_server.config.server.port
 
     def test_run_missing_cert_file(self, mock_template_server: TemplateServer, mock_exists: MagicMock) -> None:
-        """Test run raises FileNotFoundError when certificate file is missing."""
+        """Test run raises SystemExit when certificate file is missing."""
         mock_exists.side_effect = [False, True]
 
-        with pytest.raises(FileNotFoundError, match="SSL certificate files are missing"):
+        with pytest.raises(SystemExit):
             mock_template_server.run()
 
     def test_run_missing_key_file(self, mock_template_server: TemplateServer, mock_exists: MagicMock) -> None:
-        """Test run raises FileNotFoundError when key file is missing."""
+        """Test run raises SystemExit when key file is missing."""
         mock_exists.side_effect = [True, False]
 
-        with pytest.raises(FileNotFoundError, match="SSL certificate files are missing"):
+        with pytest.raises(SystemExit):
             mock_template_server.run()
+
+    def test_run_os_error(self, mock_template_server: TemplateServer, mock_exists: MagicMock) -> None:
+        """Test run raises SystemExit on OSError."""
+        mock_exists.side_effect = [True, True]
+
+        with patch("python_cloud_server.template_server.uvicorn.run") as mock_uvicorn_run:
+            mock_uvicorn_run.side_effect = OSError("Test OSError")
+
+            with pytest.raises(SystemExit):
+                mock_template_server.run()
 
 
 class TestTemplateServerRoutes:

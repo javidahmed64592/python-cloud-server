@@ -34,14 +34,14 @@ def clear_prometheus_registry() -> Generator[None, None, None]:
 @pytest.fixture
 def mock_verify_token() -> Generator[MagicMock, None, None]:
     """Mock the verify_token function."""
-    with patch("python_cloud_server.cloud_server.verify_token") as mock_verify:
+    with patch("python_cloud_server.template_server.verify_token") as mock_verify:
         yield mock_verify
 
 
 @pytest.fixture(autouse=True)
 def mock_load_hashed_token() -> Generator[MagicMock, None, None]:
     """Mock the load_hashed_token function."""
-    with patch("python_cloud_server.cloud_server.load_hashed_token") as mock_load:
+    with patch("python_cloud_server.template_server.load_hashed_token") as mock_load:
         mock_load.return_value = "mock_hashed_token"
         yield mock_load
 
@@ -123,7 +123,7 @@ class TestCloudServer:
         dependency = test_route.dependencies[0]
         assert dependency.dependency == mock_cloud_server._verify_api_key
 
-    def test_setup_routes(self, mock_cloud_server: CloudServer) -> None:
+    def testsetup_routes(self, mock_cloud_server: CloudServer) -> None:
         """Test that routes are set up correctly."""
         api_routes = [route for route in mock_cloud_server.app.routes if isinstance(route, APIRoute)]
         routes = [route.path for route in api_routes]
@@ -331,7 +331,7 @@ class TestCloudServerRun:
         """Test successful server run."""
         mock_exists.side_effect = [True, True]
 
-        with patch("python_cloud_server.cloud_server.uvicorn.run") as mock_uvicorn_run:
+        with patch("python_cloud_server.template_server.uvicorn.run") as mock_uvicorn_run:
             mock_cloud_server.run()
 
         mock_uvicorn_run.assert_called_once()

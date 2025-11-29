@@ -232,6 +232,7 @@ class TestRateLimiting:
 
         # Verify JSONResponse status and content
         assert response.status_code == HTTP_429_TOO_MANY_REQUESTS
+        assert isinstance(response.body, bytes)
         assert json.loads(response.body.decode()) == {"detail": "Rate limit exceeded"}
         assert response.headers.get("Retry-After") == str(exc.retry_after)
 
@@ -244,9 +245,11 @@ class TestRateLimiting:
         assert server.limiter is not None
         assert server.app.state.limiter is not None
 
-    def test_setup_rate_limiting_disabled(self, mock_template_server: TemplateServer) -> None:
+    def test_setup_rate_limiting_disabled(self, mock_app_config: TemplateServerConfig) -> None:
         """Test rate limiting setup when disabled."""
-        assert mock_template_server.limiter is None
+        server = MockTemplateServer(mock_app_config)
+
+        assert server.limiter is None
 
     def test_limit_route_with_limiter_enabled(self, mock_app_config: TemplateServerConfig) -> None:
         """Test _limit_route when rate limiting is enabled."""
@@ -258,10 +261,12 @@ class TestRateLimiting:
         assert limited_route != server.mock_unprotected_method
         assert hasattr(limited_route, "__wrapped__")
 
-    def test_limit_route_with_limiter_disabled(self, mock_template_server: TemplateServer) -> None:
+    def test_limit_route_with_limiter_disabled(self, mock_app_config: TemplateServerConfig) -> None:
         """Test _limit_route when rate limiting is disabled."""
-        limited_route = mock_template_server._limit_route(mock_template_server.mock_unprotected_method)
-        assert limited_route == mock_template_server.mock_unprotected_method
+        server = MockTemplateServer(mock_app_config)
+
+        limited_route = server._limit_route(server.mock_unprotected_method)
+        assert limited_route == server.mock_unprotected_method
 
 
 class TestTemplateServerRun:

@@ -13,7 +13,7 @@ class CloudServer(TemplateServer):
 
         :param CloudServerConfig config: Cloud server configuration
         """
-        super().__init__(config)
+        super().__init__(package_name="python-cloud-server", config=config)
 
     def validate_config(self, config_data: dict) -> CloudServerConfig:
         """Validate and parse the configuration data into a CloudServerConfig.

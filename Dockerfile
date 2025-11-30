@@ -7,6 +7,9 @@ WORKDIR /build
 # Install uv
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
+# Install Git for dependency resolution
+RUN apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*
+
 # Copy project files
 COPY python_cloud_server/ ./python_cloud_server/
 COPY configuration ./configuration/

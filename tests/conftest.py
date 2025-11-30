@@ -5,15 +5,14 @@ from unittest.mock import MagicMock, mock_open, patch
 
 import pytest
 from prometheus_client import REGISTRY
-
-from python_cloud_server.models import (
+from python_template_server.models import (
     CertificateConfigModel,
-    CloudServerConfig,
     RateLimitConfigModel,
     SecurityConfigModel,
     ServerConfigModel,
-    TemplateServerConfig,
 )
+
+from python_cloud_server.models import CloudServerConfig
 
 
 # General fixtures
@@ -47,32 +46,11 @@ def mock_open_file() -> Generator[MagicMock, None, None]:
 
 
 @pytest.fixture
-def mock_touch() -> Generator[MagicMock, None, None]:
-    """Mock the Path.touch() method."""
-    with patch("pathlib.Path.touch") as mock_touch:
-        yield mock_touch
-
-
-@pytest.fixture
 def mock_sys_exit() -> Generator[MagicMock, None, None]:
     """Mock sys.exit to raise SystemExit."""
     with patch("sys.exit") as mock_exit:
         mock_exit.side_effect = SystemExit
         yield mock_exit
-
-
-@pytest.fixture
-def mock_set_key() -> Generator[MagicMock, None, None]:
-    """Mock the set_key function."""
-    with patch("dotenv.set_key") as mock_set_key:
-        yield mock_set_key
-
-
-@pytest.fixture
-def mock_os_getenv() -> Generator[MagicMock, None, None]:
-    """Mock the os.getenv function."""
-    with patch("os.getenv") as mock_getenv:
-        yield mock_getenv
 
 
 @pytest.fixture(autouse=True)
@@ -148,22 +126,6 @@ def mock_rate_limit_config(mock_rate_limit_config_dict: dict) -> RateLimitConfig
 def mock_certificate_config(mock_certificate_config_dict: dict) -> CertificateConfigModel:
     """Provide a mock CertificateConfigModel instance."""
     return CertificateConfigModel(**mock_certificate_config_dict)
-
-
-@pytest.fixture
-def mock_template_server_config(
-    mock_server_config: ServerConfigModel,
-    mock_security_config: SecurityConfigModel,
-    mock_rate_limit_config: RateLimitConfigModel,
-    mock_certificate_config: CertificateConfigModel,
-) -> TemplateServerConfig:
-    """Provide a mock TemplateServerConfig instance."""
-    return TemplateServerConfig(
-        server=mock_server_config,
-        security=mock_security_config,
-        rate_limit=mock_rate_limit_config,
-        certificate=mock_certificate_config,
-    )
 
 
 # Cloud Server Configuration Models

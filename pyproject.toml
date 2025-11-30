@@ -18,15 +18,7 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
 ]
 dependencies = [
-    "cryptography>=46.0.3",
-    "fastapi>=0.121.3",
-    "httpx>=0.28.1",
-    "prometheus-fastapi-instrumentator>=7.1.0",
-    "pydantic>=2.12.4",
-    "pyhere>=1.0.3",
-    "python-dotenv>=1.2.1",
-    "slowapi>=0.1.9",
-    "uvicorn[standard]>=0.38.0",
+    "python-template-server@git+https://github.com/javidahmed64592/python-template-server",
 ]
 
 [project.optional-dependencies]
@@ -44,8 +36,6 @@ repository = "https://github.com/javidahmed64592/python-cloud-server"
 
 [project.scripts]
 python-cloud-server = "python_cloud_server.main:run"
-generate-certificate = "python_cloud_server.certificate_handler:generate_self_signed_certificate"
-generate-new-token = "python_cloud_server.authentication_handler:generate_new_token"
 
 [tool.hatch.build]
 include = [
@@ -55,6 +45,9 @@ include = [
   "LICENSE",
   "README.md",
 ]
+
+[tool.hatch.metadata]
+allow-direct-references = true
 
 [tool.pytest.ini_options]
 addopts = [

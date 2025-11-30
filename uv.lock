@@ -617,7 +617,7 @@ requires-dist = [
     { name = "pytest", marker = "extra == 'dev'" },
     { name = "pytest-asyncio", marker = "extra == 'dev'" },
     { name = "pytest-cov", marker = "extra == 'dev'" },
-    { name = "python-template-server", git = "https://github.com/javidahmed64592/python-template-server" },
+    { name = "python-template-server", git = "https://github.com/javidahmed64592/python-template-server.git?rev=bdfd7bf292eae891bcc65df4385ad4439644623a" },
     { name = "ruff", marker = "extra == 'dev'" },
     { name = "validate-pyproject", marker = "extra == 'dev'" },
 ]
@@ -635,7 +635,7 @@ wheels = [
 [[package]]
 name = "python-template-server"
 version = "0.1.0"
-source = { git = "https://github.com/javidahmed64592/python-template-server#1ac24e9c9820c70e8957f58b84393ae30faa58e2" }
+source = { git = "https://github.com/javidahmed64592/python-template-server.git?rev=bdfd7bf292eae891bcc65df4385ad4439644623a#bdfd7bf292eae891bcc65df4385ad4439644623a" }
 dependencies = [
     { name = "cryptography" },
     { name = "fastapi" },

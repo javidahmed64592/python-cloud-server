@@ -37,6 +37,9 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 # Copy the built wheel from builder
 COPY --from=builder /build/dist/*.whl /tmp/
 
+# Install git dependency first
+RUN uv pip install --system git+https://github.com/javidahmed64592/python-template-server.git
+
 # Install the wheel
 RUN uv pip install --system --no-cache /tmp/*.whl && \
     rm /tmp/*.whl

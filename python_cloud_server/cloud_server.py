@@ -21,7 +21,7 @@ class CloudServer(TemplateServer):
         :param dict config_data: Raw configuration data
         :return CloudServerConfig: Validated cloud server configuration
         """
-        return CloudServerConfig.model_validate(config_data)
+        return CloudServerConfig.model_validate(config_data)  # type: ignore[no-any-return]
 
     def setup_routes(self) -> None:
         """Set up API routes."""

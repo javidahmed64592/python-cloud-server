@@ -156,6 +156,6 @@ pretty = true
 
 [[tool.mypy.overrides]]
 module = [
-    "pyhere.*"
+    "python_template_server.*"
 ]
 ignore_missing_imports = true

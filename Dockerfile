@@ -51,7 +51,6 @@ RUN SITE_PACKAGES_DIR=$(find /usr/local/lib -name "site-packages" -type d | head
 
 # Create startup script
 RUN echo '#!/bin/sh\n\
-    CONFIG_FILE="config.json"\n\
     if [ ! -f .env ]; then\n\
     echo "Generating new token..."\n\
     generate-new-token\n\
@@ -59,9 +58,9 @@ RUN echo '#!/bin/sh\n\
     fi\n\
     if [ ! -f certs/cert.pem ] || [ ! -f certs/key.pem ]; then\n\
     echo "Generating self-signed certificates..."\n\
-    generate-certificate --config-file="$CONFIG_FILE"\n\
+    generate-certificate\n\
     fi\n\
-    exec python-cloud-server --config-file="$CONFIG_FILE"' > /app/start.sh && \
+    exec python-cloud-server' > /app/start.sh && \
     chmod +x /app/start.sh && \
     chown cloudserver:cloudserver /app/start.sh
 

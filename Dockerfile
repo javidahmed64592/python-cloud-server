@@ -1,21 +1,3 @@
-# Multi-stage Dockerfile for Python Cloud Server
-# Stage 1: Build stage - build wheel using uv
-FROM python:3.12-slim AS builder
-
-WORKDIR /build
-
-# Install uv
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
-
-# Copy project files
-COPY python_cloud_server/ ./python_cloud_server/
-COPY configuration ./configuration/
-COPY pyproject.toml .here LICENSE README.md ./
-
-# Build the wheel
-RUN uv build --wheel
-
-# Stage 2: Runtime stage
 FROM python:3.12-slim
 
 # Build arguments for environment-specific config
@@ -34,15 +16,8 @@ RUN apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*
 # Install uv in runtime stage
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
-# Copy the built wheel from builder
-COPY --from=builder /build/dist/*.whl /tmp/
-
-# Install git dependency first
-RUN uv pip install --system git+https://github.com/javidahmed64592/python-template-server.git
-
-# Install the wheel
-RUN uv pip install --system --no-cache /tmp/*.whl && \
-    rm /tmp/*.whl
+# Install dependencies
+RUN uv pip install --system git+https://github.com/javidahmed64592/python-cloud-server.git
 
 # Create configuration directory
 RUN mkdir -p /app/configuration && \
@@ -80,5 +55,4 @@ EXPOSE $PORT
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD python -c "import urllib.request; urllib.request.urlopen('https://localhost:$PORT/api/health', context=__import__('ssl')._create_unverified_context()).read()" || exit 1
 
-# Default command: generate certificates if missing, then start server
 CMD ["/app/start.sh"]

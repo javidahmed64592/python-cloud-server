@@ -3,9 +3,9 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "python-template-server"
+name = "python-cloud-server"
 version = "0.1.0"
-description = "A template FastAPI server with authentication, rate limiting and Prometheus metrics."
+description = "A lightweight FastAPI cloud server."
 readme = "README.md"
 requires-python = ">=3.13"
 license = { file = "LICENSE" }
@@ -18,15 +18,7 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
 ]
 dependencies = [
-    "cryptography>=46.0.3",
-    "fastapi>=0.125.0",
-    "httpx>=0.28.1",
-    "prometheus-fastapi-instrumentator>=7.1.0",
-    "pydantic>=2.12.4",
-    "pyhere>=1.0.3",
-    "python-dotenv>=1.2.1",
-    "slowapi>=0.1.9",
-    "uvicorn[standard]>=0.38.0",
+    "python-template-server @ git+https://github.com/javidahmed64592/python-template-server.git",
 ]
 
 [project.optional-dependencies]
@@ -43,19 +35,17 @@ dev = [
 ]
 
 [project.urls]
-repository = "https://github.com/javidahmed64592/python-template-server"
+repository = "https://github.com/javidahmed64592/python-cloud-server"
 
 [project.scripts]
-python-template-server = "python_template_server.main:run"
-generate-certificate = "python_template_server.certificate_handler:generate_self_signed_certificate"
-generate-new-token = "python_template_server.authentication_handler:generate_new_token"
+python-cloud-server = "python_cloud_server.main:run"
 
 [tool.hatch.metadata]
 allow-direct-references = true
 
 [tool.hatch.build]
 include = [
-  "python_template_server/**",
+  "python_cloud_server/**",
   "configuration/**",
   "grafana/**",
   "prometheus/**",
@@ -74,7 +64,7 @@ addopts = [
 
 [tool.coverage.run]
 branch = true
-source = ["python_template_server"]
+source = ["python_cloud_server"]
 
 [tool.coverage.report]
 fail_under = 80
@@ -183,6 +173,7 @@ pretty = true
 
 [[tool.mypy.overrides]]
 module = [
-    "pyhere.*"
+    "pyhere.*",
+    "python_template_server.*",
 ]
 ignore_missing_imports = true

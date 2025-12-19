@@ -1,7 +1,7 @@
 <!-- omit from toc -->
 # Grafana Configuration
 
-This directory contains Grafana provisioning configuration and custom dashboards for the Python Template Server.
+This directory contains Grafana provisioning configuration and custom dashboards for the Python Cloud Server.
 
 <!-- omit from toc -->
 ## Table of Contents
@@ -97,7 +97,7 @@ grafana/
 2. Start services: `docker compose up -d`
 3. Open Grafana: http://localhost:3000
 4. Login with default credentials: `admin/admin`
-5. Navigate to: Dashboards → Browse → Python Template Server folder
+5. Navigate to: Dashboards → Browse → Python Cloud Server folder
 
 ## Customizing Dashboards
 

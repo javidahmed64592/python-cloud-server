@@ -82,6 +82,9 @@ uv run python-cloud-server
 # Start all services (FastAPI + Prometheus + Grafana)
 docker compose up -d
 
+# From Dockerfile
+docker compose up --build -d
+
 # View logs
 docker compose logs -f python-cloud-server
 
@@ -89,7 +92,13 @@ docker compose logs -f python-cloud-server
 # - API: https://localhost:443/api
 # - Prometheus: http://localhost:9090
 # - Grafana: http://localhost:3000 (admin/admin)
+
+# Stop services
+docker compose down
 ```
+
+If you run `uv run generate-new-token` locally, the Docker container will use that API token for authentication which is convenient for development.
+If this is omitted, a token will be generated upon starting the container for the first time.
 
 ## Documentation
 

@@ -1,11 +1,11 @@
 services:
-  # Python Template Server
-  python-template-server:
+  # Python Cloud Server
+  python-cloud-server:
     image: ${CYBER_QUERY_AI_IMAGE:-ghcr.io/javidahmed64592/cyber-query-ai:latest}
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: python-template-server
+    container_name: python-cloud-server
     ports:
       - "443:443"
     environment:
@@ -50,7 +50,7 @@ services:
       - monitoring
     restart: unless-stopped
     depends_on:
-      python-template-server:
+      python-cloud-server:
         condition: service_started
 
   # Grafana for metrics visualization
@@ -71,7 +71,7 @@ services:
       - monitoring
     restart: unless-stopped
     depends_on:
-      python-template-server:
+      python-cloud-server:
         condition: service_started
       prometheus:
         condition: service_started

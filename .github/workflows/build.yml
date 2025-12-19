@@ -20,12 +20,12 @@ jobs:
       - name: Inspect wheel contents
         run: |
           echo "Wheel contents:"
-          unzip -l dist/python_template_server-*-py3-none-any.whl
+          unzip -l dist/python_cloud_server-*-py3-none-any.whl
       - name: Upload wheel
         uses: actions/upload-artifact@v4
         with:
-          name: python_template_server_wheel
-          path: dist/python_template_server-*-py3-none-any.whl
+          name: python_cloud_server_wheel
+          path: dist/python_cloud_server-*-py3-none-any.whl
 
   verify_structure:
     runs-on: ubuntu-latest
@@ -37,11 +37,11 @@ jobs:
       - name: Download wheel artifact
         uses: actions/download-artifact@v4
         with:
-          name: python_template_server_wheel
+          name: python_cloud_server_wheel
 
       - name: Install wheel
         run: |
-          PACKAGE_NAME="python_template_server"
+          PACKAGE_NAME="python_cloud_server"
           WHEEL_FILE=$(find . -name "${PACKAGE_NAME}-*-py3-none-any.whl")
 
           if [ ! -f "$WHEEL_FILE" ]; then
@@ -54,7 +54,7 @@ jobs:
 
       - name: Verify installed package structure
         run: |
-          PACKAGE_NAME="python_template_server"
+          PACKAGE_NAME="python_cloud_server"
 
           # Find site-packages directory
           SITE_PACKAGES=$(find . -name "site-packages" -type d | head -1)

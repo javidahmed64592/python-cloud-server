@@ -75,7 +75,7 @@ jobs:
         run: |
           echo "Checking version consistency across all package files..."
 
-          PACKAGE_NAME="python-template-server"
+          PACKAGE_NAME="python-cloud-server"
           TOML_VERSION=$(uv run python -c "import tomllib; print(tomllib.load(open('pyproject.toml', 'rb'))['project']['version'])")
           LOCK_VERSION=$(uv run python -c "import tomllib; lock_data = tomllib.load(open('uv.lock', 'rb')); pkg = next((p for p in lock_data['package'] if p['name'] == '${PACKAGE_NAME}'), None); print(pkg['version'] if pkg else 'not found')")
 

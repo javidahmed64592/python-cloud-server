@@ -1,6 +1,6 @@
 # GitHub Workflows
 
-This document details the CI/CD workflows to build and release the Python Template Server application.
+This document details the CI/CD workflows to build and release the Python Cloud Server application.
 They run automated code quality checks to ensure code remains robust, maintainable, and testable.
 
 ## CI Workflow
@@ -55,10 +55,9 @@ It consists of the following jobs:
 ### build_wheel
   - Checkout code
   - Setup Python environment with dev dependencies (via custom action)
-  - Download frontend build artifact to `static/` directory
   - Build wheel with `uv build`
   - Inspect wheel contents for verification
-  - Upload wheel artifact (`python_template_server_wheel`)
+  - Upload wheel artifact (`python_cloud_server_wheel`)
 
 ### verify_structure
   - Depends on `build_wheel` job
@@ -67,7 +66,7 @@ It consists of the following jobs:
   - Download wheel artifact
   - Install wheel using `uv pip install`
   - Verify installed package structure in site-packages:
-    - `python_template_server/` - Python package
+    - `python_cloud_server/` - Python package
     - `configuration/` - Server configuration
     - `grafana/` - Grafana dashboards and provisioning
     - `prometheus/` - Prometheus configuration
@@ -83,7 +82,7 @@ It consists of the following jobs:
   - Setup Python environment with dev dependencies (via custom action)
   - Build and start services with `docker compose --build -d`
   - Wait for services to start (5 seconds)
-  - Show server logs from `python-template-server` container
+  - Show server logs from `python-cloud-server` container
   - **Health check** using reusable composite action `.github/actions/docker-check-containers`:
     - Verifies server is running on port 443
     - Checks Prometheus and Grafana services

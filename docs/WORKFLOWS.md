@@ -33,7 +33,7 @@ It consists of the following jobs:
 ### bandit
 - Checkout code
 - Setup Python environment with dev dependencies (via custom action)
-- Run security scanning with bandit on `example/` directory
+- Run security scanning with bandit on `python_cloud_server/` directory
 - Generate JSON report for artifacts
 - Fail if security vulnerabilities are found
 

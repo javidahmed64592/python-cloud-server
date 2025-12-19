@@ -32,7 +32,7 @@ class CloudServer(TemplateServer):
         :return TemplateServerConfig: The validated configuration model
         :raise ValidationError: If the configuration data is invalid
         """
-        return CloudServerConfig.model_validate(config_data)
+        return CloudServerConfig.model_validate(config_data)  # type: ignore[no-any-return]
 
     def setup_routes(self) -> None:
         """Set up API routes."""

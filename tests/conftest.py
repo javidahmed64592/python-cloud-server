@@ -86,4 +86,4 @@ def clear_prometheus_registry() -> Generator[None]:
 @pytest.fixture
 def mock_cloud_server_config() -> CloudServerConfig:
     """Provide a mock CloudServerConfig instance."""
-    return CloudServerConfig.model_validate({})
+    return CloudServerConfig.model_validate({})  # type: ignore[no-any-return]

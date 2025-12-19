@@ -1,4 +1,4 @@
-# Prometheus Configuration for Python Template Server
+# Prometheus Configuration for Python Cloud Server
 global:
   scrape_interval: 15s
   evaluation_interval: 15s
@@ -6,14 +6,14 @@ global:
 
 # Scrape configurations
 scrape_configs:
-  - job_name: 'python-template-server'
+  - job_name: 'python-cloud-server'
     scheme: https
     tls_config:
       insecure_skip_verify: true
     static_configs:
-      - targets: ['python-template-server:443']
+      - targets: ['python-cloud-server:443']
         labels:
-          service: 'python-template-server-storage'
+          service: 'python-cloud-server-storage'
           environment: 'prod'
 
     metrics_path: '/api/metrics'

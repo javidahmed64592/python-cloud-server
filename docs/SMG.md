@@ -1,13 +1,12 @@
 <!-- omit from toc -->
 # Software Maintenance Guide
 
-This document outlines how to configure and setup a development environment to work on the Python Template Server application.
+This document outlines how to configure and setup a development environment to work on the Python Cloud Server application.
 
 <!-- omit from toc -->
 ## Table of Contents
 - [Backend (Python)](#backend-python)
   - [Directory Structure](#directory-structure)
-  - [Architecture Overview](#architecture-overview)
   - [Installing Dependencies](#installing-dependencies)
   - [Setting Up Certificates and Authentication](#setting-up-certificates-and-authentication)
     - [Generating SSL Certificates](#generating-ssl-certificates)
@@ -25,37 +24,11 @@ This document outlines how to configure and setup a development environment to w
 ### Directory Structure
 
 ```
-python_template_server/
-├── middleware/
-│   ├── request_logging_middleware.py  # Request logging
-│   └── security_headers_middleware.py # Security headers
-├── authentication_handler.py          # Authentication (token generation/verification)
-├── certificate_handler.py             # SSL certificate generator
-├── constants.py                       # Server constants
-├── logging_setup.py                   # Logging configuration
-├── main.py                            # Application entry point with ExampleServer
-├── models.py                          # Pydantic models (config + API responses)
-├── prometheus_handler.py              # Prometheus metrics handler
-└── template_server.py                 # TemplateServer base class (reusable foundation)
+python_cloud_server/
+├── main.py           # Application entry point
+├── models.py         # Pydantic models (config + API responses)
+└── server.py         # Cloud server class
 ```
-
-### Architecture Overview
-
-The Python Template Server uses a **`TemplateServer` base class** that provides reusable infrastructure for building FastAPI applications:
-
-**TemplateServer Responsibilities:**
-- **Middleware Setup**: Request logging and security headers
-- **Authentication**: API key verification with SHA-256 hashing
-- **Rate Limiting**: Configurable request throttling per endpoint
-- **Metrics**: Prometheus instrumentation for observability
-- **Configuration**: JSON-based config loading and validation
-
-**Application-Specific Servers** (like `ExampleServer` in `main.py`) extend `TemplateServer` to:
-- Define custom API endpoints via `setup_routes()`
-- Implement domain-specific business logic
-- Validate custom configuration models via `validate_config()`
-
-This separation ensures that cross-cutting concerns (security, logging, metrics) are handled by the base class, while application developers focus on building their API functionality.
 
 ### Installing Dependencies
 
@@ -121,7 +94,7 @@ This command:
 Start the FastAPI server:
 
 ```sh
-uv run python-template-server
+uv run python-cloud-server
 ```
 
 The backend will be available at `https://localhost:443/api` by default.

@@ -1,14 +1,17 @@
-# Multi-stage Dockerfile for Python Template Server
+# Multi-stage Dockerfile for Python Cloud Server
 # Stage 1: Build stage - build wheel using uv
 FROM python:3.13-slim AS backend-builder
 
 WORKDIR /build
 
+# Install Git for dependency resolution
+RUN apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*
+
 # Install uv
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
 # Copy backend source files
-COPY python_template_server/ ./python_template_server/
+COPY python_cloud_server/ ./python_cloud_server/
 COPY configuration/ ./configuration/
 COPY grafana/ ./grafana/
 COPY prometheus/ ./prometheus/
@@ -17,10 +20,13 @@ COPY pyproject.toml .here LICENSE README.md ./
 # Build the wheel
 RUN uv build --wheel
 
-# Stage 3: Runtime stage
+# Stage 2: Runtime stage
 FROM python:3.13-slim
 
 WORKDIR /app
+
+# Install Git for dependency resolution
+RUN apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*
 
 # Install uv in runtime stage
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
@@ -70,7 +76,7 @@ RUN echo '#!/bin/sh\n\
     generate-certificate\n\
     fi\n\
     \n\
-    exec python-template-server' > /app/start.sh && \
+    exec python-cloud-server' > /app/start.sh && \
     chmod +x /app/start.sh
 
 # Expose HTTPS port

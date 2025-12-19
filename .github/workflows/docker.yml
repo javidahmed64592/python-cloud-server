@@ -22,7 +22,7 @@ jobs:
           sleep 5  # Wait for services to start
 
       - name: Show server logs
-        run: docker compose logs python-template-server
+        run: docker compose logs python-cloud-server
 
       - uses: ./.github/actions/docker-check-containers
         with:

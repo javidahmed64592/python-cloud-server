@@ -25,6 +25,9 @@ FROM python:3.13-slim
 
 WORKDIR /app
 
+# Install Git for dependency resolution
+RUN apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*
+
 # Install uv in runtime stage
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 

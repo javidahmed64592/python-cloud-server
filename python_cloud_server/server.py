@@ -1,12 +1,20 @@
 """Cloud server module."""
 
 import logging
-from typing import Any
+import uuid
 
 from python_template_server.constants import CONFIG_DIR
 from python_template_server.template_server import TemplateServer
 
-from python_cloud_server.models import CloudServerConfig
+from python_cloud_server.models import (
+    CloudServerConfig,
+    DeleteFileRequest,
+    DeleteFileResponse,
+    GetFileRequest,
+    GetFileResponse,
+    PostFileRequest,
+    PostFileResponse,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +33,7 @@ class CloudServer(TemplateServer):
             config=config,
         )
 
-    def validate_config(self, config_data: dict[str, Any]) -> CloudServerConfig:
+    def validate_config(self, config_data: dict) -> CloudServerConfig:
         """Validate configuration data against the TemplateServerConfig model.
 
         :param dict config_data: The configuration data to validate

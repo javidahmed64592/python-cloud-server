@@ -1,21 +1,20 @@
 """Cloud server module."""
 
 import logging
-import uuid
+import mimetypes
+from datetime import UTC, datetime
 from pathlib import Path
 
-from fastapi import Request
+from fastapi import HTTPException, Request, UploadFile
+from fastapi.responses import FileResponse
 from python_template_server.constants import CONFIG_DIR
 from python_template_server.template_server import TemplateServer
 
 from python_cloud_server.metadata import MetadataManager
 from python_cloud_server.models import (
     CloudServerConfig,
-    DeleteFileRequest,
     DeleteFileResponse,
-    GetFileRequest,
-    GetFileResponse,
-    PostFileRequest,
+    FileMetadata,
     PostFileResponse,
 )
 
@@ -83,50 +82,159 @@ class CloudServer(TemplateServer):
         """Set up API routes."""
         super().setup_routes()
         self.add_authenticated_route(
-            endpoint="/get_file",
+            endpoint="/files/{filepath:path}",
             handler_function=self.get_file,
-            response_model=GetFileResponse,
+            response_model=None,
             methods=["GET"],
         )
         self.add_authenticated_route(
-            endpoint="/post_file",
+            endpoint="/files/{filepath:path}",
             handler_function=self.post_file,
             response_model=PostFileResponse,
             methods=["POST"],
         )
         self.add_authenticated_route(
-            endpoint="/delete_file",
+            endpoint="/files/{filepath:path}",
             handler_function=self.delete_file,
             response_model=DeleteFileResponse,
             methods=["DELETE"],
         )
 
-    async def get_file(self, request: Request) -> GetFileResponse:
-        """Handle get file requests.
+    async def get_file(self, request: Request, filepath: str) -> FileResponse:
+        """Handle get file requests - download a file.
 
-        :param Request request: The incoming request
-        :return GetFileResponse: The response model
+        :param Request request: The request object
+        :param str filepath: The file path to retrieve (e.g., 'animals/cat.png')
+        :return FileResponse: Server response
+        :raise HTTPException: If file not found
         """
-        get_file_request = GetFileRequest.model_validate(await request.json())
-        # TODO: Implement file retrieval logic
-        return GetFileResponse.model_validate({})
+        # Get file metadata
+        file_metadata = self.metadata_manager.get_file_entry(filepath)
+        if not file_metadata:
+            raise HTTPException(status_code=404, detail=f"File {filepath} not found")
 
-    async def post_file(self, request: Request) -> PostFileResponse:
-        """Handle post file requests.
+        # Construct absolute file path
+        file_path = self.storage_directory / filepath
+        if not file_path.exists():
+            logger.error("File exists in metadata but not on disk: %s", filepath)
+            raise HTTPException(status_code=404, detail="File not found on disk")
 
-        :param Request request: The incoming request
-        :return PostFileResponse: The response model
+        # Return file with original filename from path
+        filename = Path(filepath).name
+        return FileResponse(
+            path=file_path,
+            media_type=file_metadata.mime_type,
+            filename=filename,
+        )
+
+    async def post_file(self, request: Request, filepath: str, file: UploadFile) -> PostFileResponse:
+        """Handle post file requests - upload a file.
+
+        :param Request request: The request object
+        :param str filepath: The destination path for the file (e.g., 'animals/cat.png')
+        :param UploadFile file: The uploaded file
+        :return PostFileResponse: Server response
+        :raise HTTPException: If file is too large or invalid
         """
-        post_file_request = PostFileRequest.model_validate(await request.json())
-        # TODO: Implement file storage logic
-        return PostFileResponse.model_validate({})
+        # Get MIME type
+        mime_type = file.content_type or "application/octet-stream"
+        if not mime_type or mime_type == "application/octet-stream":
+            # Try to guess from filename
+            guessed_type, _ = mimetypes.guess_type(filepath)
+            if guessed_type:
+                mime_type = guessed_type
 
-    async def delete_file(self, request: Request) -> DeleteFileResponse:
+        # Construct absolute file path and ensure parent directories exist
+        file_path = self.storage_directory / filepath
+        file_path.parent.mkdir(parents=True, exist_ok=True)
+
+        # Check if file already exists
+        if self.metadata_manager._file_exists(filepath):
+            raise HTTPException(status_code=409, detail=f"File {filepath} already exists")
+
+        file_size = 0
+
+        try:
+            with open(file_path, "wb") as f:
+                while chunk := await file.read(8192):  # Read in 8KB chunks
+                    file_size += len(chunk)
+                    # Check file size limit
+                    if file_size > self.config.storage_config.max_file_size_mb * 1024 * 1024:
+                        # Clean up partial file
+                        file_path.unlink(missing_ok=True)
+                        raise HTTPException(
+                            status_code=413,
+                            detail=f"File too large. Max size: {self.config.storage_config.max_file_size_mb}MB",
+                        )
+                    f.write(chunk)
+        except HTTPException:
+            raise
+        except Exception as e:
+            # Clean up on error
+            file_path.unlink(missing_ok=True)
+            logger.exception("Failed to save file: %s", e)
+            raise HTTPException(status_code=500, detail="Failed to save file") from e
+
+        # Create metadata entry
+        now = datetime.now(UTC)
+        file_metadata = FileMetadata(
+            filepath=filepath,
+            mime_type=mime_type,
+            size=file_size,
+            tags=[],
+            uploaded_at=now,
+            updated_at=now,
+        )
+
+        try:
+            self.metadata_manager.add_file_entry(file_metadata)
+        except Exception as e:
+            # Clean up file if metadata save fails
+            file_path.unlink(missing_ok=True)
+            logger.exception("Failed to save metadata: %s", e)
+            raise HTTPException(status_code=500, detail="Failed to save metadata") from e
+
+        logger.info("Uploaded file: %s (%d bytes)", filepath, file_size)
+        return PostFileResponse(
+            message="File uploaded successfully",
+            filepath=filepath,
+            size=file_size,
+        )
+
+    async def delete_file(self, request: Request, filepath: str) -> DeleteFileResponse:
         """Handle delete file requests.
 
-        :param Request request: The incoming request
-        :return DeleteFileResponse: The response model
+        :param Request request: The request object
+        :param str filepath: The file path to delete (e.g., 'animals/cat.png')
+        :return DeleteFileResponse: Server response
+        :raise HTTPException: If file not found
         """
-        delete_file_request = DeleteFileRequest.model_validate(await request.json())
-        # TODO: Implement file deletion logic
-        return DeleteFileResponse.model_validate({})
+        # Check if file exists in metadata
+        if not self.metadata_manager._file_exists(filepath):
+            raise HTTPException(status_code=404, detail=f"File {filepath} not found")
+
+        # Delete physical file
+        file_path = self.storage_directory / filepath
+        try:
+            if file_path.exists():
+                file_path.unlink()
+                logger.info("Deleted file from disk: %s", filepath)
+            else:
+                logger.warning("File not found on disk but exists in metadata: %s", filepath)
+        except Exception as e:
+            logger.exception("Failed to delete file from disk: %s", e)
+            raise HTTPException(status_code=500, detail="Failed to delete file from disk") from e
+
+        # Delete metadata entry
+        try:
+            self.metadata_manager.delete_file_entry(filepath)
+            logger.info("Deleted metadata for file: %s", filepath)
+        except Exception as e:
+            logger.exception("Failed to delete metadata: %s", e)
+            raise HTTPException(status_code=500, detail="Failed to delete metadata") from e
+
+        return DeleteFileResponse(
+            message="File deleted successfully",
+            success=True,
+            filepath=filepath,
+        )

@@ -110,7 +110,7 @@ class TestCloudServer:
         assert isinstance(validated_config, CloudServerConfig)
 
 
-class TestCCloudServerRoutes:
+class TestCloudServerRoutes:
     """Integration tests for the routes in CloudServer."""
 
     def test_setup_routes(self, mock_server: CloudServer) -> None:
@@ -121,9 +121,7 @@ class TestCCloudServerRoutes:
             "/health",
             "/metrics",
             "/login",
-            "/get_file",
-            "/post_file",
-            "/delete_file",
+            "/files/{filepath:path}",
         ]
         for endpoint in expected_endpoints:
             assert endpoint in routes, f"Expected endpoint {endpoint} not found in routes"

@@ -42,10 +42,10 @@ def mock_open_file() -> Generator[MagicMock]:
 
 
 @pytest.fixture
-def mock_touch() -> Generator[MagicMock]:
-    """Mock the Path.touch() method."""
-    with patch("pathlib.Path.touch") as mock_touch:
-        yield mock_touch
+def mock_replace_file() -> Generator[MagicMock]:
+    """Mock the Path.replace() method."""
+    with patch("pathlib.Path.replace") as mock_replace:
+        yield mock_replace
 
 
 @pytest.fixture

@@ -34,26 +34,6 @@ class MetadataManager:
         """
         return len(self._metadata)
 
-    def _load_metadata(self) -> None:
-        """Load metadata from disk into memory."""
-        with self._lock:
-            if not self.metadata_filepath.exists():
-                logger.info("Metadata file does not exist, initializing empty metadata.")
-                self._metadata = {}
-                self._save_metadata_atomic()
-                return
-
-            try:
-                with self.metadata_filepath.open(encoding="utf-8") as f:
-                    self._metadata = json.load(f)
-                logger.info("Loaded metadata for %d files", self.file_count)
-            except json.JSONDecodeError:
-                logger.exception("Failed to parse metadata file!")
-                raise
-            except Exception:
-                logger.exception("Failed to load metadata!")
-                raise
-
     def _save_metadata_atomic(self) -> None:
         """Save metadata to disk atomically using temporary file + rename.
 
@@ -73,6 +53,23 @@ class MetadataManager:
             if temp_filepath.exists():
                 temp_filepath.unlink()
             raise
+
+    def _load_metadata(self) -> None:
+        """Load metadata from disk into memory."""
+        with self._lock:
+            if not self.metadata_filepath.exists():
+                logger.info("Metadata file does not exist, initializing empty metadata.")
+                self._metadata = {}
+                self._save_metadata_atomic()
+                return
+
+            try:
+                with self.metadata_filepath.open(encoding="utf-8") as f:
+                    self._metadata = json.load(f)
+                logger.info("Loaded metadata for %d files", self.file_count)
+            except Exception:
+                logger.exception("Failed to load metadata!")
+                raise
 
     def _file_exists(self, filepath: str) -> bool:
         """Check if a file exists in the metadata.

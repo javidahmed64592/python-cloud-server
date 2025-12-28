@@ -2,6 +2,7 @@
 
 from collections.abc import Generator
 from importlib.metadata import PackageMetadata
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -55,6 +56,40 @@ class TestCloudServer:
         """Test CloudServer initialization."""
         assert isinstance(mock_server.config, CloudServerConfig)
 
+    def test_storage_directory_properties(self, mock_server: CloudServer) -> None:
+        """Test storage directory property methods."""
+        server_dir = Path(mock_server.config.storage_config.server_directory)
+        storage_dir = server_dir / mock_server.config.storage_config.storage_directory
+        metadata_file = server_dir / mock_server.config.storage_config.metadata_filename
+
+        assert mock_server.server_directory == server_dir
+        assert mock_server.storage_directory == storage_dir
+        assert mock_server.metadata_filepath == metadata_file
+
+    def test_storage_initialization(self, mock_server: CloudServer) -> None:
+        """Test that storage directories are created during initialization."""
+        # Verify storage directory exists
+        assert mock_server.storage_directory.exists()
+
+        # Verify metadata file parent directory exists
+        assert mock_server.metadata_filepath.parent.exists()
+
+    def test_server_directory_not_exists(self, mock_cloud_server_config: CloudServerConfig) -> None:
+        """Test that SystemExit is raised if server directory doesn't exist."""
+        # Set server directory to a non-existent path
+        mock_cloud_server_config.storage_config.server_directory = "/nonexistent/path"
+
+        async def fake_verify_api_key(
+            api_key: str | None = Security(APIKeyHeader(name="X-API-Key", auto_error=False)),
+        ) -> None:
+            return
+
+        with (
+            patch.object(CloudServer, "_verify_api_key", new=fake_verify_api_key),
+            patch("python_cloud_server.server.CloudServerConfig.save_to_file"),
+            pytest.raises(SystemExit),
+        ):
+            CloudServer(mock_cloud_server_config)
     def test_validate_config(self, mock_server: CloudServer, mock_cloud_server_config: CloudServerConfig) -> None:
         """Test configuration validation."""
         config_dict = mock_cloud_server_config.model_dump()
@@ -79,6 +114,9 @@ class TestCCloudServerRoutes:
             "/health",
             "/metrics",
             "/login",
+            "/get_file",
+            "/post_file",
+            "/delete_file",
         ]
         for endpoint in expected_endpoints:
             assert endpoint in routes, f"Expected endpoint {endpoint} not found in routes"

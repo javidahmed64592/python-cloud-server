@@ -37,9 +37,9 @@ class CloudServer(TemplateServer):
         )
         self.config.save_to_file(self.config_filepath)
 
-        if not self.server_directory.exists():
-            logger.error("Server directory does not exist: %s", self.server_directory)
-            raise SystemExit(1)
+        # Initialize storage directories
+        self._initialize_storage()
+
 
     @property
     def server_directory(self) -> Path:
@@ -56,6 +56,17 @@ class CloudServer(TemplateServer):
         """Get the metadata file path."""
         return self.server_directory / self.config.storage_config.metadata_filename
 
+    def _initialize_storage(self) -> None:
+        """Initialize storage directories and verify configuration."""
+        # Verify server directory exists (should be mounted volume in Docker)
+        if not self.server_directory.exists():
+            logger.error("Server directory does not exist: %s", self.server_directory)
+            raise SystemExit(1)
+
+        # Create storage directory for files if it doesn't exist
+        self.storage_directory.mkdir(parents=True, exist_ok=True)
+        logger.info("Storage directory ready: %s", self.storage_directory)
+
     def validate_config(self, config_data: dict) -> CloudServerConfig:
         """Validate configuration data against the TemplateServerConfig model.
 
@@ -68,6 +79,24 @@ class CloudServer(TemplateServer):
     def setup_routes(self) -> None:
         """Set up API routes."""
         super().setup_routes()
+        self.add_authenticated_route(
+            endpoint="/get_file",
+            handler_function=self.get_file,
+            response_model=GetFileResponse,
+            methods=["GET"],
+        )
+        self.add_authenticated_route(
+            endpoint="/post_file",
+            handler_function=self.post_file,
+            response_model=PostFileResponse,
+            methods=["POST"],
+        )
+        self.add_authenticated_route(
+            endpoint="/delete_file",
+            handler_function=self.delete_file,
+            response_model=DeleteFileResponse,
+            methods=["DELETE"],
+        )
 
     async def get_file(self, request: Request) -> GetFileResponse:
         """Handle get file requests.

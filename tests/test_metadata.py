@@ -123,3 +123,9 @@ class TestMetadataManager:
         mock_metadata_manager.delete_file_entry(mock_file_metadata.filepath)
         assert mock_metadata_manager.file_count == initial_file_count - 1
         assert mock_metadata_manager.get_file_entry(mock_file_metadata.filepath) is None
+
+    def test_delete_file_entry_nonexistent_file(self, mock_metadata_manager: MetadataManager) -> None:
+        """Test that deleting a non-existent file entry raises KeyError."""
+        nonexistent_file = "nonexistent/file.txt"
+        with pytest.raises(KeyError, match=f"File {nonexistent_file} not found!"):
+            mock_metadata_manager.delete_file_entry(nonexistent_file)

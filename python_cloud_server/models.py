@@ -29,8 +29,7 @@ class CloudServerConfig(TemplateServerConfig):
 class FileMetadata(BaseModel):
     """Model for file metadata stored in the index."""
 
-    file_id: str = Field(description="Unique identifier for the file.")
-    filename: str = Field(description="Original filename.")
+    filepath: str = Field(description="Relative file path (e.g., 'animals/cat.png').")
     mime_type: str = Field(description="MIME type of the file.")
     size: int = Field(description="File size in bytes.")
     tags: list[str] = Field(default_factory=list, description="Tags associated with the file.")
@@ -48,13 +47,15 @@ class GetFileResponse(BaseResponse):
 class PostFileResponse(BaseResponse):
     """Response model for post file endpoint."""
 
-    file_id: str
+    filepath: str = Field(description="File path where the file was stored.")
+    size: int = Field(description="File size in bytes.")
 
 
 class DeleteFileResponse(BaseResponse):
     """Response model for delete file endpoint."""
 
-    success: bool
+    success: bool = Field(description="Indicates if the deletion was successful.")
+    filepath: str = Field(description="File path that was deleted.")
 
 
 # API Request Models

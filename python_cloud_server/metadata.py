@@ -74,22 +74,22 @@ class MetadataManager:
                 temp_filepath.unlink()
             raise
 
-    def _file_exists(self, file_id: str) -> bool:
+    def _file_exists(self, filepath: str) -> bool:
         """Check if a file exists in the metadata.
 
-        :param str file_id: The file ID to check
+        :param str filepath: The file path to check
         :return bool: True if the file exists, False otherwise
         """
-        return file_id in self._metadata
+        return filepath in self._metadata
 
-    def get_file_entry(self, file_id: str) -> FileMetadata | None:
+    def get_file_entry(self, filepath: str) -> FileMetadata | None:
         """Get a file entry from the metadata.
 
-        :param str file_id: The file ID to retrieve
+        :param str filepath: The file path to retrieve
         :return FileMetadata | None: The file metadata or None if not found
         """
         with self._lock:
-            if (data := self._metadata.get(file_id)) is None:
+            if (data := self._metadata.get(filepath)) is None:
                 return None
             return FileMetadata.model_validate(data)
 
@@ -97,52 +97,52 @@ class MetadataManager:
         """Add a new file entry to the metadata.
 
         :param FileMetadata file_metadata: The file metadata to add
-        :raise ValueError: If file_id already exists
+        :raise ValueError: If filepath already exists
         """
         with self._lock:
-            if self._file_exists(file_metadata.file_id):
-                msg = f"File ID {file_metadata.file_id} already exists!"
+            if self._file_exists(file_metadata.filepath):
+                msg = f"File {file_metadata.filepath} already exists!"
                 logger.error(msg)
                 raise ValueError(msg)
 
-            self._metadata[file_metadata.file_id] = file_metadata.model_dump(mode="json")
+            self._metadata[file_metadata.filepath] = file_metadata.model_dump(mode="json")
             self._save_metadata_atomic()
-            logger.info("Added file entry: %s", file_metadata.file_id)
+            logger.info("Added file entry: %s", file_metadata.filepath)
 
-    def delete_file_entry(self, file_id: str) -> None:
+    def delete_file_entry(self, filepath: str) -> None:
         """Delete a file entry from the metadata.
 
-        :param str file_id: The file ID to delete
-        :raise KeyError: If file_id does not exist
+        :param str filepath: The file path to delete
+        :raise KeyError: If filepath does not exist
         """
         with self._lock:
-            if not self._file_exists(file_id):
-                msg = f"File ID {file_id} not found!"
+            if not self._file_exists(filepath):
+                msg = f"File {filepath} not found!"
                 logger.error(msg)
                 raise KeyError(msg)
 
-            del self._metadata[file_id]
+            del self._metadata[filepath]
             self._save_metadata_atomic()
-            logger.info("Deleted file entry: %s", file_id)
+            logger.info("Deleted file entry: %s", filepath)
 
-    def update_file_entry(self, file_id: str, updates: dict) -> None:
+    def update_file_entry(self, filepath: str, updates: dict) -> None:
         """Update a file entry in the metadata.
 
-        :param str file_id: The file ID to update
+        :param str filepath: The file path to update
         :param dict updates: Dictionary of fields to update
-        :raise KeyError: If file_id does not exist
+        :raise KeyError: If filepath does not exist
         """
         with self._lock:
-            if not self._file_exists(file_id):
-                msg = f"File ID {file_id} not found!"
+            if not self._file_exists(filepath):
+                msg = f"File {filepath} not found!"
                 logger.error(msg)
                 raise KeyError(msg)
 
-            self._metadata[file_id].update(updates)
+            self._metadata[filepath].update(updates)
             # Update the timestamp
-            self._metadata[file_id]["updated_at"] = datetime.now(UTC).isoformat()
+            self._metadata[filepath]["updated_at"] = datetime.now(UTC).isoformat()
             self._save_metadata_atomic()
-            logger.info("Updated file entry: %s", file_id)
+            logger.info("Updated file entry: %s", filepath)
 
     def list_files(
         self,

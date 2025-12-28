@@ -116,8 +116,7 @@ def mock_cloud_server_config(mock_storage_config: StorageConfig) -> CloudServerC
 def mock_file_metadata_dict() -> dict:
     """Provide a mock file metadata dictionary."""
     return {
-        "file_id": "test-file-id",
-        "filename": "test.txt",
+        "filepath": "test/test.txt",
         "mime_type": "text/plain",
         "size": 1234,
         "tags": ["test", "sample"],

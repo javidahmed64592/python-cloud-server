@@ -1,12 +1,14 @@
 """Pytest fixtures for the application's unit tests."""
 
 from collections.abc import Generator
+from datetime import datetime
+from pathlib import Path
 from unittest.mock import MagicMock, mock_open, patch
 
 import pytest
 from prometheus_client import REGISTRY
 
-from python_cloud_server.models import CloudServerConfig
+from python_cloud_server.models import CloudServerConfig, FileMetadata, StorageConfig
 
 
 # General fixtures
@@ -84,6 +86,47 @@ def clear_prometheus_registry() -> Generator[None]:
 
 # Cloud Server Configuration Models
 @pytest.fixture
-def mock_cloud_server_config() -> CloudServerConfig:
-    """Provide a mock CloudServerConfig instance."""
-    return CloudServerConfig.model_validate({})  # type: ignore[no-any-return]
+def mock_storage_config_dict(tmp_path: Path) -> dict:
+    """Provide a mock storage configuration dictionary."""
+    return {
+        "server_directory": str(tmp_path),
+        "storage_directory": "files",
+        "metadata_filename": "metadata.json",
+        "max_file_size_mb": 100,
+        "allowed_mime_types": [],
+        "max_tags_per_file": 10,
+        "max_tag_length": 50,
+    }
+
+
+@pytest.fixture
+def mock_storage_config(mock_storage_config_dict: dict) -> StorageConfig:
+    """Provide a mock StorageConfig instance."""
+    return StorageConfig.model_validate(mock_storage_config_dict)  # type: ignore[no-any-return]
+
+
+@pytest.fixture
+def mock_cloud_server_config(mock_storage_config: StorageConfig) -> CloudServerConfig:
+    """Provide a mock CloudServerConfig instance with temporary storage."""
+    return CloudServerConfig(storage_config=mock_storage_config)
+
+
+# File Metadata Model
+@pytest.fixture
+def mock_file_metadata_dict() -> dict:
+    """Provide a mock file metadata dictionary."""
+    return {
+        "file_id": "test-file-id",
+        "filename": "test.txt",
+        "mime_type": "text/plain",
+        "size": 1234,
+        "tags": ["test", "sample"],
+        "uploaded_at": datetime(2025, 1, 1, 12, 0, 0),
+        "updated_at": datetime(2025, 1, 1, 12, 0, 0),
+    }
+
+
+@pytest.fixture
+def mock_file_metadata(mock_file_metadata_dict: dict) -> FileMetadata:
+    """Provide a mock FileMetadata instance."""
+    return FileMetadata.model_validate(mock_file_metadata_dict)  # type: ignore[no-any-return]

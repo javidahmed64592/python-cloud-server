@@ -10,6 +10,7 @@ from fastapi import Security
 from fastapi.routing import APIRoute
 from fastapi.security import APIKeyHeader
 
+from python_cloud_server.metadata import MetadataManager
 from python_cloud_server.models import CloudServerConfig
 from python_cloud_server.server import CloudServer
 
@@ -90,6 +91,12 @@ class TestCloudServer:
             pytest.raises(SystemExit),
         ):
             CloudServer(mock_cloud_server_config)
+
+    def test_metadata_manager_initialization(self, mock_server: CloudServer) -> None:
+        """Test that metadata manager is initialized."""
+        assert isinstance(mock_server.metadata_manager, MetadataManager)
+        assert mock_server.metadata_manager.metadata_filepath == mock_server.metadata_filepath
+
     def test_validate_config(self, mock_server: CloudServer, mock_cloud_server_config: CloudServerConfig) -> None:
         """Test configuration validation."""
         config_dict = mock_cloud_server_config.model_dump()

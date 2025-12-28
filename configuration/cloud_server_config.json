@@ -23,5 +23,10 @@
     "allow_nan": false,
     "indent": null,
     "media_type": "application/json; charset=utf-8"
+  },
+  "storage_config": {
+    "server_directory": "/srv/cloud_server",
+    "storage_directory": "files",
+    "metadata_filename": "metadata.json"
   }
 }

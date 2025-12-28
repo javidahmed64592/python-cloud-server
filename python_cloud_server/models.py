@@ -8,7 +8,9 @@ from python_template_server.models import BaseResponse, TemplateServerConfig
 class StorageConfig(BaseModel):
     """Configuration model for the cloud storage."""
 
-    storage_directory: str = Field(default="storage", description="Directory to store files.")
+    server_directory: str = Field(default="/srv/cloud_server", description="Directory of the cloud server.")
+    storage_directory: str = Field(default="files", description="Directory to store files.")
+    metadata_filename: str = Field(default="metadata.json", description="Filename for storing metadata.")
 
 
 class CloudServerConfig(TemplateServerConfig):

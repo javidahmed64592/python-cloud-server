@@ -8,6 +8,7 @@ from fastapi import Request
 from python_template_server.constants import CONFIG_DIR
 from python_template_server.template_server import TemplateServer
 
+from python_cloud_server.metadata import MetadataManager
 from python_cloud_server.models import (
     CloudServerConfig,
     DeleteFileRequest,
@@ -40,6 +41,8 @@ class CloudServer(TemplateServer):
         # Initialize storage directories
         self._initialize_storage()
 
+        # Initialize metadata manager
+        self.metadata_manager = MetadataManager(self.metadata_filepath)
 
     @property
     def server_directory(self) -> Path:

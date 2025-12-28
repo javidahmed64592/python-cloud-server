@@ -1,5 +1,7 @@
 """Pydantic models for the server."""
 
+from datetime import datetime
+
 from pydantic import BaseModel, Field
 from python_template_server.models import BaseResponse, TemplateServerConfig
 
@@ -21,6 +23,19 @@ class CloudServerConfig(TemplateServerConfig):
     """Configuration model for the Cloud Server."""
 
     storage_config: StorageConfig = Field(default_factory=StorageConfig, description="Storage configuration.")
+
+
+# File Metadata Model
+class FileMetadata(BaseModel):
+    """Model for file metadata stored in the index."""
+
+    file_id: str = Field(description="Unique identifier for the file.")
+    filename: str = Field(description="Original filename.")
+    mime_type: str = Field(description="MIME type of the file.")
+    size: int = Field(description="File size in bytes.")
+    tags: list[str] = Field(default_factory=list, description="Tags associated with the file.")
+    uploaded_at: datetime = Field(description="Timestamp when the file was uploaded.")
+    updated_at: datetime = Field(description="Timestamp when the file was last updated.")
 
 
 # API Response Models

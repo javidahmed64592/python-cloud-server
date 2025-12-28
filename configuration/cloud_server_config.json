@@ -27,6 +27,10 @@
   "storage_config": {
     "server_directory": "/srv/cloud_server",
     "storage_directory": "files",
-    "metadata_filename": "metadata.json"
+    "metadata_filename": "metadata.json",
+    "max_file_size_mb": 100,
+    "allowed_mime_types": [],
+    "max_tags_per_file": 10,
+    "max_tag_length": 50
   }
 }

@@ -11,6 +11,10 @@ class StorageConfig(BaseModel):
     server_directory: str = Field(default="/srv/cloud_server", description="Directory of the cloud server.")
     storage_directory: str = Field(default="files", description="Directory to store files.")
     metadata_filename: str = Field(default="metadata.json", description="Filename for storing metadata.")
+    max_file_size_mb: int = Field(default=100, description="Maximum file size in MB.")
+    allowed_mime_types: list[str] = Field(default_factory=list, description="Allowed MIME types (empty = all).")
+    max_tags_per_file: int = Field(default=10, description="Maximum number of tags per file.")
+    max_tag_length: int = Field(default=50, description="Maximum length of a tag.")
 
 
 class CloudServerConfig(TemplateServerConfig):

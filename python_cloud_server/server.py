@@ -2,7 +2,6 @@
 
 import logging
 import mimetypes
-from datetime import UTC, datetime
 from pathlib import Path
 
 from fastapi import HTTPException, Request, UploadFile
@@ -189,14 +188,11 @@ class CloudServer(TemplateServer):
             )
 
         # Create metadata entry
-        now = datetime.now(UTC)
-        file_metadata = FileMetadata(
+        file_metadata = FileMetadata.new_current_instance(
             filepath=filepath,
             mime_type=mime_type,
             size=file_size,
             tags=[],
-            uploaded_at=now,
-            updated_at=now,
         )
 
         try:

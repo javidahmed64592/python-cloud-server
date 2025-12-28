@@ -18,7 +18,7 @@ def mock_metadata_manager(tmp_path: Path, mock_file_metadata: FileMetadata) -> M
     """
     metadata_filepath = tmp_path / "metadata.json"
     metadata_manager = MetadataManager(metadata_filepath)
-    metadata_manager._metadata[mock_file_metadata.filepath] = mock_file_metadata.model_dump(mode="json")
+    metadata_manager._metadata[mock_file_metadata.filepath] = mock_file_metadata
     return metadata_manager
 
 
@@ -67,7 +67,7 @@ class TestMetadataManager:
         new_manager = MetadataManager(mock_metadata_manager.metadata_filepath)
         assert new_manager.file_count == 1
         loaded_metadata = new_manager._metadata[mock_file_metadata.filepath]
-        assert loaded_metadata == mock_file_metadata.model_dump(mode="json")
+        assert loaded_metadata == mock_file_metadata
 
     def test_load_metadata_file_not_exists(self, tmp_path: Path) -> None:
         """Test loading metadata when the file does not exist."""

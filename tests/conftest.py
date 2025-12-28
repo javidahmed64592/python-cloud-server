@@ -1,7 +1,6 @@
 """Pytest fixtures for the application's unit tests."""
 
 from collections.abc import Generator
-from datetime import datetime
 from pathlib import Path
 from unittest.mock import MagicMock, mock_open, patch
 
@@ -120,12 +119,10 @@ def mock_file_metadata_dict() -> dict:
         "mime_type": "text/plain",
         "size": 1234,
         "tags": ["test", "sample"],
-        "uploaded_at": datetime(2025, 1, 1, 12, 0, 0),
-        "updated_at": datetime(2025, 1, 1, 12, 0, 0),
     }
 
 
 @pytest.fixture
 def mock_file_metadata(mock_file_metadata_dict: dict) -> FileMetadata:
     """Provide a mock FileMetadata instance."""
-    return FileMetadata.model_validate(mock_file_metadata_dict)  # type: ignore[no-any-return]
+    return FileMetadata.new_current_instance(**mock_file_metadata_dict)  # type: ignore[no-any-return]

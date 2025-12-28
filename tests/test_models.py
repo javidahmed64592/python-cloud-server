@@ -26,4 +26,8 @@ class TestFileMetadata:
 
     def test_model_dump(self, mock_file_metadata: FileMetadata, mock_file_metadata_dict: dict) -> None:
         """Test the model_dump method."""
-        assert mock_file_metadata.model_dump() == mock_file_metadata_dict
+        dumped = mock_file_metadata.model_dump()
+        expected = mock_file_metadata_dict.copy()
+        expected["uploaded_at"] = mock_file_metadata.uploaded_at
+        expected["updated_at"] = mock_file_metadata.updated_at
+        assert dumped == expected

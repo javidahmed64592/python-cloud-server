@@ -1,5 +1,7 @@
 """Pydantic models for the server."""
 
+from __future__ import annotations
+
 from datetime import datetime
 
 from pydantic import BaseModel, Field
@@ -33,8 +35,30 @@ class FileMetadata(BaseModel):
     mime_type: str = Field(description="MIME type of the file.")
     size: int = Field(description="File size in bytes.")
     tags: list[str] = Field(default_factory=list, description="Tags associated with the file.")
-    uploaded_at: datetime = Field(description="Timestamp when the file was uploaded.")
-    updated_at: datetime = Field(description="Timestamp when the file was last updated.")
+    uploaded_at: str = Field(description="Timestamp when the file was uploaded (ISO 8601 format + Z).")
+    updated_at: str = Field(description="Timestamp when the file was last updated (ISO 8601 format + Z).")
+
+    @classmethod
+    def new_current_instance(cls, **data: dict) -> FileMetadata:
+        """Create a new FileMetadata instance with the current timestamp.
+
+        :param data: Fields for the FileMetadata
+        :return FileMetadata: New instance with current timestamps
+        """
+        now_iso = cls.current_timestamp()
+        return cls(
+            **data,
+            uploaded_at=now_iso,
+            updated_at=now_iso,
+        )
+
+    @staticmethod
+    def current_timestamp() -> str:
+        """Get the current timestamp in ISO 8601 format with 'Z' suffix.
+
+        :return str: Current timestamp
+        """
+        return datetime.now().isoformat() + "Z"
 
 
 # API Response Models

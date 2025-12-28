@@ -3,7 +3,6 @@
 import json
 import logging
 import threading
-from datetime import UTC, datetime
 from pathlib import Path
 
 from python_cloud_server.models import FileMetadata
@@ -23,7 +22,7 @@ class MetadataManager:
         logger.info("Initializing MetadataManager with file: %s", metadata_filepath)
 
         self._lock = threading.RLock()
-        self._metadata: dict[str, dict] = {}
+        self._metadata: dict[str, FileMetadata] = {}
         self._load_metadata()
 
     @property
@@ -43,8 +42,9 @@ class MetadataManager:
 
         try:
             with temp_filepath.open("w", encoding="utf-8") as f:
-                json.dump(self._metadata, f, ensure_ascii=False, indent=2)
-
+                json.dump(
+                    {k: v.model_dump(mode="json") for k, v in self._metadata.items()}, f, ensure_ascii=False, indent=2
+                )
             temp_filepath.replace(self.metadata_filepath)
             logger.info("Saved metadata for %d files", self.file_count)
 
@@ -65,7 +65,8 @@ class MetadataManager:
 
             try:
                 with self.metadata_filepath.open(encoding="utf-8") as f:
-                    self._metadata = json.load(f)
+                    data = json.load(f)
+                self._metadata = {k: FileMetadata.model_validate(v) for k, v in data.items()}
                 logger.info("Loaded metadata for %d files", self.file_count)
             except Exception:
                 logger.exception("Failed to load metadata!")
@@ -102,7 +103,7 @@ class MetadataManager:
                 logger.error(msg)
                 raise ValueError(msg)
 
-            self._metadata[file_metadata.filepath] = file_metadata.model_dump(mode="json")
+            self._metadata[file_metadata.filepath] = file_metadata
             self._save_metadata_atomic()
             logger.info("Added file entry: %s", file_metadata.filepath)
 
@@ -137,7 +138,7 @@ class MetadataManager:
 
             self._metadata[filepath].update(updates)
             # Update the timestamp
-            self._metadata[filepath]["updated_at"] = datetime.now(UTC).isoformat()
+            self._metadata[filepath]["updated_at"] = FileMetadata.current_timestamp()
             self._save_metadata_atomic()
             logger.info("Updated file entry: %s", filepath)
 

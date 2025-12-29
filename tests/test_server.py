@@ -3,19 +3,21 @@
 import asyncio
 from collections.abc import Generator
 from importlib.metadata import PackageMetadata
+from io import BytesIO
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
-from fastapi import HTTPException, Request, Security
+from fastapi import HTTPException, Request, Security, UploadFile
 from fastapi.responses import FileResponse
 from fastapi.routing import APIRoute
 from fastapi.security import APIKeyHeader
 from fastapi.testclient import TestClient
+from python_template_server.constants import BYTES_TO_MB
 from python_template_server.models import ResponseCode
 
 from python_cloud_server.metadata import MetadataManager
-from python_cloud_server.models import CloudServerConfig, FileMetadata
+from python_cloud_server.models import CloudServerConfig, DeleteFileResponse, FileMetadata, PostFileResponse
 from python_cloud_server.server import CloudServer
 
 
@@ -53,6 +55,20 @@ def mock_server(
     ):
         server = CloudServer(mock_cloud_server_config)
         yield server
+
+
+def _mock_file_factory(filename: str, content: bytes, content_type: str) -> UploadFile:
+    """Helper to create a mock UploadFile."""
+    file = MagicMock(spec=UploadFile)
+    file.filename = filename
+    file.content_type = content_type
+    bytes_io = BytesIO(content)
+
+    async def mock_read(size: int = -1) -> bytes:
+        return bytes_io.read(size)
+
+    file.read = mock_read
+    return file
 
 
 class TestCloudServer:
@@ -192,3 +208,123 @@ class TestGetFileEndpoint:
         filepath = "nonexistent/file.txt"
         response = client.get(f"/files/{filepath}")
         assert response.status_code == ResponseCode.NOT_FOUND
+
+
+class TestPostFileEndpoint:
+    """Integration and unit tests for the POST /files/{filepath} endpoint."""
+
+    MOCK_FILENAME = "test_upload.txt"
+    MOCK_FILEPATH = f"uploads/{MOCK_FILENAME}"
+    MOCK_CONTENT = b"test file content"
+    MOCK_CONTENT_TYPE = "text/plain"
+
+    def test_post_file(self, mock_server: CloudServer) -> None:
+        """Test post_file successfully uploads a file."""
+        request = MagicMock(spec=Request)
+        mock_file = _mock_file_factory(self.MOCK_FILENAME, self.MOCK_CONTENT, self.MOCK_CONTENT_TYPE)
+
+        response = asyncio.run(mock_server.post_file(request, self.MOCK_FILEPATH, mock_file))
+
+        assert isinstance(response, PostFileResponse)
+        assert response.code == ResponseCode.OK
+        assert response.filepath == self.MOCK_FILEPATH
+        assert response.size == len(self.MOCK_CONTENT)
+        assert response.message == "File uploaded successfully"
+
+        # Verify file exists on disk
+        full_path = mock_server.storage_directory / self.MOCK_FILEPATH
+        assert full_path.exists()
+        assert full_path.read_bytes() == self.MOCK_CONTENT
+
+        # Verify metadata exists
+        metadata = mock_server.metadata_manager.get_file_entry(self.MOCK_FILEPATH)
+        assert metadata is not None
+        assert metadata.filepath == self.MOCK_FILEPATH
+        assert metadata.size == len(self.MOCK_CONTENT)
+        assert metadata.mime_type == self.MOCK_CONTENT_TYPE
+
+    def test_post_file_duplicate(self, mock_server: CloudServer) -> None:
+        """Test post_file returns conflict when file already exists."""
+        request = MagicMock(spec=Request)
+        mock_file = _mock_file_factory(self.MOCK_FILENAME, self.MOCK_CONTENT, self.MOCK_CONTENT_TYPE)
+
+        response1 = asyncio.run(mock_server.post_file(request, self.MOCK_FILEPATH, mock_file))
+        assert response1.code == ResponseCode.OK
+
+        # Try to upload again
+        response2 = asyncio.run(mock_server.post_file(request, self.MOCK_FILEPATH, mock_file))
+        assert isinstance(response2, PostFileResponse)
+        assert response2.code == ResponseCode.CONFLICT
+        assert response2.message == f"File already exists: {self.MOCK_FILEPATH}"
+        assert response2.filepath == self.MOCK_FILEPATH
+        assert response2.size == 0
+
+    def test_post_file_guess_mime_type(self, mock_server: CloudServer) -> None:
+        """Test post_file guesses MIME type when not provided."""
+        request = MagicMock(spec=Request)
+        filepath = "uploads/image.png"
+        mock_file = _mock_file_factory("image.png", b"\x89PNG\r\n\x1a\n", "application/octet-stream")
+
+        response = asyncio.run(mock_server.post_file(request, filepath, mock_file))
+
+        assert response.code == ResponseCode.OK
+        metadata = mock_server.metadata_manager.get_file_entry(filepath)
+        assert metadata is not None
+        assert metadata.mime_type == "image/png"
+
+    def test_post_file_exceeds_size_limit(self, mock_server: CloudServer) -> None:
+        """Test post_file returns error when file exceeds size limit."""
+        request = MagicMock(spec=Request)
+        max_size = mock_server.config.storage_config.max_file_size_mb * BYTES_TO_MB
+        large_content = b"X" * (max_size + 1000)
+        mock_file = _mock_file_factory(self.MOCK_FILENAME, large_content, "application/octet-stream")
+
+        response = asyncio.run(mock_server.post_file(request, self.MOCK_FILEPATH, mock_file))
+
+        assert isinstance(response, PostFileResponse)
+        assert response.code in (ResponseCode.BAD_REQUEST, ResponseCode.INTERNAL_SERVER_ERROR)
+        assert response.message in [
+            f"File size exceeds maximum limit: {self.MOCK_FILEPATH} ({len(large_content)} bytes)",
+            f"Failed to save file: {self.MOCK_FILEPATH}",
+        ]
+
+        # Verify no metadata entry
+        assert mock_server.metadata_manager.get_file_entry(self.MOCK_FILEPATH) is None
+
+    def test_post_file_metadata_error_cleanup(self, mock_server: CloudServer) -> None:
+        """Test post_file cleans up file when metadata save fails."""
+        request = MagicMock(spec=Request)
+        mock_file = _mock_file_factory(self.MOCK_FILENAME, self.MOCK_CONTENT, self.MOCK_CONTENT_TYPE)
+
+        # Patch add_file_entry to raise an exception
+        with patch.object(mock_server.metadata_manager, "add_file_entry", side_effect=Exception("Metadata error")):
+            response = asyncio.run(mock_server.post_file(request, self.MOCK_FILEPATH, mock_file))
+
+        assert isinstance(response, PostFileResponse)
+        assert response.code == ResponseCode.INTERNAL_SERVER_ERROR
+        assert response.message == f"Failed to save metadata for file: {self.MOCK_FILEPATH}"
+
+        # Verify file was cleaned up
+        full_path = mock_server.storage_directory / self.MOCK_FILEPATH
+        assert not full_path.exists()
+
+    def test_post_file_endpoint(self, mock_server: CloudServer) -> None:
+        """Test POST /files/{filepath} endpoint via TestClient."""
+        app = mock_server.app
+        client = TestClient(app)
+
+        mock_file = _mock_file_factory(self.MOCK_FILENAME, self.MOCK_CONTENT, self.MOCK_CONTENT_TYPE)
+
+        response = client.post(
+            f"/files/{self.MOCK_FILEPATH}",
+            files={"file": (mock_file.filename, BytesIO(self.MOCK_CONTENT), mock_file.content_type)},
+        )
+
+        assert response.status_code == ResponseCode.OK
+        data = response.json()
+        assert data["filepath"] == self.MOCK_FILEPATH
+        assert data["size"] == len(self.MOCK_CONTENT)
+
+        # Verify file exists
+        full_path = mock_server.storage_directory / self.MOCK_FILEPATH
+        assert full_path.exists()

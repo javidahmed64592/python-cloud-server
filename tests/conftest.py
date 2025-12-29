@@ -92,6 +92,7 @@ def mock_storage_config_dict(tmp_path: Path) -> dict:
         "server_directory": str(tmp_path),
         "storage_directory": "files",
         "metadata_filename": "metadata.json",
+        "upload_chunk_size_kb": 8,
         "max_file_size_mb": 100,
         "allowed_mime_types": [],
         "max_tags_per_file": 10,

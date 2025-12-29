@@ -138,5 +138,10 @@ def mock_metadata_manager(mock_file_metadata: FileMetadata, mock_storage_config:
     """
     metadata_filepath = Path(mock_storage_config.server_directory) / mock_storage_config.metadata_filename
     metadata_manager = MetadataManager(metadata_filepath)
+    file_path = (
+        Path(mock_storage_config.server_directory) / mock_storage_config.storage_directory / mock_file_metadata.filepath
+    )
+    file_path.parent.mkdir(parents=True, exist_ok=True)
+    file_path.write_text("test content")
     metadata_manager.add_file_entry(mock_file_metadata)
     return metadata_manager

@@ -1,17 +1,21 @@
 """Unit tests for the python_cloud_server.server module."""
 
+import asyncio
 from collections.abc import Generator
 from importlib.metadata import PackageMetadata
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
-from fastapi import Security
+from fastapi import HTTPException, Request, Security
+from fastapi.responses import FileResponse
 from fastapi.routing import APIRoute
 from fastapi.security import APIKeyHeader
+from fastapi.testclient import TestClient
+from python_template_server.models import ResponseCode
 
 from python_cloud_server.metadata import MetadataManager
-from python_cloud_server.models import CloudServerConfig
+from python_cloud_server.models import CloudServerConfig, FileMetadata
 from python_cloud_server.server import CloudServer
 
 
@@ -126,3 +130,65 @@ class TestCloudServerRoutes:
         ]
         for endpoint in expected_endpoints:
             assert endpoint in routes, f"Expected endpoint {endpoint} not found in routes"
+
+
+class TestGetFileEndpoint:
+    """Integration and unit tests for the GET /files/{filepath} endpoint."""
+
+    def test_get_file(self, mock_server: CloudServer, mock_file_metadata: FileMetadata) -> None:
+        """Test get_file successfully retrieves a file."""
+        request = MagicMock(spec=Request)
+
+        # Ensure metadata exists
+        assert mock_server.metadata_manager.get_file_entry(mock_file_metadata.filepath) is not None
+
+        response = asyncio.run(mock_server.get_file(request, mock_file_metadata.filepath))
+
+        assert isinstance(response, FileResponse)
+        assert response.path == mock_server.storage_directory / mock_file_metadata.filepath
+        assert response.media_type == mock_file_metadata.mime_type
+        assert response.filename == Path(mock_file_metadata.filepath).name
+
+    def test_get_file_not_found_in_metadata(self, mock_server: CloudServer) -> None:
+        """Test get_file raises 404 when file not in metadata."""
+        request = MagicMock(spec=Request)
+        filepath = "nonexistent/file.txt"
+
+        with pytest.raises(HTTPException) as exc_info:
+            asyncio.run(mock_server.get_file(request, filepath))
+
+        assert exc_info.value.status_code == ResponseCode.NOT_FOUND
+        assert f"File not found in metadata: {filepath}" in str(exc_info.value.detail)
+
+    def test_get_file_not_found_on_disk(self, mock_server: CloudServer, mock_file_metadata: FileMetadata) -> None:
+        """Test get_file raises 404 when file in metadata but not on disk."""
+        request = MagicMock(spec=Request)
+
+        # Ensure file is in metadata but not on disk
+        file_path = mock_server.storage_directory / mock_file_metadata.filepath
+        if file_path.exists():
+            file_path.unlink()
+
+        with pytest.raises(HTTPException) as exc_info:
+            asyncio.run(mock_server.get_file(request, mock_file_metadata.filepath))
+
+        assert exc_info.value.status_code == ResponseCode.NOT_FOUND
+        assert f"File not found on disk: {mock_file_metadata.filepath}" in str(exc_info.value.detail)
+
+    def test_get_file_endpoint(self, mock_server: CloudServer, mock_file_metadata: FileMetadata) -> None:
+        """Test GET /files/{filepath} endpoint returns file successfully."""
+        app = mock_server.app
+        client = TestClient(app)
+
+        response = client.get(f"/files/{mock_file_metadata.filepath}")
+        assert response.status_code == ResponseCode.OK
+        assert response.content == b"test content"
+
+    def test_get_file_endpoint_not_found(self, mock_server: CloudServer) -> None:
+        """Test GET /files/{filepath} endpoint returns 404 for nonexistent file."""
+        app = mock_server.app
+        client = TestClient(app)
+
+        filepath = "nonexistent/file.txt"
+        response = client.get(f"/files/{filepath}")
+        assert response.status_code == ResponseCode.NOT_FOUND

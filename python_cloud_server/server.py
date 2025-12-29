@@ -108,23 +108,25 @@ class CloudServer(TemplateServer):
         :return FileResponse: Server response
         :raise HTTPException: If file not found
         """
+        logger.info("Received get file request for: %s", filepath)
+
         # Get file metadata
         file_metadata = self.metadata_manager.get_file_entry(filepath)
         if not file_metadata:
-            raise HTTPException(status_code=404, detail=f"File {filepath} not found")
+            msg = f"File not found in metadata: {filepath}"
+            logger.error(msg)
+            raise HTTPException(status_code=ResponseCode.NOT_FOUND, detail=msg)
 
         # Construct absolute file path
-        file_path = self.storage_directory / filepath
-        if not file_path.exists():
-            logger.error("File exists in metadata but not on disk: %s", filepath)
-            raise HTTPException(status_code=404, detail="File not found on disk")
+        if not (full_path := self.storage_directory / filepath).exists():
+            msg = f"File not found on disk: {filepath}"
+            logger.error(msg)
+            raise HTTPException(status_code=ResponseCode.NOT_FOUND, detail=msg)
 
-        # Return file with original filename from path
-        filename = Path(filepath).name
         return FileResponse(
-            path=file_path,
+            path=full_path,
             media_type=file_metadata.mime_type,
-            filename=filename,
+            filename=full_path.name,
         )
 
     async def post_file(self, request: Request, filepath: str, file: UploadFile) -> PostFileResponse:

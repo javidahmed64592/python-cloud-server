@@ -38,6 +38,14 @@ class FileMetadata(BaseModel):
     uploaded_at: str = Field(description="Timestamp when the file was uploaded (ISO 8601 format + Z).")
     updated_at: str = Field(description="Timestamp when the file was last updated (ISO 8601 format + Z).")
 
+    @staticmethod
+    def current_timestamp() -> str:
+        """Get the current timestamp in ISO 8601 format with 'Z' suffix.
+
+        :return str: Current timestamp
+        """
+        return datetime.now().isoformat() + "Z"
+
     @classmethod
     def new_current_instance(cls, **data: dict) -> FileMetadata:
         """Create a new FileMetadata instance with the current timestamp.
@@ -51,14 +59,6 @@ class FileMetadata(BaseModel):
             uploaded_at=now_iso,
             updated_at=now_iso,
         )
-
-    @staticmethod
-    def current_timestamp() -> str:
-        """Get the current timestamp in ISO 8601 format with 'Z' suffix.
-
-        :return str: Current timestamp
-        """
-        return datetime.now().isoformat() + "Z"
 
 
 # API Response Models

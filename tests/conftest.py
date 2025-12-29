@@ -118,7 +118,7 @@ def mock_file_metadata_dict() -> dict:
         "filepath": "test/test.txt",
         "mime_type": "text/plain",
         "size": 1234,
-        "tags": ["test", "sample"],
+        "tags": ["test"],
     }
 
 

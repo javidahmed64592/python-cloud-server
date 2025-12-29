@@ -157,15 +157,9 @@ class MetadataManager:
         :return list[FileMetadata]: List of file metadata objects
         """
         with self._lock:
-            files = []
-            for data in self._metadata.values():
-                # Apply tag filter if specified
-                if tag is not None:
-                    file_tags = data.get("tags", [])
-                    if tag not in file_tags:
-                        continue
-
-                files.append(FileMetadata.model_validate(data))
+            files = [
+                FileMetadata.model_validate(data) for data in self._metadata.values() if tag is None or tag in data.tags
+            ]
 
             # Sort by uploaded_at descending (newest first)
             files.sort(key=lambda f: f.uploaded_at, reverse=True)

@@ -144,3 +144,20 @@ class TestMetadataManager:
         nonexistent_file = "nonexistent/file.txt"
         with pytest.raises(KeyError, match=f"File {nonexistent_file} not found!"):
             mock_metadata_manager.update_file_entry(nonexistent_file, {})
+
+    def test_list_files(self, mock_metadata_manager: MetadataManager, mock_file_metadata: FileMetadata) -> None:
+        """Test listing all file entries in metadata."""
+        files = mock_metadata_manager.list_files()
+        assert len(files) == 1
+        assert files[0] == mock_file_metadata
+
+    def test_list_files_with_tag(
+        self, mock_metadata_manager: MetadataManager, mock_file_metadata: FileMetadata
+    ) -> None:
+        """Test listing file entries filtered by tag."""
+        files_with_tag = mock_metadata_manager.list_files(tag="test")
+        assert len(files_with_tag) == 1
+        assert files_with_tag[0] == mock_file_metadata
+
+        files_without_tag = mock_metadata_manager.list_files(tag="nonexistent")
+        assert len(files_without_tag) == 0

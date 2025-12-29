@@ -7,6 +7,7 @@ from unittest.mock import MagicMock, mock_open, patch
 import pytest
 from prometheus_client import REGISTRY
 
+from python_cloud_server.metadata import MetadataManager
 from python_cloud_server.models import CloudServerConfig, FileMetadata, StorageConfig
 
 
@@ -126,3 +127,16 @@ def mock_file_metadata_dict() -> dict:
 def mock_file_metadata(mock_file_metadata_dict: dict) -> FileMetadata:
     """Provide a mock FileMetadata instance."""
     return FileMetadata.new_current_instance(**mock_file_metadata_dict)  # type: ignore[no-any-return]
+
+
+# Server fixtures
+@pytest.fixture
+def mock_metadata_manager(mock_file_metadata: FileMetadata, mock_storage_config: StorageConfig) -> MetadataManager:
+    """Create a metadata manager with a temporary file path.
+
+    Uses tmp_path which is provided by pytest and is automatically cleaned up.
+    """
+    metadata_filepath = Path(mock_storage_config.server_directory) / mock_storage_config.metadata_filename
+    metadata_manager = MetadataManager(metadata_filepath)
+    metadata_manager.add_file_entry(mock_file_metadata)
+    return metadata_manager

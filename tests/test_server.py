@@ -32,7 +32,7 @@ def mock_package_metadata() -> Generator[MagicMock]:
 
 @pytest.fixture
 def mock_server(
-    mock_cloud_server_config: CloudServerConfig,
+    mock_cloud_server_config: CloudServerConfig, mock_metadata_manager: MetadataManager
 ) -> Generator[CloudServer]:
     """Provide a CloudServer instance for testing."""
 
@@ -45,6 +45,7 @@ def mock_server(
     with (
         patch.object(CloudServer, "_verify_api_key", new=fake_verify_api_key),
         patch("python_cloud_server.server.CloudServerConfig.save_to_file"),
+        patch("python_cloud_server.server.MetadataManager", return_value=mock_metadata_manager),
     ):
         server = CloudServer(mock_cloud_server_config)
         yield server

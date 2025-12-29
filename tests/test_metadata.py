@@ -10,18 +10,6 @@ from python_cloud_server.metadata import MetadataManager
 from python_cloud_server.models import FileMetadata
 
 
-@pytest.fixture
-def mock_metadata_manager(tmp_path: Path, mock_file_metadata: FileMetadata) -> MetadataManager:
-    """Create a metadata manager with a temporary file path.
-
-    Uses tmp_path which is provided by pytest and is automatically cleaned up.
-    """
-    metadata_filepath = tmp_path / "metadata.json"
-    metadata_manager = MetadataManager(metadata_filepath)
-    metadata_manager._metadata[mock_file_metadata.filepath] = mock_file_metadata
-    return metadata_manager
-
-
 class TestMetadataManager:
     """Unit tests for the MetadataManager class."""
 

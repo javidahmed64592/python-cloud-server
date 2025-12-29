@@ -129,3 +129,18 @@ class TestMetadataManager:
         nonexistent_file = "nonexistent/file.txt"
         with pytest.raises(KeyError, match=f"File {nonexistent_file} not found!"):
             mock_metadata_manager.delete_file_entry(nonexistent_file)
+
+    def test_update_file_entry(self, mock_metadata_manager: MetadataManager, mock_file_metadata: FileMetadata) -> None:
+        """Test updating a file entry in metadata."""
+        updates = {"tags": ["updated", "tags"]}
+        mock_metadata_manager.update_file_entry(mock_file_metadata.filepath, updates)
+
+        updated_entry = mock_metadata_manager.get_file_entry(mock_file_metadata.filepath)
+        assert updated_entry.tags == updates["tags"]
+        assert updated_entry.updated_at != mock_file_metadata.updated_at
+
+    def test_update_file_entry_nonexistent_file(self, mock_metadata_manager: MetadataManager) -> None:
+        """Test that updating a non-existent file entry raises KeyError."""
+        nonexistent_file = "nonexistent/file.txt"
+        with pytest.raises(KeyError, match=f"File {nonexistent_file} not found!"):
+            mock_metadata_manager.update_file_entry(nonexistent_file, {})

@@ -136,9 +136,10 @@ class MetadataManager:
                 logger.error(msg)
                 raise KeyError(msg)
 
-            self._metadata[filepath].update(updates)
-            # Update the timestamp
-            self._metadata[filepath]["updated_at"] = FileMetadata.current_timestamp()
+            metadata_dict = self._metadata[filepath].model_dump()
+            metadata_dict.update(updates)
+            self._metadata[filepath] = FileMetadata.model_validate(metadata_dict)
+            self._metadata[filepath].updated_at = FileMetadata.current_timestamp()
             self._save_metadata_atomic()
             logger.info("Updated file entry: %s", filepath)
 

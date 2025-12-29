@@ -6,7 +6,7 @@ from pathlib import Path
 
 from fastapi import HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse
-from python_template_server.constants import CONFIG_DIR
+from python_template_server.constants import BYTES_TO_MB, CONFIG_DIR
 from python_template_server.models import ResponseCode
 from python_template_server.template_server import TemplateServer
 
@@ -137,74 +137,76 @@ class CloudServer(TemplateServer):
         :param UploadFile file: The uploaded file
         :return PostFileResponse: Server response
         """
+        logger.info("Received post file request for: %s", filepath)
+
         # Get MIME type
         mime_type = file.content_type or "application/octet-stream"
-        if not mime_type or mime_type == "application/octet-stream":
-            # Try to guess from filename
+        if mime_type == "application/octet-stream":
             guessed_type, _ = mimetypes.guess_type(filepath)
             if guessed_type:
                 mime_type = guessed_type
 
-        # Construct absolute file path and ensure parent directories exist
-        file_path = self.storage_directory / filepath
-        file_path.parent.mkdir(parents=True, exist_ok=True)
-
         # Check if file already exists
         if self.metadata_manager._file_exists(filepath):
+            msg = f"File already exists: {filepath}"
+            logger.error(msg)
             return PostFileResponse(
                 code=ResponseCode.CONFLICT,
-                message=f"File {filepath} already exists",
+                message=msg,
                 timestamp=PostFileResponse.current_timestamp(),
                 filepath=filepath,
                 size=0,
             )
 
+        # Construct absolute file path and ensure parent directories exist
+        full_path = self.storage_directory / filepath
+        full_path.parent.mkdir(parents=True, exist_ok=True)
         file_size = 0
 
         try:
-            with file_path.open("wb") as f:
-                while chunk := await file.read(8192):  # Read in 8KB chunks
+            with full_path.open("wb") as f:
+                while chunk := await file.read(self.config.storage_config.upload_chunk_size_kb * 1024):
                     file_size += len(chunk)
-                    # Check file size limit
-                    if file_size > self.config.storage_config.max_file_size_mb * 1024 * 1024:
-                        # Clean up partial file
-                        file_path.unlink(missing_ok=True)
+                    if file_size > self.config.storage_config.max_file_size_mb * BYTES_TO_MB:
+                        full_path.unlink(missing_ok=True)
+                        msg = f"File size exceeds maximum limit: {filepath} ({file_size} bytes)"
+                        logger.error(msg)
                         return PostFileResponse(
                             code=ResponseCode.BAD_REQUEST,
-                            message="File size exceeds maximum limit",
+                            message=msg,
                             timestamp=PostFileResponse.current_timestamp(),
                             filepath=filepath,
                             size=file_size,
                         )
                     f.write(chunk)
         except Exception:
-            # Clean up on error
-            file_path.unlink(missing_ok=True)
-            logger.exception("Failed to save file!")
+            full_path.unlink(missing_ok=True)
+            msg = f"Failed to save file: {filepath}"
+            logger.exception(msg)
             return PostFileResponse(
                 code=ResponseCode.INTERNAL_SERVER_ERROR,
-                message="Failed to save file",
+                message=msg,
                 timestamp=PostFileResponse.current_timestamp(),
                 filepath=filepath,
                 size=file_size,
             )
 
-        # Create metadata entry
-        file_metadata = FileMetadata.new_current_instance(
-            filepath=filepath,
-            mime_type=mime_type,
-            size=file_size,
-            tags=[],
-        )
-
         try:
+            # Create metadata entry
+            file_metadata = FileMetadata.new_current_instance(
+                filepath=filepath,
+                mime_type=mime_type,
+                size=file_size,
+                tags=[],
+            )
             self.metadata_manager.add_file_entry(file_metadata)
         except Exception:
-            file_path.unlink(missing_ok=True)
-            logger.exception("Failed to save metadata!")
+            full_path.unlink(missing_ok=True)
+            msg = f"Failed to save metadata for file: {filepath}"
+            logger.exception(msg)
             return PostFileResponse(
                 code=ResponseCode.INTERNAL_SERVER_ERROR,
-                message="Failed to save metadata",
+                message=msg,
                 timestamp=PostFileResponse.current_timestamp(),
                 filepath=filepath,
                 size=file_size,
@@ -226,29 +228,35 @@ class CloudServer(TemplateServer):
         :param str filepath: The file path to delete (e.g., 'animals/cat.png')
         :return DeleteFileResponse: Server response
         """
+        logger.info("Received delete file request for: %s", filepath)
+
         # Check if file exists in metadata
         if not self.metadata_manager._file_exists(filepath):
+            msg = f"File not found in metadata: {filepath}"
+            logger.error(msg)
             return DeleteFileResponse(
                 code=ResponseCode.NOT_FOUND,
-                message="File not found",
+                message=msg,
                 timestamp=DeleteFileResponse.current_timestamp(),
                 success=False,
                 filepath=filepath,
             )
 
-        # Delete physical file
-        file_path = self.storage_directory / filepath
+        # Construct absolute file path and delete physical file
+        full_path = self.storage_directory / filepath
+
         try:
-            if file_path.exists():
-                file_path.unlink()
+            if full_path.exists():
+                full_path.unlink()
                 logger.info("Deleted file from disk: %s", filepath)
             else:
                 logger.warning("File not found on disk but exists in metadata: %s", filepath)
         except Exception:
-            logger.exception("Failed to delete file from disk: %s", filepath)
+            msg = f"Failed to delete file from disk: {filepath}"
+            logger.exception(msg)
             return DeleteFileResponse(
                 code=ResponseCode.INTERNAL_SERVER_ERROR,
-                message="Failed to delete file from disk",
+                message=msg,
                 timestamp=DeleteFileResponse.current_timestamp(),
                 success=False,
                 filepath=filepath,
@@ -257,17 +265,18 @@ class CloudServer(TemplateServer):
         # Delete metadata entry
         try:
             self.metadata_manager.delete_file_entry(filepath)
-            logger.info("Deleted metadata for file: %s", filepath)
         except Exception:
-            logger.exception("Failed to delete metadata!")
+            msg = f"Failed to delete metadata for file: {filepath}"
+            logger.exception(msg)
             return DeleteFileResponse(
                 code=ResponseCode.INTERNAL_SERVER_ERROR,
-                message="Failed to delete metadata",
+                message=msg,
                 timestamp=DeleteFileResponse.current_timestamp(),
                 success=False,
                 filepath=filepath,
             )
 
+        logger.info("Deleted file: %s", filepath)
         return DeleteFileResponse(
             code=ResponseCode.OK,
             message="File deleted successfully",

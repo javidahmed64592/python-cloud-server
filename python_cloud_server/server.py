@@ -139,13 +139,6 @@ class CloudServer(TemplateServer):
         """
         logger.info("Received post file request for: %s", filepath)
 
-        # Get MIME type
-        mime_type = file.content_type or "application/octet-stream"
-        if mime_type == "application/octet-stream":
-            guessed_type, _ = mimetypes.guess_type(filepath)
-            if guessed_type:
-                mime_type = guessed_type
-
         # Check if file already exists
         if self.metadata_manager._file_exists(filepath):
             msg = f"File already exists: {filepath}"
@@ -157,6 +150,13 @@ class CloudServer(TemplateServer):
                 filepath=filepath,
                 size=0,
             )
+
+        # Get MIME type
+        mime_type = file.content_type or "application/octet-stream"
+        if mime_type == "application/octet-stream":
+            guessed_type, _ = mimetypes.guess_type(filepath)
+            if guessed_type:
+                mime_type = guessed_type
 
         # Construct absolute file path and ensure parent directories exist
         full_path = self.storage_directory / filepath

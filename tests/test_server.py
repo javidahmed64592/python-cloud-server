@@ -328,3 +328,168 @@ class TestPostFileEndpoint:
         # Verify file exists
         full_path = mock_server.storage_directory / self.MOCK_FILEPATH
         assert full_path.exists()
+
+
+class TestDeleteFileEndpoint:
+    """Integration and unit tests for the DELETE /files/{filepath} endpoint."""
+
+    MOCK_FILENAME = "test_delete.txt"
+    MOCK_FILEPATH = f"uploads/{MOCK_FILENAME}"
+    MOCK_CONTENT = b"delete me"
+    MOCK_CONTENT_TYPE = "text/plain"
+
+    def test_delete_file_success(self, mock_server: CloudServer) -> None:
+        """Test delete_file successfully deletes a file."""
+        request = MagicMock(spec=Request)
+
+        # First upload a file
+        mock_file = _mock_file_factory(self.MOCK_FILENAME, self.MOCK_CONTENT, self.MOCK_CONTENT_TYPE)
+        asyncio.run(mock_server.post_file(request, self.MOCK_FILEPATH, mock_file))
+
+        # Verify file exists
+        full_path = mock_server.storage_directory / self.MOCK_FILEPATH
+        assert full_path.exists()
+        assert mock_server.metadata_manager.get_file_entry(self.MOCK_FILEPATH) is not None
+
+        # Delete the file
+        response = asyncio.run(mock_server.delete_file(request, self.MOCK_FILEPATH))
+
+        assert isinstance(response, DeleteFileResponse)
+        assert response.code == ResponseCode.OK
+        assert response.success is True
+        assert response.filepath == self.MOCK_FILEPATH
+        assert response.message == "File deleted successfully"
+
+        # Verify file deleted from disk
+        assert not full_path.exists()
+
+        # Verify metadata deleted
+        assert mock_server.metadata_manager.get_file_entry(self.MOCK_FILEPATH) is None
+
+    def test_delete_file_not_found(self, mock_server: CloudServer) -> None:
+        """Test delete_file returns error when file doesn't exist."""
+        request = MagicMock(spec=Request)
+        filepath = "nonexistent/file.txt"
+
+        response = asyncio.run(mock_server.delete_file(request, filepath))
+
+        assert isinstance(response, DeleteFileResponse)
+        assert response.code == ResponseCode.NOT_FOUND
+        assert response.success is False
+        assert response.filepath == filepath
+        assert response.message == f"File not found in metadata: {filepath}"
+
+    def test_delete_file_missing_on_disk(self, mock_server: CloudServer) -> None:
+        """Test delete_file handles missing file on disk but exists in metadata."""
+        request = MagicMock(spec=Request)
+        filepath = "uploads/metadata_only.txt"
+
+        # Add metadata without creating file
+        file_metadata = FileMetadata.new_current_instance(
+            filepath=filepath,
+            mime_type="text/plain",
+            size=100,
+            tags=[],
+        )
+        mock_server.metadata_manager.add_file_entry(file_metadata)
+
+        # Verify metadata exists but file doesn't
+        assert mock_server.metadata_manager.get_file_entry(filepath) is not None
+        full_path = mock_server.storage_directory / filepath
+        assert not full_path.exists()
+
+        # Delete should still succeed (clean up metadata)
+        response = asyncio.run(mock_server.delete_file(request, filepath))
+
+        assert isinstance(response, DeleteFileResponse)
+        assert response.code == ResponseCode.OK
+        assert response.success is True
+
+        # Verify metadata deleted
+        assert mock_server.metadata_manager.get_file_entry(filepath) is None
+
+    def test_delete_file_metadata_error(self, mock_server: CloudServer) -> None:
+        """Test delete_file returns error when metadata deletion fails."""
+        request = MagicMock(spec=Request)
+
+        # Upload file first
+        mock_file = _mock_file_factory(self.MOCK_FILENAME, self.MOCK_CONTENT, self.MOCK_CONTENT_TYPE)
+        asyncio.run(mock_server.post_file(request, self.MOCK_FILEPATH, mock_file))
+
+        # Patch delete_file_entry to raise an exception
+        with patch.object(
+            mock_server.metadata_manager,
+            "delete_file_entry",
+            side_effect=Exception("Metadata deletion error"),
+        ):
+            response = asyncio.run(mock_server.delete_file(request, self.MOCK_FILEPATH))
+
+        assert isinstance(response, DeleteFileResponse)
+        assert response.code == ResponseCode.INTERNAL_SERVER_ERROR
+        assert response.success is False
+        assert response.message == f"Failed to delete metadata for file: {self.MOCK_FILEPATH}"
+
+    def test_delete_file_disk_error(self, mock_server: CloudServer) -> None:
+        """Test delete_file returns error when file deletion from disk fails."""
+        request = MagicMock(spec=Request)
+
+        # Upload file first
+        mock_file = _mock_file_factory(self.MOCK_FILENAME, self.MOCK_CONTENT, self.MOCK_CONTENT_TYPE)
+        asyncio.run(mock_server.post_file(request, self.MOCK_FILEPATH, mock_file))
+
+        # Patch unlink to raise an exception
+        with patch.object(Path, "unlink", side_effect=Exception("Disk error")):
+            response = asyncio.run(mock_server.delete_file(request, self.MOCK_FILEPATH))
+
+        assert isinstance(response, DeleteFileResponse)
+        assert response.code == ResponseCode.INTERNAL_SERVER_ERROR
+        assert response.success is False
+        assert response.message == f"Failed to delete file from disk: {self.MOCK_FILEPATH}"
+
+        # Verify file still exists on disk
+        full_path = mock_server.storage_directory / self.MOCK_FILEPATH
+        assert full_path.exists()
+
+        # Verify metadata still exists (since deletion failed)
+        assert mock_server.metadata_manager.get_file_entry(self.MOCK_FILEPATH) is not None
+
+    def test_delete_file_endpoint(self, mock_server: CloudServer) -> None:
+        """Test DELETE /files/{filepath} endpoint via TestClient."""
+        app = mock_server.app
+        client = TestClient(app)
+
+        mock_file = _mock_file_factory(self.MOCK_FILENAME, self.MOCK_CONTENT, self.MOCK_CONTENT_TYPE)
+
+        # First upload a file
+        client.post(
+            f"/files/{self.MOCK_FILEPATH}",
+            files={"file": (mock_file.filename, BytesIO(self.MOCK_CONTENT), mock_file.content_type)},
+        )
+
+        # Verify file exists
+        full_path = mock_server.storage_directory / self.MOCK_FILEPATH
+        assert full_path.exists()
+
+        # Delete the file
+        response = client.delete(f"/files/{self.MOCK_FILEPATH}")
+
+        assert response.status_code == ResponseCode.OK
+        data = response.json()
+        assert data["success"] is True
+        assert data["filepath"] == self.MOCK_FILEPATH
+
+        # Verify file deleted
+        assert not full_path.exists()
+
+    def test_delete_file_endpoint_not_found(self, mock_server: CloudServer) -> None:
+        """Test DELETE /files/{filepath} endpoint returns error for nonexistent file."""
+        app = mock_server.app
+        client = TestClient(app)
+        filepath = "nonexistent/file.txt"
+
+        response = client.delete(f"/files/{filepath}")
+
+        assert response.status_code == ResponseCode.OK
+        data = response.json()
+        assert data["success"] is False
+        assert data["code"] == ResponseCode.NOT_FOUND

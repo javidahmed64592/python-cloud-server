@@ -28,6 +28,7 @@
     "server_directory": "/srv/cloud_server",
     "storage_directory": "files",
     "metadata_filename": "metadata.json",
+    "capacity_gb": 20,
     "upload_chunk_size_kb": 8,
     "max_file_size_mb": 100,
     "allowed_mime_types": [],

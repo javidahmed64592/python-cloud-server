@@ -15,6 +15,7 @@ services:
       - certs:/app/certs
       - logs:/app/logs
       - monitoring-configs:/monitoring-configs
+      - cloud-storage:/srv/cloud_server
     networks:
       - monitoring
     restart: unless-stopped
@@ -86,3 +87,4 @@ volumes:
   prometheus-data:
   grafana-data:
   monitoring-configs:
+  cloud-storage:

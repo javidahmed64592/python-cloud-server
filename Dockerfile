@@ -26,7 +26,7 @@ FROM python:3.13-slim
 WORKDIR /app
 
 # Install Git for dependency resolution
-RUN apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y git util-linux && rm -rf /var/lib/apt/lists/*
 
 # Install uv in runtime stage
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
@@ -37,6 +37,9 @@ COPY --from=backend-builder /build/dist/*.whl /tmp/
 # Install the wheel
 RUN uv pip install --system --no-cache /tmp/*.whl && \
     rm /tmp/*.whl
+
+# Create application user
+RUN useradd -r -s /usr/sbin/nologin cloud_server_user
 
 # Create required directories
 RUN mkdir -p /app/logs /app/certs
@@ -49,6 +52,9 @@ RUN SITE_PACKAGES_DIR=$(find /usr/local/lib -name "site-packages" -type d | head
     cp "${SITE_PACKAGES_DIR}/.here" /app/.here && \
     cp "${SITE_PACKAGES_DIR}/LICENSE" /app/LICENSE && \
     cp "${SITE_PACKAGES_DIR}/README.md" /app/README.md
+
+# Set ownership of app directory to application user
+RUN chown -R cloud_server_user:cloud_server_user /app
 
 # Create startup script with Ollama model checking
 RUN echo '#!/bin/sh\n\
@@ -63,6 +69,16 @@ RUN echo '#!/bin/sh\n\
     echo "Monitoring configurations ready"\n\
     fi\n\
     \n\
+    # Set ownership of storage directory\n\
+    if [ -d "/srv/cloud_server" ]; then\n\
+    echo "Setting ownership of storage directory..."\n\
+    chown -R cloud_server_user:cloud_server_user /srv/cloud_server\n\
+    chmod -R 700 /srv/cloud_server\n\
+    fi\n\
+    \n\
+    # Set ownership of logs and certs directories\n\
+    chown -R cloud_server_user:cloud_server_user /app/logs /app/certs\n\
+    \n\
     # Generate API token if needed\n\
     if [ -z "$API_TOKEN_HASH" ]; then\n\
     echo "Generating new token..."\n\
@@ -76,7 +92,7 @@ RUN echo '#!/bin/sh\n\
     generate-certificate\n\
     fi\n\
     \n\
-    exec python-cloud-server' > /app/start.sh && \
+    exec runuser -u cloud_server_user python-cloud-server' > /app/start.sh && \
     chmod +x /app/start.sh
 
 # Expose HTTPS port

@@ -64,10 +64,11 @@ class FileMetadata(BaseModel):
 
 
 # API Response Models
-class GetFileResponse(BaseResponse):
-    """Response model for get file endpoint."""
+class GetFilesResponse(BaseResponse):
+    """Response model for list files endpoint."""
 
-    file_bytes: bytes  # TODO: Update as required
+    files: list[FileMetadata] = Field(description="List of file metadata.")
+    total: int = Field(description="Total number of files matching the filter.")
 
 
 class PostFileResponse(BaseResponse):
@@ -75,6 +76,14 @@ class PostFileResponse(BaseResponse):
 
     filepath: str = Field(description="File path where the file was stored.")
     size: int = Field(description="File size in bytes.")
+
+
+class PatchFileResponse(BaseResponse):
+    """Response model for patch file endpoint."""
+
+    success: bool = Field(description="Indicates if the tag update was successful.")
+    filepath: str = Field(description="New file path if updated.")
+    tags: list[str] = Field(description="Updated list of tags for the file.")
 
 
 class DeleteFileResponse(BaseResponse):
@@ -85,19 +94,17 @@ class DeleteFileResponse(BaseResponse):
 
 
 # API Request Models
-class GetFileRequest(BaseModel):
-    """Request model for get file endpoint."""
+class GetFilesRequest(BaseModel):
+    """Request model for listing files."""
 
-    file_id: str
-
-
-class PostFileRequest(BaseModel):
-    """Request model for post file endpoint."""
-
-    file_bytes: bytes  # TODO: Multipart upload
+    tag: str | None = Field(default=None, description="Optional tag filter.")
+    offset: int = Field(default=0, ge=0, description="Pagination offset.")
+    limit: int = Field(default=100, ge=1, le=1000, description="Pagination limit (max 1000).")
 
 
-class DeleteFileRequest(BaseModel):
-    """Request model for delete file endpoint."""
+class PatchFileRequest(BaseModel):
+    """Request model for patching file metadata."""
 
-    file_id: str
+    new_filepath: str | None = Field(default=None, description="New file path if renaming the file.")
+    add_tags: list[str] = Field(default_factory=list, description="Tags to add.")
+    remove_tags: list[str] = Field(default_factory=list, description="Tags to remove.")

@@ -15,6 +15,10 @@ from python_cloud_server.models import (
     CloudServerConfig,
     DeleteFileResponse,
     FileMetadata,
+    GetFilesRequest,
+    GetFilesResponse,
+    PatchFileRequest,
+    PatchFileResponse,
     PostFileResponse,
 )
 
@@ -82,6 +86,12 @@ class CloudServer(TemplateServer):
         """Set up API routes."""
         super().setup_routes()
         self.add_authenticated_route(
+            endpoint="/files",
+            handler_function=self.get_files,
+            response_model=GetFilesResponse,
+            methods=["GET"],
+        )
+        self.add_authenticated_route(
             endpoint="/files/{filepath:path}",
             handler_function=self.get_file,
             response_model=None,
@@ -95,9 +105,52 @@ class CloudServer(TemplateServer):
         )
         self.add_authenticated_route(
             endpoint="/files/{filepath:path}",
+            handler_function=self.patch_file,
+            response_model=PatchFileResponse,
+            methods=["PATCH"],
+        )
+        self.add_authenticated_route(
+            endpoint="/files/{filepath:path}",
             handler_function=self.delete_file,
             response_model=DeleteFileResponse,
             methods=["DELETE"],
+        )
+
+    async def get_files(
+        self,
+        request: Request,
+    ) -> GetFilesResponse:
+        """Handle list files requests.
+
+        :param Request request: The request object
+        :return GetFilesResponse: Server response with file list
+        """
+        files_request = GetFilesRequest.model_validate(await request.json())
+        logger.info(
+            "Received list files request: tag=%s, offset=%d, limit=%d",
+            files_request.tag,
+            files_request.offset,
+            files_request.limit,
+        )
+
+        # Get filtered and paginated file list
+        files = self.metadata_manager.list_files(
+            tag=files_request.tag, offset=files_request.offset, limit=files_request.limit
+        )
+
+        # Get total count
+        if files_request.tag:
+            total = sum(1 for entry in self.metadata_manager._metadata.values() if files_request.tag in entry.tags)
+        else:
+            total = self.metadata_manager.file_count
+
+        logger.info("Returning %d files (total: %d)", len(files), total)
+        return GetFilesResponse(
+            code=ResponseCode.OK,
+            message="Files retrieved successfully",
+            timestamp=GetFilesResponse.current_timestamp(),
+            files=files,
+            total=total,
         )
 
     async def get_file(self, request: Request, filepath: str) -> FileResponse:
@@ -219,6 +272,146 @@ class CloudServer(TemplateServer):
             timestamp=PostFileResponse.current_timestamp(),
             filepath=filepath,
             size=file_size,
+        )
+
+    async def patch_file(self, request: Request, filepath: str) -> PatchFileResponse:
+        """Handle patch file requests - update file metadata and/or move file.
+
+        :param Request request: The request object
+        :param str filepath: The file path to update (e.g., 'animals/cat.png')
+        :return PatchFileResponse: Server response
+        """
+        patch_request = PatchFileRequest.model_validate(await request.json())
+        logger.info("Received patch file request for: %s", filepath)
+
+        # Check if file exists
+        if not self.metadata_manager._file_exists(filepath) or not (
+            current_metadata := self.metadata_manager.get_file_entry(filepath)
+        ):
+            msg = f"File not found in metadata: {filepath}"
+            logger.error(msg)
+            return PatchFileResponse(
+                code=ResponseCode.NOT_FOUND,
+                message=msg,
+                timestamp=PatchFileResponse.current_timestamp(),
+                success=False,
+                filepath=filepath,
+                tags=[],
+            )
+
+        # Calculate new tags
+        current_tags = set(current_metadata.tags)
+        new_tags = current_tags.copy()
+
+        # Add tags
+        for tag in patch_request.add_tags:
+            # Validate tag
+            if len(tag) > self.config.storage_config.max_tag_length:
+                msg = f"Skipping tag which exceeds maximum length: {tag}"
+                logger.warning(msg)
+                continue
+            new_tags.add(tag)
+
+        # Remove tags
+        for tag in patch_request.remove_tags:
+            new_tags.discard(tag)
+
+        # Check max tags limit
+        if len(new_tags) > self.config.storage_config.max_tags_per_file:
+            msg = f"Number of tags exceeds maximum: {len(new_tags)} > {self.config.storage_config.max_tags_per_file}"
+            logger.error(msg)
+            return PatchFileResponse(
+                code=ResponseCode.BAD_REQUEST,
+                message=msg,
+                timestamp=PatchFileResponse.current_timestamp(),
+                success=False,
+                filepath=filepath,
+                tags=list(current_tags),
+            )
+
+        # Handle file moving/renaming if new_filepath is specified
+        final_filepath = filepath
+        if patch_request.new_filepath:
+            new_filepath = patch_request.new_filepath
+
+            # Check if destination already exists
+            if self.metadata_manager._file_exists(new_filepath):
+                msg = f"Destination file already exists: {new_filepath}"
+                logger.error(msg)
+                return PatchFileResponse(
+                    code=ResponseCode.CONFLICT,
+                    message=msg,
+                    timestamp=PatchFileResponse.current_timestamp(),
+                    success=False,
+                    filepath=filepath,
+                    tags=list(current_tags),
+                )
+
+            # Move the physical file
+            old_path = self.storage_directory / filepath
+            new_path = self.storage_directory / new_filepath
+
+            try:
+                # Create parent directories for new path
+                new_path.parent.mkdir(parents=True, exist_ok=True)
+
+                # Move the file
+                old_path.rename(new_path)
+                logger.info("Moved file from %s to %s", filepath, new_filepath)
+
+                final_filepath = new_filepath
+
+            except Exception:
+                msg = f"Failed to move file from {filepath} to {new_filepath}"
+                logger.exception(msg)
+                return PatchFileResponse(
+                    code=ResponseCode.INTERNAL_SERVER_ERROR,
+                    message=msg,
+                    timestamp=PatchFileResponse.current_timestamp(),
+                    success=False,
+                    filepath=filepath,
+                    tags=list(current_tags),
+                )
+
+        # Update metadata once at the end with all changes
+        try:
+            # Prepare updates dictionary
+            updates = {"tags": list(new_tags)}
+
+            # Include filepath change if it occurred
+            if final_filepath != filepath:
+                updates["filepath"] = final_filepath
+
+            self.metadata_manager.update_file_entry(filepath=filepath, updates=updates)
+
+        except Exception:
+            # If metadata update fails and we moved the file, try to move it back
+            if final_filepath != filepath:
+                try:
+                    new_path.rename(old_path)
+                    logger.warning("Rolled back file move due to metadata update failure")
+                except Exception:
+                    logger.exception("Failed to rollback file move")
+
+            msg = f"Failed to update metadata for file: {filepath}"
+            logger.exception(msg)
+            return PatchFileResponse(
+                code=ResponseCode.INTERNAL_SERVER_ERROR,
+                message=msg,
+                timestamp=PatchFileResponse.current_timestamp(),
+                success=False,
+                filepath=filepath,
+                tags=list(current_tags),
+            )
+
+        logger.info("Updated file: %s (tags: %s)", final_filepath, list(new_tags))
+        return PatchFileResponse(
+            code=ResponseCode.OK,
+            message="File updated successfully",
+            timestamp=PatchFileResponse.current_timestamp(),
+            success=True,
+            filepath=final_filepath,
+            tags=list(new_tags),
         )
 
     async def delete_file(self, request: Request, filepath: str) -> DeleteFileResponse:

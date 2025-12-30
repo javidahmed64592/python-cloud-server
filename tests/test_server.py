@@ -5,7 +5,7 @@ from collections.abc import Generator
 from importlib.metadata import PackageMetadata
 from io import BytesIO
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from fastapi import HTTPException, Request, Security, UploadFile
@@ -17,7 +17,16 @@ from python_template_server.constants import BYTES_TO_MB
 from python_template_server.models import ResponseCode
 
 from python_cloud_server.metadata import MetadataManager
-from python_cloud_server.models import CloudServerConfig, DeleteFileResponse, FileMetadata, PostFileResponse
+from python_cloud_server.models import (
+    CloudServerConfig,
+    DeleteFileResponse,
+    FileMetadata,
+    GetFilesRequest,
+    GetFilesResponse,
+    PatchFileRequest,
+    PatchFileResponse,
+    PostFileResponse,
+)
 from python_cloud_server.server import CloudServer
 
 
@@ -130,10 +139,6 @@ class TestCloudServer:
         validated_config = mock_server.validate_config(invalid_config)
         assert isinstance(validated_config, CloudServerConfig)
 
-
-class TestCloudServerRoutes:
-    """Integration tests for the routes in CloudServer."""
-
     def test_setup_routes(self, mock_server: CloudServer) -> None:
         """Test that routes are set up correctly."""
         api_routes = [route for route in mock_server.app.routes if isinstance(route, APIRoute)]
@@ -142,10 +147,116 @@ class TestCloudServerRoutes:
             "/health",
             "/metrics",
             "/login",
+            "/files",
             "/files/{filepath:path}",
         ]
         for endpoint in expected_endpoints:
             assert endpoint in routes, f"Expected endpoint {endpoint} not found in routes"
+
+
+class TestGetFilesEndpoint:
+    """Integration and unit tests for the GET /files endpoint."""
+
+    def test_get_files(self, mock_server: CloudServer) -> None:
+        """Test get_files successfully retrieves files."""
+        request = MagicMock(spec=Request)
+        files_request = GetFilesRequest(tag=None, offset=0, limit=100)
+        request.json = AsyncMock(return_value=files_request.model_dump())
+
+        response = asyncio.run(mock_server.get_files(request))
+
+        assert isinstance(response, GetFilesResponse)
+        assert response.code == ResponseCode.OK
+        assert response.message == "Files retrieved successfully"
+        assert len(response.files) == 1  # One file from fixture
+        assert response.total == 1
+
+    def test_get_files_with_tag_filter(self, mock_server: CloudServer, mock_file_metadata: FileMetadata) -> None:
+        """Test get_files filters by tag."""
+        request = MagicMock(spec=Request)
+        files_request = GetFilesRequest(tag="test", offset=0, limit=100)
+        request.json = AsyncMock(return_value=files_request.model_dump())
+
+        response = asyncio.run(mock_server.get_files(request))
+
+        assert isinstance(response, GetFilesResponse)
+        assert response.code == ResponseCode.OK
+        assert len(response.files) == 1
+        assert response.total == 1
+        assert response.files[0].filepath == mock_file_metadata.filepath
+
+    def test_get_files_with_nonexistent_tag(self, mock_server: CloudServer) -> None:
+        """Test get_files returns empty list for nonexistent tag."""
+        request = MagicMock(spec=Request)
+        files_request = GetFilesRequest(tag="nonexistent", offset=0, limit=100)
+        request.json = AsyncMock(return_value=files_request.model_dump())
+
+        response = asyncio.run(mock_server.get_files(request))
+
+        assert isinstance(response, GetFilesResponse)
+        assert response.code == ResponseCode.OK
+        assert len(response.files) == 0
+        assert response.total == 0
+
+    def test_get_files_pagination(self, mock_server: CloudServer) -> None:
+        """Test get_files pagination."""
+        limit = 10
+        request = MagicMock(spec=Request)
+        files_request = GetFilesRequest(tag=None, offset=0, limit=limit)
+        request.json = AsyncMock(return_value=files_request.model_dump())
+
+        response = asyncio.run(mock_server.get_files(request))
+
+        assert isinstance(response, GetFilesResponse)
+        assert response.code == ResponseCode.OK
+        assert len(response.files) <= limit
+
+    def test_get_files_endpoint(self, mock_server: CloudServer) -> None:
+        """Test GET /files endpoint returns files successfully."""
+        app = mock_server.app
+        client = TestClient(app)
+
+        response = client.request(
+            "GET",
+            "/files",
+            json={"tag": None, "offset": 0, "limit": 100},
+        )
+        assert response.status_code == ResponseCode.OK
+        data = response.json()
+        assert data["code"] == ResponseCode.OK
+        assert data["message"] == "Files retrieved successfully"
+        assert len(data["files"]) == 1
+        assert data["total"] == 1
+
+    def test_get_files_endpoint_with_tag(self, mock_server: CloudServer) -> None:
+        """Test GET /files endpoint with tag filter."""
+        app = mock_server.app
+        client = TestClient(app)
+
+        response = client.request(
+            "GET",
+            "/files",
+            json={"tag": "test", "offset": 0, "limit": 100},
+        )
+        assert response.status_code == ResponseCode.OK
+        data = response.json()
+        assert len(data["files"]) == 1
+        assert data["total"] == 1
+
+    def test_get_files_endpoint_empty_tag(self, mock_server: CloudServer) -> None:
+        """Test GET /files endpoint with nonexistent tag."""
+        app = mock_server.app
+        client = TestClient(app)
+
+        response = client.request(
+            "GET",
+            "/files",
+            json={"tag": "nonexistent", "offset": 0, "limit": 100},
+        )
+        assert response.status_code == ResponseCode.OK
+        data = response.json()
+        assert len(data["files"]) == 0
+        assert data["total"] == 0
 
 
 class TestGetFileEndpoint:
@@ -328,6 +439,222 @@ class TestPostFileEndpoint:
         # Verify file exists
         full_path = mock_server.storage_directory / self.MOCK_FILEPATH
         assert full_path.exists()
+
+
+class TestPatchFileEndpoint:
+    """Integration and unit tests for the PATCH /files/{filepath} endpoint."""
+
+    MOCK_FILENAME = "test_patch.txt"
+    MOCK_FILEPATH = f"uploads/{MOCK_FILENAME}"
+    MOCK_CONTENT = b"patch me"
+    MOCK_CONTENT_TYPE = "text/plain"
+
+    def test_patch_file_add_tags(self, mock_server: CloudServer) -> None:
+        """Test patch_file successfully adds tags."""
+        request = MagicMock(spec=Request)
+        patch_request = PatchFileRequest(add_tags=["new_tag"], remove_tags=[])
+        request.json = AsyncMock(return_value=patch_request.model_dump())
+
+        # First upload a file
+        mock_file = _mock_file_factory(self.MOCK_FILENAME, self.MOCK_CONTENT, self.MOCK_CONTENT_TYPE)
+        asyncio.run(mock_server.post_file(request, self.MOCK_FILEPATH, mock_file))
+
+        # Patch the file
+        response = asyncio.run(mock_server.patch_file(request, self.MOCK_FILEPATH))
+
+        assert isinstance(response, PatchFileResponse)
+        assert response.code == ResponseCode.OK
+        assert response.success is True
+        assert response.filepath == self.MOCK_FILEPATH
+        assert "new_tag" in response.tags
+
+    def test_patch_file_remove_tags(self, mock_server: CloudServer) -> None:
+        """Test patch_file successfully removes tags."""
+        request = MagicMock(spec=Request)
+        patch_request = PatchFileRequest(add_tags=[], remove_tags=["test"])
+        request.json = AsyncMock(return_value=patch_request.model_dump())
+
+        response = asyncio.run(mock_server.patch_file(request, "test/test.txt"))
+
+        assert isinstance(response, PatchFileResponse)
+        assert response.code == ResponseCode.OK
+        assert response.success is True
+        assert "test" not in response.tags
+
+    def test_patch_file_move_file(self, mock_server: CloudServer) -> None:
+        """Test patch_file successfully moves/renames file."""
+        request = MagicMock(spec=Request)
+        new_filepath = "uploads/moved.txt"
+        patch_request = PatchFileRequest(new_filepath=new_filepath, add_tags=[], remove_tags=[])
+        request.json = AsyncMock(return_value=patch_request.model_dump())
+
+        # First upload a file
+        mock_file = _mock_file_factory(self.MOCK_FILENAME, self.MOCK_CONTENT, self.MOCK_CONTENT_TYPE)
+        asyncio.run(mock_server.post_file(request, self.MOCK_FILEPATH, mock_file))
+
+        # Patch the file
+        response = asyncio.run(mock_server.patch_file(request, self.MOCK_FILEPATH))
+
+        assert isinstance(response, PatchFileResponse)
+        assert response.code == ResponseCode.OK
+        assert response.success is True
+        assert response.filepath == new_filepath
+
+        # Verify file moved on disk
+        old_path = mock_server.storage_directory / self.MOCK_FILEPATH
+        new_path = mock_server.storage_directory / new_filepath
+        assert not old_path.exists()
+        assert new_path.exists()
+
+    def test_patch_file_not_found(self, mock_server: CloudServer) -> None:
+        """Test patch_file returns error when file doesn't exist."""
+        request = MagicMock(spec=Request)
+        patch_request = PatchFileRequest(add_tags=["tag"], remove_tags=[])
+        request.json = AsyncMock(return_value=patch_request.model_dump())
+
+        response = asyncio.run(mock_server.patch_file(request, "nonexistent/file.txt"))
+
+        assert isinstance(response, PatchFileResponse)
+        assert response.code == ResponseCode.NOT_FOUND
+        assert response.success is False
+        assert response.filepath == "nonexistent/file.txt"
+
+    def test_patch_file_destination_exists(self, mock_server: CloudServer) -> None:
+        """Test patch_file returns conflict when destination exists."""
+        request = MagicMock(spec=Request)
+        new_filepath = "test/test.txt"  # Existing file
+        patch_request = PatchFileRequest(new_filepath=new_filepath, add_tags=[], remove_tags=[])
+        request.json = AsyncMock(return_value=patch_request.model_dump())
+
+        # First upload another file
+        mock_file = _mock_file_factory(self.MOCK_FILENAME, self.MOCK_CONTENT, self.MOCK_CONTENT_TYPE)
+        asyncio.run(mock_server.post_file(request, self.MOCK_FILEPATH, mock_file))
+
+        # Try to move to existing path
+        response = asyncio.run(mock_server.patch_file(request, self.MOCK_FILEPATH))
+
+        assert isinstance(response, PatchFileResponse)
+        assert response.code == ResponseCode.CONFLICT
+        assert response.success is False
+
+    def test_patch_file_tag_limit_exceeded(self, mock_server: CloudServer) -> None:
+        """Test patch_file returns error when tag limit exceeded."""
+        request = MagicMock(spec=Request)
+        # Add more tags than allowed
+        max_tags = mock_server.config.storage_config.max_tags_per_file
+        add_tags = [f"tag{i}" for i in range(max_tags + 1)]
+        patch_request = PatchFileRequest(add_tags=add_tags, remove_tags=[])
+        request.json = AsyncMock(return_value=patch_request.model_dump())
+
+        response = asyncio.run(mock_server.patch_file(request, "test/test.txt"))
+
+        assert isinstance(response, PatchFileResponse)
+        assert response.code == ResponseCode.BAD_REQUEST
+        assert response.success is False
+
+    def test_patch_file_tag_too_long(self, mock_server: CloudServer) -> None:
+        """Test patch_file skips tags that are too long."""
+        request = MagicMock(spec=Request)
+        max_length = mock_server.config.storage_config.max_tag_length
+        long_tag = "a" * (max_length + 1)
+        patch_request = PatchFileRequest(add_tags=[long_tag, "valid_tag"], remove_tags=[])
+        request.json = AsyncMock(return_value=patch_request.model_dump())
+
+        response = asyncio.run(mock_server.patch_file(request, "test/test.txt"))
+
+        assert isinstance(response, PatchFileResponse)
+        assert response.code == ResponseCode.OK
+        assert "valid_tag" in response.tags
+        assert long_tag not in response.tags
+
+    def test_patch_file_move_error(self, mock_server: CloudServer) -> None:
+        """Test patch_file returns error when file move fails."""
+        request = MagicMock(spec=Request)
+        new_filepath = "uploads/moved.txt"
+        patch_request = PatchFileRequest(new_filepath=new_filepath, add_tags=[], remove_tags=[])
+        request.json = AsyncMock(return_value=patch_request.model_dump())
+
+        # First upload a file
+        mock_file = _mock_file_factory(self.MOCK_FILENAME, self.MOCK_CONTENT, self.MOCK_CONTENT_TYPE)
+        asyncio.run(mock_server.post_file(request, self.MOCK_FILEPATH, mock_file))
+
+        # Mock Path.rename to raise an exception
+        with patch.object(Path, "rename", side_effect=Exception("Rename failed")):
+            response = asyncio.run(mock_server.patch_file(request, self.MOCK_FILEPATH))
+
+        assert isinstance(response, PatchFileResponse)
+        assert response.code == ResponseCode.INTERNAL_SERVER_ERROR
+        assert response.success is False
+        assert response.filepath == self.MOCK_FILEPATH
+        assert "Failed to move file from" in response.message
+
+    def test_patch_file_metadata_update_failure_rollback(self, mock_server: CloudServer) -> None:
+        """Test patch_file rolls back file move when metadata update fails."""
+        request = MagicMock(spec=Request)
+        new_filepath = "uploads/moved.txt"
+        patch_request = PatchFileRequest(new_filepath=new_filepath, add_tags=[], remove_tags=[])
+        request.json = AsyncMock(return_value=patch_request.model_dump())
+
+        # First upload a file
+        mock_file = _mock_file_factory(self.MOCK_FILENAME, self.MOCK_CONTENT, self.MOCK_CONTENT_TYPE)
+        asyncio.run(mock_server.post_file(request, self.MOCK_FILEPATH, mock_file))
+
+        # Mock update_file_entry to raise an exception
+        with patch.object(
+            mock_server.metadata_manager, "update_file_entry", side_effect=Exception("Metadata update failed")
+        ):
+            response = asyncio.run(mock_server.patch_file(request, self.MOCK_FILEPATH))
+
+        assert isinstance(response, PatchFileResponse)
+        assert response.code == ResponseCode.INTERNAL_SERVER_ERROR
+        assert response.success is False
+        assert response.message == f"Failed to update metadata for file: {self.MOCK_FILEPATH}"
+
+        # Verify file was moved back (rollback)
+        old_path = mock_server.storage_directory / self.MOCK_FILEPATH
+        new_path = mock_server.storage_directory / new_filepath
+        assert old_path.exists()
+        assert not new_path.exists()
+
+        # Verify metadata still has old filepath
+        metadata = mock_server.metadata_manager.get_file_entry(self.MOCK_FILEPATH)
+        assert metadata is not None
+        assert metadata.filepath == self.MOCK_FILEPATH
+
+    def test_patch_file_endpoint(self, mock_server: CloudServer) -> None:
+        """Test PATCH /files/{filepath} endpoint via TestClient."""
+        app = mock_server.app
+        client = TestClient(app)
+
+        # First upload a file
+        mock_file = _mock_file_factory(self.MOCK_FILENAME, self.MOCK_CONTENT, self.MOCK_CONTENT_TYPE)
+        client.post(
+            f"/files/{self.MOCK_FILEPATH}",
+            files={"file": (mock_file.filename, BytesIO(self.MOCK_CONTENT), mock_file.content_type)},
+        )
+
+        # Patch the file
+        patch_data = {"add_tags": ["new_tag"], "remove_tags": []}
+        response = client.patch(f"/files/{self.MOCK_FILEPATH}", json=patch_data)
+
+        assert response.status_code == ResponseCode.OK
+        data = response.json()
+        assert data["success"] is True
+        assert data["filepath"] == self.MOCK_FILEPATH
+        assert "new_tag" in data["tags"]
+
+    def test_patch_file_endpoint_not_found(self, mock_server: CloudServer) -> None:
+        """Test PATCH /files/{filepath} endpoint returns error for nonexistent file."""
+        app = mock_server.app
+        client = TestClient(app)
+
+        patch_data = {"add_tags": ["tag"], "remove_tags": []}
+        response = client.patch("/files/nonexistent/file.txt", json=patch_data)
+
+        assert response.status_code == ResponseCode.OK
+        data = response.json()
+        assert data["success"] is False
+        assert data["code"] == ResponseCode.NOT_FOUND
 
 
 class TestDeleteFileEndpoint:

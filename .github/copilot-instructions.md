@@ -11,7 +11,7 @@ Extends `TemplateServer` to create a cloud-based application server with authent
 
 - Entry: `main.py:run()` → instantiates `CloudServer` (subclass of `TemplateServer`) → calls `.run()`
 - `CloudServer.__init__()` initializes with `cloud_server_config.json` and package name `python_cloud_server`
-- Inherits all middleware, rate limiting, metrics, and auth from `TemplateServer`
+- Inherits all middleware, rate limiting and auth from `TemplateServer`
 - Currently extends base `setup_routes()` without adding custom endpoints (future expansion point)
 
 ### Configuration System
@@ -75,8 +75,8 @@ python_cloud_server/
 
 - **Prefix**: All routes under `/api`
 - **Authentication**: Inherited from TemplateServer, applied via `Security(self._verify_api_key)`
-- **Unauthenticated Endpoints**: `/api/health` and `/api/metrics`
-- **Current Endpoints**: Only base endpoints from TemplateServer (health, metrics, login)
+- **Unauthenticated Endpoints**: `/api/health`
+- **Current Endpoints**: Only base endpoints from TemplateServer (health, login)
 - **Future Extension**: Add custom routes in `CloudServer.setup_routes()`
 
 ### CI/CD Validation

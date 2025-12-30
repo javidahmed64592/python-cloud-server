@@ -71,7 +71,6 @@ uv run python-cloud-server
 # Server runs at https://localhost:443/api
 # Swagger UI: https://localhost:443/api/docs
 # Redoc: https://localhost:443/api/redoc
-# Metrics: curl -k https://localhost:443/api/metrics
 # Health check: curl -k https://localhost:443/api/health
 # Login (requires authentication): curl -k -H "X-API-Key: your-token-here" https://localhost:443/api/login
 ```
@@ -100,7 +99,7 @@ If this is omitted, a token will be generated upon starting the container for th
 
 ## Documentation
 
-- **[API Documentation](./docs/API.md)**: Endpoints, authentication, metrics
+- **[API Documentation](./docs/API.md)**: Endpoints, authentication
 - **[Software Maintenance Guide](./docs/SMG.md)**: Development setup, configuration
 - **[Workflows](./docs/WORKFLOWS.md)**: CI/CD pipeline details
 

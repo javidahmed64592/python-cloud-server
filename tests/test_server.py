@@ -145,7 +145,6 @@ class TestCloudServer:
         routes = [route.path for route in api_routes]
         expected_endpoints = [
             "/health",
-            "/metrics",
             "/login",
             "/files",
             "/files/{filepath:path}",

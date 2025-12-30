@@ -105,9 +105,6 @@ The backend will be available at `https://localhost:443/api` by default.
 
 **Testing the API:**
 ```sh
-# Metrics endpoint (no auth required)
-curl -k https://localhost:443/api/metrics
-
 # Health check (no auth required)
 curl -k https://localhost:443/api/health
 

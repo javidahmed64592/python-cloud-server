@@ -14,7 +14,7 @@ services:
     volumes:
       - certs:/app/certs
       - logs:/app/logs
-      - cloud-storage:/srv/cloud_server
+      - storage:/srv/cloud_server
     restart: unless-stopped
     healthcheck:
       test:
@@ -32,4 +32,4 @@ services:
 volumes:
   certs:
   logs:
-  cloud-storage:
+  storage:

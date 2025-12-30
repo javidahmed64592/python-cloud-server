@@ -11,7 +11,7 @@ Extends `TemplateServer` to create a cloud-based application server with authent
 
 - Entry: `main.py:run()` → instantiates `CloudServer` (subclass of `TemplateServer`) → calls `.run()`
 - `CloudServer.__init__()` initializes with `cloud_server_config.json` and package name `python_cloud_server`
-- Inherits all middleware, rate limiting, metrics, and auth from `TemplateServer`
+- Inherits all middleware, rate limiting and auth from `TemplateServer`
 - Currently extends base `setup_routes()` without adding custom endpoints (future expansion point)
 
 ### Configuration System
@@ -27,7 +27,6 @@ Extends `TemplateServer` to create a cloud-based application server with authent
 - **Authentication**: API key via `X-API-Key` header, SHA-256 hashed token verification
 - **Rate Limiting**: Configurable slowapi integration (100/minute default)
 - **Security Headers**: HSTS, CSP, X-Frame-Options middleware
-- **Observability**: Prometheus metrics (`/metrics`), request logging, health checks (`/health`)
 - **SSL/TLS**: Self-signed certificate generation and HTTPS support
 
 ## Developer Workflows
@@ -47,14 +46,14 @@ uv run -m mypy .                 # Type checking
 uv run -m ruff check .           # Linting
 
 # Docker Development
-docker compose up --build -d     # Build + start all services (FastAPI + Prometheus + Grafana)
+docker compose up --build -d     # Build + start all services
 docker compose logs -f python-cloud-server  # View server logs
 docker compose down              # Stop and remove containers
 ```
 
 ### Docker Multi-Stage Build
 
-- **Stage 1 (builder)**: Uses `uv` to build wheel with configuration/, grafana/, prometheus/ directories
+- **Stage 1 (builder)**: Uses `uv` to build wheel
 - **Stage 2 (runtime)**: Installs wheel, copies runtime files from site-packages to /app
 - **Startup Script**: `/app/start.sh` generates token/certs if missing, copies monitoring configs to shared volume
 - **Config**: Uses `cloud_server_config.json` for all environments
@@ -76,8 +75,8 @@ python_cloud_server/
 
 - **Prefix**: All routes under `/api`
 - **Authentication**: Inherited from TemplateServer, applied via `Security(self._verify_api_key)`
-- **Unauthenticated Endpoints**: `/api/health` and `/api/metrics`
-- **Current Endpoints**: Only base endpoints from TemplateServer (health, metrics, login)
+- **Unauthenticated Endpoints**: `/api/health`
+- **Current Endpoints**: Only base endpoints from TemplateServer (health, login)
 - **Future Extension**: Add custom routes in `CloudServer.setup_routes()`
 
 ### CI/CD Validation
@@ -97,7 +96,7 @@ All PRs must pass:
 **Build Workflow:**
 
 1. `build_wheel` - Build wheel with uv, upload artifact
-2. `verify_structure` - Install wheel, verify package structure (python_cloud_server/, configuration/, grafana/, prometheus/)
+2. `verify_structure` - Install wheel, verify package structure (python_cloud_server/, configuration/)
 
 **Docker Workflow:**
 
@@ -111,7 +110,7 @@ All PRs must pass:
 - `python_cloud_server/main.py` - Application entry point
 - `python_cloud_server/models.py` - CloudServerConfig model
 - `configuration/cloud_server_config.json` - Server configuration
-- `docker-compose.yml` - FastAPI + Prometheus + Grafana stack
+- `docker-compose.yml` - Container stack
 - `Dockerfile` - Multi-stage build with wheel installation
 
 ### Environment Variables

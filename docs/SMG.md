@@ -100,15 +100,11 @@ uv run python-cloud-server
 The backend will be available at `https://localhost:443/api` by default.
 
 **Available Endpoints:**
-- Prometheus Metrics: `https://localhost:443/api/metrics`
 - Health Check: `https://localhost:443/api/health`
 - Login: `https://localhost:443/api/login` (requires authentication)
 
 **Testing the API:**
 ```sh
-# Metrics endpoint (no auth required)
-curl -k https://localhost:443/api/metrics
-
 # Health check (no auth required)
 curl -k https://localhost:443/api/health
 

@@ -127,6 +127,27 @@ class TestMetadataManager:
         assert updated_entry.tags == updates["tags"]
         assert updated_entry.updated_at != mock_file_metadata.updated_at
 
+    def test_update_file_entry_filepath_change(
+        self, mock_metadata_manager: MetadataManager, mock_file_metadata: FileMetadata
+    ) -> None:
+        """Test updating the filepath of a file entry."""
+        new_filepath = "new/path.txt"
+        initial_file_count = mock_metadata_manager.file_count
+
+        mock_metadata_manager.update_file_entry(mock_file_metadata.filepath, {"filepath": new_filepath})
+
+        assert mock_metadata_manager.file_count == initial_file_count
+        assert mock_metadata_manager.get_file_entry(mock_file_metadata.filepath) is None
+
+        updated_entry = mock_metadata_manager.get_file_entry(new_filepath)
+        assert updated_entry is not None
+        assert updated_entry.filepath == new_filepath
+        assert updated_entry.mime_type == mock_file_metadata.mime_type
+        assert updated_entry.size == mock_file_metadata.size
+        assert updated_entry.tags == mock_file_metadata.tags
+        assert updated_entry.uploaded_at == mock_file_metadata.uploaded_at
+        assert updated_entry.updated_at != mock_file_metadata.updated_at
+
     def test_update_file_entry_nonexistent_file(self, mock_metadata_manager: MetadataManager) -> None:
         """Test that updating a non-existent file entry raises KeyError."""
         nonexistent_file = "nonexistent/file.txt"

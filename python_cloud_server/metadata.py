@@ -140,6 +140,11 @@ class MetadataManager:
             metadata_dict.update(updates)
             self._metadata[filepath] = FileMetadata.model_validate(metadata_dict)
             self._metadata[filepath].updated_at = FileMetadata.current_timestamp()
+
+            if (new_filepath := updates.get("filepath")) and new_filepath != filepath:
+                self._metadata[new_filepath] = self._metadata.pop(filepath)
+                logger.info("Filepath updated from %s to %s", filepath, new_filepath)
+
             self._save_metadata_atomic()
             logger.info("Updated file entry: %s", filepath)
 

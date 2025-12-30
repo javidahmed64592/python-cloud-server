@@ -79,7 +79,7 @@ uv run python-cloud-server
 ## Docker Deployment
 
 ```sh
-# Start all services (FastAPI + Prometheus + Grafana)
+# Start all services
 docker compose up -d
 
 # From Dockerfile
@@ -90,8 +90,6 @@ docker compose logs -f python-cloud-server
 
 # Access services:
 # - API: https://localhost:443/api
-# - Prometheus: http://localhost:9090
-# - Grafana: http://localhost:3000 (admin/admin)
 
 # Stop services
 docker compose down
@@ -104,7 +102,6 @@ If this is omitted, a token will be generated upon starting the container for th
 
 - **[API Documentation](./docs/API.md)**: Endpoints, authentication, metrics
 - **[Software Maintenance Guide](./docs/SMG.md)**: Development setup, configuration
-- **[Docker Deployment Guide](./docs/DOCKER_DEPLOYMENT.md)**: Container orchestration
 - **[Workflows](./docs/WORKFLOWS.md)**: CI/CD pipeline details
 
 ## License

@@ -68,8 +68,6 @@ It consists of the following jobs:
   - Verify installed package structure in site-packages:
     - `python_cloud_server/` - Python package
     - `configuration/` - Server configuration
-    - `grafana/` - Grafana dashboards and provisioning
-    - `prometheus/` - Prometheus configuration
   - Display directory structure with tree views for verification
 
 ## Docker Workflow
@@ -85,6 +83,5 @@ It consists of the following jobs:
   - Show server logs from `python-cloud-server` container
   - **Health check** using reusable composite action `.github/actions/docker-check-containers`:
     - Verifies server is running on port 443
-    - Checks Prometheus and Grafana services
     - Validates Ollama integration
   - Stop services with full cleanup: `docker compose down --volumes --remove-orphans`

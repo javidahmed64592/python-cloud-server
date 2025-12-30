@@ -49,15 +49,21 @@ class FileMetadata(BaseModel):
         return datetime.now().isoformat() + "Z"
 
     @classmethod
-    def new_current_instance(cls, **data: dict) -> FileMetadata:
+    def new_current_instance(cls, filepath: str, mime_type: str, size: int, tags: list[str]) -> FileMetadata:
         """Create a new FileMetadata instance with the current timestamp.
 
-        :param data: Fields for the FileMetadata
+        :param filepath: Relative file path
+        :param mime_type: MIME type of the file
+        :param size: File size in bytes
+        :param tags: Tags associated with the file
         :return FileMetadata: New instance with current timestamps
         """
         now_iso = cls.current_timestamp()
         return cls(
-            **data,
+            filepath=filepath,
+            mime_type=mime_type,
+            size=size,
+            tags=tags,
             uploaded_at=now_iso,
             updated_at=now_iso,
         )

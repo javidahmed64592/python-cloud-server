@@ -104,7 +104,7 @@ def mock_storage_config_dict(tmp_path: Path) -> dict:
 @pytest.fixture
 def mock_storage_config(mock_storage_config_dict: dict) -> StorageConfig:
     """Provide a mock StorageConfig instance."""
-    return StorageConfig.model_validate(mock_storage_config_dict)  # type: ignore[no-any-return]
+    return StorageConfig.model_validate(mock_storage_config_dict)
 
 
 @pytest.fixture
@@ -128,7 +128,12 @@ def mock_file_metadata_dict() -> dict:
 @pytest.fixture
 def mock_file_metadata(mock_file_metadata_dict: dict) -> FileMetadata:
     """Provide a mock FileMetadata instance."""
-    return FileMetadata.new_current_instance(**mock_file_metadata_dict)  # type: ignore[no-any-return]
+    return FileMetadata.new_current_instance(
+        filepath=mock_file_metadata_dict["filepath"],
+        mime_type=mock_file_metadata_dict["mime_type"],
+        size=mock_file_metadata_dict["size"],
+        tags=mock_file_metadata_dict["tags"],
+    )
 
 
 # Server fixtures

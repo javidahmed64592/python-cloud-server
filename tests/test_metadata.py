@@ -124,6 +124,7 @@ class TestMetadataManager:
         mock_metadata_manager.update_file_entry(mock_file_metadata.filepath, updates)
 
         updated_entry = mock_metadata_manager.get_file_entry(mock_file_metadata.filepath)
+        assert updated_entry is not None
         assert updated_entry.tags == updates["tags"]
         assert updated_entry.updated_at != mock_file_metadata.updated_at
 

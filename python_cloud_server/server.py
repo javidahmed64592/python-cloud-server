@@ -376,7 +376,7 @@ class CloudServer(TemplateServer):
         # Update metadata once at the end with all changes
         try:
             # Prepare updates dictionary
-            updates = {"tags": list(new_tags)}
+            updates: dict = {"tags": list(new_tags)}
 
             # Include filepath change if it occurred
             if final_filepath != filepath:

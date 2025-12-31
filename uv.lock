@@ -955,7 +955,7 @@ requires-dist = [
     { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=7.0.0" },
     { name = "python-multipart", specifier = ">=0.0.21" },
     { name = "python-template-server", git = "https://github.com/javidahmed64592/python-template-server.git" },
-    { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.14.2" },
+    { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.14.10" },
     { name = "validate-pyproject", marker = "extra == 'dev'", specifier = ">=0.24.1" },
 ]
 provides-extras = ["dev"]

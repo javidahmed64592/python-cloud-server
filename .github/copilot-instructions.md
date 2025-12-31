@@ -10,13 +10,13 @@ Extends `TemplateServer` to create a cloud-based application server with authent
 ### Application Factory Pattern
 
 - Entry: `main.py:run()` → instantiates `CloudServer` (subclass of `TemplateServer`) → calls `.run()`
-- `CloudServer.__init__()` initializes with `cloud_server_config.json` and package name `python_cloud_server`
+- `CloudServer.__init__()` initializes with `config.json` and package name `python_cloud_server`
 - Inherits all middleware, rate limiting and auth from `TemplateServer`
 - Currently extends base `setup_routes()` without adding custom endpoints (future expansion point)
 
 ### Configuration System
 
-- Config: `configuration/cloud_server_config.json` loaded via inherited `TemplateServer.load_config()`
+- Config: `configuration/config.json` loaded via inherited `TemplateServer.load_config()`
 - Model: `CloudServerConfig` (extends `TemplateServerConfig` in `models.py`)
 - Validation: `CloudServer.validate_config()` uses `CloudServerConfig.model_validate()`
 - Logging configured by template server with rotating file handler
@@ -56,7 +56,7 @@ docker compose down              # Stop and remove containers
 - **Stage 1 (builder)**: Uses `uv` to build wheel
 - **Stage 2 (runtime)**: Installs wheel, copies runtime files from site-packages to /app
 - **Startup Script**: `/app/start.sh` generates token/certs if missing, copies monitoring configs to shared volume
-- **Config**: Uses `cloud_server_config.json` for all environments
+- **Config**: Uses `config.json` for all environments
 - **Port**: 443 (HTTPS)
 - **Health Check**: Curls `/api/health` (no auth required)
 
@@ -109,16 +109,17 @@ All PRs must pass:
 - `python_cloud_server/server.py` - CloudServer class extending TemplateServer
 - `python_cloud_server/main.py` - Application entry point
 - `python_cloud_server/models.py` - CloudServerConfig model
-- `configuration/cloud_server_config.json` - Server configuration
+- `configuration/config.json` - Server configuration
 - `docker-compose.yml` - Container stack
 - `Dockerfile` - Multi-stage build with wheel installation
 
 ### Environment Variables
 
 - `API_TOKEN_HASH` - SHA-256 hash of API token (only var required)
+- `PORT` - Server port (default 443)
 
 ### Configuration Files
 
 - `configuration/config.json` - Configuration (used for all environments)
 - `.env` - API token hash (auto-created by generate-new-token)
-- **Docker**: Startup script uses `cloud_server_config.json` for all environments
+- **Docker**: Startup script uses `config.json` for all environments

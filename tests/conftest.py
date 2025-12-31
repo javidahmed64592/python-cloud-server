@@ -5,7 +5,6 @@ from pathlib import Path
 from unittest.mock import MagicMock, mock_open, patch
 
 import pytest
-from prometheus_client import REGISTRY
 
 from python_cloud_server.metadata import MetadataManager
 from python_cloud_server.models import CloudServerConfig, FileMetadata, StorageConfig
@@ -21,20 +20,6 @@ def mock_here(tmp_path: str) -> Generator[MagicMock]:
 
 
 @pytest.fixture
-def mock_exists() -> Generator[MagicMock]:
-    """Mock the Path.exists() method."""
-    with patch("pathlib.Path.exists") as mock_exists:
-        yield mock_exists
-
-
-@pytest.fixture
-def mock_mkdir() -> Generator[MagicMock]:
-    """Mock Path.mkdir method."""
-    with patch("pathlib.Path.mkdir") as mock_mkdir:
-        yield mock_mkdir
-
-
-@pytest.fixture
 def mock_open_file() -> Generator[MagicMock]:
     """Mock the Path.open() method."""
     with patch("pathlib.Path.open", mock_open()) as mock_file:
@@ -46,42 +31,6 @@ def mock_replace_file() -> Generator[MagicMock]:
     """Mock the Path.replace() method."""
     with patch("pathlib.Path.replace") as mock_replace:
         yield mock_replace
-
-
-@pytest.fixture
-def mock_sys_exit() -> Generator[MagicMock]:
-    """Mock sys.exit to raise SystemExit."""
-    with patch("sys.exit") as mock_exit:
-        mock_exit.side_effect = SystemExit
-        yield mock_exit
-
-
-@pytest.fixture
-def mock_set_key() -> Generator[MagicMock]:
-    """Mock the set_key function."""
-    with patch("dotenv.set_key") as mock_set_key:
-        yield mock_set_key
-
-
-@pytest.fixture
-def mock_os_getenv() -> Generator[MagicMock]:
-    """Mock the os.getenv function."""
-    with patch("os.getenv") as mock_getenv:
-        yield mock_getenv
-
-
-@pytest.fixture(autouse=True)
-def clear_prometheus_registry() -> Generator[None]:
-    """Clear Prometheus registry before each test to avoid duplicate metric errors."""
-    # Clear all collectors from the registry
-    collectors = list(REGISTRY._collector_to_names.keys())
-    for collector in collectors:
-        REGISTRY.unregister(collector)
-    yield
-    # Clear again after the test
-    collectors = list(REGISTRY._collector_to_names.keys())
-    for collector in collectors:
-        REGISTRY.unregister(collector)
 
 
 # Cloud Server Configuration Models

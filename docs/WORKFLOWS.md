@@ -52,36 +52,71 @@ It consists of the following jobs:
 The Build workflow runs on pushes and pull requests to the `main` branch.
 It consists of the following jobs:
 
-### build_wheel
-  - Checkout code
-  - Setup Python environment with dev dependencies (via custom action)
-  - Build wheel with `uv build`
-  - Inspect wheel contents for verification
-  - Upload wheel artifact (`python_cloud_server_wheel`)
+### build-wheel
+- Checkout code
+- Setup Python environment with dev dependencies (via custom action)
+- Build wheel with `uv build`
+- Inspect wheel contents for verification
+- Upload wheel artifact (`python_cloud_server_wheel`)
 
-### verify_structure
-  - Depends on `build_wheel` job
-  - Checkout code
-  - Setup Python environment (via custom action)
-  - Download wheel artifact
-  - Install wheel using `uv pip install`
-  - Verify installed package structure in site-packages:
-    - `python_cloud_server/` - Python package
-    - `configuration/` - Server configuration
-  - Display directory structure with tree views for verification
+### verify-structure
+- Depends on `build-wheel` job
+- Checkout code
+- Setup Python environment (via custom action)
+- Download wheel artifact
+- Install wheel using `uv pip install`
+- Verify installed package structure in site-packages
+- Display directory structure with tree views for verification
 
 ## Docker Workflow
 
 The Docker workflow runs on pushes, pull requests to the `main` branch, and manual dispatch.
 It consists of the following jobs:
 
-### build
-  - Checkout code
-  - Setup Python environment with dev dependencies (via custom action)
-  - Build and start services with `docker compose --build -d`
-  - Wait for services to start (5 seconds)
-  - Show server logs from `python-cloud-server` container
-  - **Health check** using reusable composite action `.github/actions/docker-check-containers`:
-    - Verifies server is running on port 443
-    - Validates Ollama integration
-  - Stop services with full cleanup: `docker compose down --volumes --remove-orphans`
+### build-docker
+- Checkout code
+- Build and start services with `docker compose up --build -d`
+- Wait for services to start (5 seconds)
+- Show server logs from `python-cloud-server` container
+- **Health check** using reusable composite action `.github/actions/docker-check-containers` with port 443
+- Stop services with full cleanup: `docker compose down --volumes --remove-orphans`
+
+### prepare-release
+- Checkout code
+- Setup Python environment with dev dependencies (via custom action)
+- Extract version from `pyproject.toml` using Python's `tomllib`
+- Prepare release directory: copy `docker-compose.yml` and `README.md` to `release/`, make `install_cloud_server.sh` executable, rename `release/` to `python_cloud_server_<version>`, display directory tree
+- Create compressed tarball of the release directory
+- Upload tarball as artifact (`python_cloud_server_release`)
+
+### check-installer
+- Depends on `prepare-release` job
+- Checkout code
+- Setup Python environment (via custom action)
+- Download release tarball artifact
+- Extract tarball
+- Verify pre-installation contents: check for `docker-compose.yml`, `README.md`, and executable `install_cloud_server.sh`
+- Run installer script (non-interactive, defaults to port 443)
+- Verify post-installation contents: ensure installer script is removed, check for created service files (`python-cloud-server.service`, `start_service.sh`, `stop_service.sh`, `uninstall_python_cloud_server.sh`) and verify scripts are executable
+
+### publish-release
+- Depends on `build-docker` and `check-installer` jobs
+- Only runs on push to `main` branch (not PRs)
+- Requires `contents: write` and `packages: write` permissions
+- Checkout code
+- Setup Python environment with dev dependencies (via custom action)
+- Extract version from `pyproject.toml` using Python's `tomllib`
+- Check if Git tag already exists (skip if duplicate)
+- Set up Docker Buildx for multi-platform builds
+- Log in to GitHub Container Registry (ghcr.io)
+- Extract Docker metadata with semantic versioning tags:
+  - `v1.2.3` - Exact version
+  - `1.2` - Major.minor
+  - `1` - Major only
+  - `latest` - Latest stable release
+- Build and push multi-platform Docker images:
+  - Platforms: `linux/amd64`, `linux/arm64`
+  - Registry: `ghcr.io/<owner>/<repo>`
+  - Uses GitHub Actions cache for layer caching
+- Generate release notes
+- Create GitHub Release with version tag and release notes

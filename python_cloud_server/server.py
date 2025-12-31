@@ -6,7 +6,7 @@ from pathlib import Path
 
 from fastapi import HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse
-from python_template_server.constants import BYTES_TO_MB, CONFIG_DIR
+from python_template_server.constants import BYTES_TO_MB
 from python_template_server.models import ResponseCode
 from python_template_server.template_server import TemplateServer
 
@@ -34,12 +34,7 @@ class CloudServer(TemplateServer):
         :param CloudServerConfig | None config: Optional pre-loaded configuration
         """
         self.config: CloudServerConfig
-        super().__init__(
-            package_name="python_cloud_server",
-            config_filepath=CONFIG_DIR / "cloud_server_config.json",
-            config=config,
-        )
-        self.config.save_to_file(self.config_filepath)
+        super().__init__(package_name="python_cloud_server", config=config)
 
         # Initialize storage directories
         self._initialize_storage()

@@ -31,7 +31,7 @@ dev = [
     "pytest>=8.4.2",
     "pytest-asyncio>=1.2.0",
     "pytest-cov>=7.0.0",
-    "ruff>=0.14.2",
+    "ruff>=0.14.10",
     "validate-pyproject>=0.24.1",
 ]
 
@@ -47,9 +47,6 @@ allow-direct-references = true
 [tool.hatch.build]
 include = [
   "python_cloud_server/**",
-  "configuration/**",
-  "grafana/**",
-  "prometheus/**",
   ".here",
   "LICENSE",
   "README.md",
@@ -65,7 +62,7 @@ addopts = [
 
 [tool.coverage.run]
 branch = true
-source = ["python_cloud_server"]
+source = ["python_cloud_server", "tests"]
 
 [tool.coverage.report]
 fail_under = 80

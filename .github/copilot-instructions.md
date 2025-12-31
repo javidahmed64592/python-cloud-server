@@ -12,7 +12,7 @@ Extends `TemplateServer` to create a cloud-based application server with authent
 - Entry: `main.py:run()` → instantiates `CloudServer` (subclass of `TemplateServer`) → calls `.run()`
 - `CloudServer.__init__()` initializes with `config.json` and package name `python_cloud_server`
 - Inherits all middleware, rate limiting and auth from `TemplateServer`
-- Currently extends base `setup_routes()` without adding custom endpoints (future expansion point)
+- Extends base `setup_routes()` to add file storage endpoints (GET/POST/PATCH/DELETE /api/files)
 
 ### Configuration System
 
@@ -36,7 +36,6 @@ Extends `TemplateServer` to create a cloud-based application server with authent
 ```bash
 # Setup (first time)
 uv sync --extra dev              # Install all dependencies
-uv run generate-certificate      # Create self-signed SSL certs (certs/)
 uv run generate-new-token        # Generate API key, save hash to .env
 
 # Development
@@ -55,7 +54,7 @@ docker compose down              # Stop and remove containers
 
 - **Stage 1 (builder)**: Uses `uv` to build wheel
 - **Stage 2 (runtime)**: Installs wheel, copies runtime files from site-packages to /app
-- **Startup Script**: `/app/start.sh` generates token/certs if missing, copies monitoring configs to shared volume
+- **Startup Script**: `/app/start.sh` generates token if missing, runs the server
 - **Config**: Uses `config.json` for all environments
 - **Port**: 443 (HTTPS)
 - **Health Check**: Curls `/api/health` (no auth required)
@@ -67,7 +66,8 @@ docker compose down              # Stop and remove containers
 ```
 python_cloud_server/
 ├── main.py           # Entry point with run() function
-├── models.py         # CloudServerConfig model
+├── metadata.py       # MetadataManager for file metadata storage
+├── models.py         # CloudServerConfig and API models
 └── server.py         # CloudServer class
 ```
 
@@ -76,8 +76,12 @@ python_cloud_server/
 - **Prefix**: All routes under `/api`
 - **Authentication**: Inherited from TemplateServer, applied via `Security(self._verify_api_key)`
 - **Unauthenticated Endpoints**: `/api/health`
-- **Current Endpoints**: Only base endpoints from TemplateServer (health, login)
-- **Future Extension**: Add custom routes in `CloudServer.setup_routes()`
+- **Current Endpoints**: Base endpoints from TemplateServer (health, login) plus file storage endpoints:
+  - `GET /api/files` - List files with filtering and pagination
+  - `GET /api/files/{filepath}` - Download file
+  - `POST /api/files/{filepath}` - Upload file
+  - `PATCH /api/files/{filepath}` - Update file metadata/tags or rename file
+  - `DELETE /api/files/{filepath}` - Delete file
 
 ### CI/CD Validation
 
@@ -87,7 +91,7 @@ All PRs must pass:
 
 1. `validate-pyproject` - pyproject.toml schema validation
 2. `ruff` - linting (120 char line length)
-3. `mypy` - type coverage
+3. `mypy` - type checking
 4. `pytest` - 80% minimum coverage
 5. `bandit` - security scanning
 6. `pip-audit` - dependency CVE audit
@@ -95,12 +99,14 @@ All PRs must pass:
 
 **Build Workflow:**
 
-1. `build_wheel` - Build wheel with uv, upload artifact
-2. `verify_structure` - Install wheel, verify package structure (python_cloud_server/, configuration/)
+1. `build-wheel` - Build wheel with uv, upload artifact
+2. `verify-structure` - Install wheel, verify package structure (python_cloud_server/)
 
 **Docker Workflow:**
 
-1. `build` - Build/start services, health check, cleanup
+1. `build-docker` - Build/start services, health check, cleanup
+2. `prepare-release` - Prepare release artifacts and tarball
+3. `check-installer` - Verify installer functionality
 
 ## Quick Reference
 
@@ -108,7 +114,8 @@ All PRs must pass:
 
 - `python_cloud_server/server.py` - CloudServer class extending TemplateServer
 - `python_cloud_server/main.py` - Application entry point
-- `python_cloud_server/models.py` - CloudServerConfig model
+- `python_cloud_server/metadata.py` - MetadataManager for file metadata storage
+- `python_cloud_server/models.py` - CloudServerConfig and API models
 - `configuration/config.json` - Server configuration
 - `docker-compose.yml` - Container stack
 - `Dockerfile` - Multi-stage build with wheel installation

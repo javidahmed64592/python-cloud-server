@@ -54,7 +54,7 @@ uv sync --extra dev
 After installing dev dependencies, set up pre-commit hooks:
 
 ```sh
-    uv run pre-commit install
+uv run pre-commit install
 ```
 
 ### Setting Up Authentication

@@ -1,6 +1,7 @@
 services:
   # Python Cloud Server
   python-cloud-server:
+    image: ${IMAGE:-ghcr.io/javidahmed64592/python-cloud-server:latest}
     build:
       context: .
       dockerfile: Dockerfile

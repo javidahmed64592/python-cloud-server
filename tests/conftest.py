@@ -11,14 +11,6 @@ from python_cloud_server.models import CloudServerConfig, FileMetadata, StorageC
 
 
 # General fixtures
-@pytest.fixture(autouse=True)
-def mock_here(tmp_path: str) -> Generator[MagicMock]:
-    """Mock the here() function to return a temporary directory."""
-    with patch("pyhere.here") as mock_here:
-        mock_here.return_value = tmp_path
-        yield mock_here
-
-
 @pytest.fixture
 def mock_open_file() -> Generator[MagicMock]:
     """Mock the Path.open() method."""
@@ -33,9 +25,16 @@ def mock_replace_file() -> Generator[MagicMock]:
         yield mock_replace
 
 
+@pytest.fixture
+def mock_rename_file() -> Generator[MagicMock]:
+    """Mock the Path.rename() method."""
+    with patch("pathlib.Path.rename") as mock_rename:
+        yield mock_rename
+
+
 # Cloud Server Configuration Models
 @pytest.fixture
-def mock_storage_config_dict(tmp_path: Path) -> dict:
+def mock_storage_config_dict() -> dict:
     """Provide a mock storage configuration dictionary."""
     return {
         "capacity_gb": 20,
@@ -83,12 +82,21 @@ def mock_file_metadata(mock_file_metadata_dict: dict) -> FileMetadata:
 
 # Server fixtures
 @pytest.fixture
-def mock_metadata_manager(tmp_path: Path, mock_file_metadata: FileMetadata) -> MetadataManager:
+def mock_server_root_path(tmp_path: Path) -> Path:
+    """Create a temporary server root path."""
+    server_root = tmp_path / "server"
+    server_root.mkdir(parents=True, exist_ok=True)
+    return server_root
+
+
+@pytest.fixture
+def mock_metadata_manager(mock_server_root_path: Path, mock_file_metadata: FileMetadata) -> MetadataManager:
     """Create a metadata manager."""
-    metadata_filepath = tmp_path / Path("server") / "metadata.json"
-    metadata_manager = MetadataManager(metadata_filepath)
-    file_path = tmp_path / Path("server") / "storage" / mock_file_metadata.filepath
+    file_path = mock_server_root_path / "storage" / mock_file_metadata.filepath
     file_path.parent.mkdir(parents=True, exist_ok=True)
     file_path.write_text("test content")
+
+    metadata_filepath = mock_server_root_path / "metadata.json"
+    metadata_manager = MetadataManager(metadata_filepath)
     metadata_manager.add_file_entries([mock_file_metadata])
     return metadata_manager

@@ -6,7 +6,7 @@ from pathlib import Path
 
 from fastapi import HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse
-from python_template_server.constants import BYTES_TO_MB
+from python_template_server.constants import BYTES_TO_MB, ROOT_DIR
 from python_template_server.models import ResponseCode
 from python_template_server.template_server import TemplateServer
 
@@ -36,37 +36,71 @@ class CloudServer(TemplateServer):
         self.config: CloudServerConfig
         super().__init__(package_name="python_cloud_server", config=config)
 
-        # Initialize storage directories
         self._initialize_storage()
-
-        # Initialize metadata manager
-        self.metadata_manager = MetadataManager(self.metadata_filepath)
+        self._initialize_metadata()
 
     @property
     def server_directory(self) -> Path:
         """Get the server directory path."""
-        return Path(self.config.storage_config.server_directory)
+        return Path(ROOT_DIR) / "server"
 
     @property
     def storage_directory(self) -> Path:
         """Get the storage directory path."""
-        return self.server_directory / self.config.storage_config.storage_directory
+        return self.server_directory / "storage"
 
     @property
     def metadata_filepath(self) -> Path:
         """Get the metadata file path."""
-        return self.server_directory / self.config.storage_config.metadata_filename
+        return self.server_directory / "metadata.json"
 
     def _initialize_storage(self) -> None:
         """Initialize storage directories and verify configuration."""
-        # Verify server directory exists (should be mounted volume in Docker)
         if not self.server_directory.exists():
             logger.error("Server directory does not exist: %s", self.server_directory)
             raise SystemExit(1)
 
-        # Create storage directory for files if it doesn't exist
         self.storage_directory.mkdir(parents=True, exist_ok=True)
         logger.info("Storage directory ready: %s", self.storage_directory)
+
+    def _initialize_metadata(self) -> None:
+        """Initialize metadata manager."""
+        self.metadata_manager = MetadataManager(self.metadata_filepath)
+        with self.metadata_manager._lock:
+            # Add existing files on disk to metadata if missing
+            filepaths_to_add: list[FileMetadata] = []
+            for file_path in self.storage_directory.rglob("*"):
+                if file_path.is_file():
+                    relative_path = file_path.relative_to(self.storage_directory).as_posix()
+                    if not self.metadata_manager.file_exists(relative_path):
+                        size = file_path.stat().st_size
+                        mime_type, _ = mimetypes.guess_type(str(file_path))
+                        if mime_type is None:
+                            mime_type = "application/octet-stream"
+                        file_metadata = FileMetadata.new_current_instance(
+                            filepath=relative_path,
+                            mime_type=mime_type,
+                            size=size,
+                            tags=[],
+                        )
+                        filepaths_to_add.append(file_metadata)
+
+            if filepaths_to_add:
+                logger.info("Syncing %d files from storage", len(filepaths_to_add))
+                self.metadata_manager.add_file_entries(filepaths_to_add)
+
+            # Remove metadata entries for files that no longer exist on disk
+            filepaths_to_remove: list[str] = []
+            for filepath in list(self.metadata_manager._metadata.keys()):
+                full_path = self.storage_directory / filepath
+                if not full_path.exists():
+                    filepaths_to_remove.append(filepath)
+
+            if filepaths_to_remove:
+                logger.info("Removing %d stale metadata entries", len(filepaths_to_remove))
+                self.metadata_manager.delete_file_entries(filepaths_to_remove)
+
+        logger.info("Metadata manager initialized with %d files", self.metadata_manager.file_count)
 
     def validate_config(self, config_data: dict) -> CloudServerConfig:
         """Validate configuration data against the TemplateServerConfig model.
@@ -79,73 +113,61 @@ class CloudServer(TemplateServer):
 
     def setup_routes(self) -> None:
         """Set up API routes."""
-        super().setup_routes()
         self.add_authenticated_route(
             endpoint="/files",
             handler_function=self.get_files,
             response_model=GetFilesResponse,
             methods=["GET"],
+            limited=True,
         )
         self.add_authenticated_route(
             endpoint="/files/{filepath:path}",
             handler_function=self.get_file,
             response_model=None,
             methods=["GET"],
+            limited=True,
         )
         self.add_authenticated_route(
             endpoint="/files/{filepath:path}",
             handler_function=self.post_file,
             response_model=PostFileResponse,
             methods=["POST"],
+            limited=True,
         )
         self.add_authenticated_route(
             endpoint="/files/{filepath:path}",
             handler_function=self.patch_file,
             response_model=PatchFileResponse,
             methods=["PATCH"],
+            limited=True,
         )
         self.add_authenticated_route(
             endpoint="/files/{filepath:path}",
             handler_function=self.delete_file,
             response_model=DeleteFileResponse,
             methods=["DELETE"],
+            limited=True,
         )
 
-    async def get_files(
-        self,
-        request: Request,
-    ) -> GetFilesResponse:
+    async def get_files(self, request: Request) -> GetFilesResponse:
         """Handle list files requests.
 
         :param Request request: The request object
         :return GetFilesResponse: Server response with file list
         """
         files_request = GetFilesRequest.model_validate(await request.json())
-        logger.info(
-            "Received list files request: tag=%s, offset=%d, limit=%d",
-            files_request.tag,
-            files_request.offset,
-            files_request.limit,
-        )
+        logger.info("Received list files request for tag: %s", files_request.tag)
 
-        # Get filtered and paginated file list
         files = self.metadata_manager.list_files(
             tag=files_request.tag, offset=files_request.offset, limit=files_request.limit
         )
 
-        # Get total count
-        if files_request.tag:
-            total = sum(1 for entry in self.metadata_manager._metadata.values() if files_request.tag in entry.tags)
-        else:
-            total = self.metadata_manager.file_count
-
-        logger.info("Returning %d files (total: %d)", len(files), total)
+        msg = f"Retrieved {len(files)} files successfully."
+        logger.info(msg)
         return GetFilesResponse(
-            code=ResponseCode.OK,
-            message="Files retrieved successfully",
+            message=msg,
             timestamp=GetFilesResponse.current_timestamp(),
             files=files,
-            total=total,
         )
 
     async def get_file(self, request: Request, filepath: str) -> FileResponse:
@@ -158,24 +180,35 @@ class CloudServer(TemplateServer):
         """
         logger.info("Received get file request for: %s", filepath)
 
-        # Get file metadata
-        file_metadata = self.metadata_manager.get_file_entry(filepath)
-        if not file_metadata:
+        if not self.metadata_manager.file_exists(filepath):
             msg = f"File not found in metadata: {filepath}"
             logger.error(msg)
             raise HTTPException(status_code=ResponseCode.NOT_FOUND, detail=msg)
 
-        # Construct absolute file path
         if not (full_path := self.storage_directory / filepath).exists():
             msg = f"File not found on disk: {filepath}"
             logger.error(msg)
             raise HTTPException(status_code=ResponseCode.NOT_FOUND, detail=msg)
+
+        file_metadata = self.metadata_manager.get_file_entry(filepath)
 
         return FileResponse(
             path=full_path,
             media_type=file_metadata.mime_type,
             filename=full_path.name,
         )
+
+    def _check_file_too_large(self, full_path: Path, file_size: int) -> None:
+        """Handle file too large scenario by deleting the file and logging.
+
+        :param Path full_path: The full file path
+        :param int file_size: The size of the file in bytes
+        """
+        if file_size > self.config.storage_config.max_file_size_mb * BYTES_TO_MB:
+            full_path.unlink(missing_ok=True)
+            msg = f"File size exceeds maximum limit: {full_path} ({file_size} bytes)"
+            logger.error(msg)
+            raise ValueError(msg)
 
     async def post_file(self, request: Request, filepath: str, file: UploadFile) -> PostFileResponse:
         """Handle post file requests - upload a file.
@@ -187,26 +220,16 @@ class CloudServer(TemplateServer):
         """
         logger.info("Received post file request for: %s", filepath)
 
-        # Check if file already exists
-        if self.metadata_manager._file_exists(filepath):
+        if self.metadata_manager.file_exists(filepath):
             msg = f"File already exists: {filepath}"
             logger.error(msg)
-            return PostFileResponse(
-                code=ResponseCode.CONFLICT,
-                message=msg,
-                timestamp=PostFileResponse.current_timestamp(),
-                filepath=filepath,
-                size=0,
-            )
+            raise HTTPException(status_code=ResponseCode.CONFLICT, detail=msg)
 
-        # Get MIME type
         mime_type = file.content_type or "application/octet-stream"
         if mime_type == "application/octet-stream":
             guessed_type, _ = mimetypes.guess_type(filepath)
-            if guessed_type:
-                mime_type = guessed_type
+            mime_type = guessed_type or mime_type
 
-        # Construct absolute file path and ensure parent directories exist
         full_path = self.storage_directory / filepath
         full_path.parent.mkdir(parents=True, exist_ok=True)
         file_size = 0
@@ -215,55 +238,32 @@ class CloudServer(TemplateServer):
             with full_path.open("wb") as f:
                 while chunk := await file.read(self.config.storage_config.upload_chunk_size_kb * 1024):
                     file_size += len(chunk)
-                    if file_size > self.config.storage_config.max_file_size_mb * BYTES_TO_MB:
-                        full_path.unlink(missing_ok=True)
-                        msg = f"File size exceeds maximum limit: {filepath} ({file_size} bytes)"
-                        logger.error(msg)
-                        return PostFileResponse(
-                            code=ResponseCode.BAD_REQUEST,
-                            message=msg,
-                            timestamp=PostFileResponse.current_timestamp(),
-                            filepath=filepath,
-                            size=file_size,
-                        )
+                    self._check_file_too_large(full_path, file_size)
                     f.write(chunk)
-        except Exception:
+        except Exception as e:
             full_path.unlink(missing_ok=True)
             msg = f"Failed to save file: {filepath}"
             logger.exception(msg)
-            return PostFileResponse(
-                code=ResponseCode.INTERNAL_SERVER_ERROR,
-                message=msg,
-                timestamp=PostFileResponse.current_timestamp(),
-                filepath=filepath,
-                size=file_size,
-            )
+            raise HTTPException(status_code=ResponseCode.INTERNAL_SERVER_ERROR, detail=msg) from e
 
         try:
-            # Create metadata entry
             file_metadata = FileMetadata.new_current_instance(
                 filepath=filepath,
                 mime_type=mime_type,
                 size=file_size,
                 tags=[],
             )
-            self.metadata_manager.add_file_entry(file_metadata)
-        except Exception:
+            self.metadata_manager.add_file_entries([file_metadata])
+        except Exception as e:
             full_path.unlink(missing_ok=True)
             msg = f"Failed to save metadata for file: {filepath}"
             logger.exception(msg)
-            return PostFileResponse(
-                code=ResponseCode.INTERNAL_SERVER_ERROR,
-                message=msg,
-                timestamp=PostFileResponse.current_timestamp(),
-                filepath=filepath,
-                size=file_size,
-            )
+            raise HTTPException(status_code=ResponseCode.INTERNAL_SERVER_ERROR, detail=msg) from e
 
-        logger.info("Uploaded file: %s (%d bytes)", filepath, file_size)
+        msg = f"File uploaded successfully: {filepath} ({file_size} bytes)"
+        logger.info(msg)
         return PostFileResponse(
-            code=ResponseCode.OK,
-            message="File uploaded successfully",
+            message=msg,
             timestamp=PostFileResponse.current_timestamp(),
             filepath=filepath,
             size=file_size,
@@ -279,132 +279,77 @@ class CloudServer(TemplateServer):
         patch_request = PatchFileRequest.model_validate(await request.json())
         logger.info("Received patch file request for: %s", filepath)
 
-        # Check if file exists
-        if not self.metadata_manager._file_exists(filepath) or not (
-            current_metadata := self.metadata_manager.get_file_entry(filepath)
-        ):
+        if not self.metadata_manager.file_exists(filepath):
             msg = f"File not found in metadata: {filepath}"
             logger.error(msg)
-            return PatchFileResponse(
-                code=ResponseCode.NOT_FOUND,
-                message=msg,
-                timestamp=PatchFileResponse.current_timestamp(),
-                success=False,
-                filepath=filepath,
-                tags=[],
-            )
+            raise HTTPException(status_code=ResponseCode.NOT_FOUND, detail=msg)
 
         # Calculate new tags
-        current_tags = set(current_metadata.tags)
-        new_tags = current_tags.copy()
+        current_metadata = self.metadata_manager.get_file_entry(filepath)
+        new_tags = set(current_metadata.tags).copy()
 
-        # Add tags
         for tag in patch_request.add_tags:
-            # Validate tag
             if len(tag) > self.config.storage_config.max_tag_length:
                 msg = f"Skipping tag which exceeds maximum length: {tag}"
                 logger.warning(msg)
                 continue
             new_tags.add(tag)
 
-        # Remove tags
         for tag in patch_request.remove_tags:
             new_tags.discard(tag)
 
-        # Check max tags limit
         if len(new_tags) > self.config.storage_config.max_tags_per_file:
             msg = f"Number of tags exceeds maximum: {len(new_tags)} > {self.config.storage_config.max_tags_per_file}"
             logger.error(msg)
-            return PatchFileResponse(
-                code=ResponseCode.BAD_REQUEST,
-                message=msg,
-                timestamp=PatchFileResponse.current_timestamp(),
-                success=False,
-                filepath=filepath,
-                tags=list(current_tags),
-            )
+            raise HTTPException(status_code=ResponseCode.BAD_REQUEST, detail=msg)
 
         # Handle file moving/renaming if new_filepath is specified
         final_filepath = filepath
         if patch_request.new_filepath:
             new_filepath = patch_request.new_filepath
 
-            # Check if destination already exists
-            if self.metadata_manager._file_exists(new_filepath):
+            if self.metadata_manager.file_exists(new_filepath):
                 msg = f"Destination file already exists: {new_filepath}"
                 logger.error(msg)
-                return PatchFileResponse(
-                    code=ResponseCode.CONFLICT,
-                    message=msg,
-                    timestamp=PatchFileResponse.current_timestamp(),
-                    success=False,
-                    filepath=filepath,
-                    tags=list(current_tags),
-                )
+                raise HTTPException(status_code=ResponseCode.CONFLICT, detail=msg)
 
-            # Move the physical file
             old_path = self.storage_directory / filepath
             new_path = self.storage_directory / new_filepath
 
             try:
-                # Create parent directories for new path
                 new_path.parent.mkdir(parents=True, exist_ok=True)
 
-                # Move the file
                 old_path.rename(new_path)
                 logger.info("Moved file from %s to %s", filepath, new_filepath)
 
                 final_filepath = new_filepath
 
-            except Exception:
+            except Exception as e:
                 msg = f"Failed to move file from {filepath} to {new_filepath}"
                 logger.exception(msg)
-                return PatchFileResponse(
-                    code=ResponseCode.INTERNAL_SERVER_ERROR,
-                    message=msg,
-                    timestamp=PatchFileResponse.current_timestamp(),
-                    success=False,
-                    filepath=filepath,
-                    tags=list(current_tags),
-                )
+                raise HTTPException(status_code=ResponseCode.INTERNAL_SERVER_ERROR, detail=msg) from e
 
-        # Update metadata once at the end with all changes
         try:
-            # Prepare updates dictionary
             updates: dict = {"tags": list(new_tags)}
 
-            # Include filepath change if it occurred
             if final_filepath != filepath:
                 updates["filepath"] = final_filepath
 
             self.metadata_manager.update_file_entry(filepath=filepath, updates=updates)
 
-        except Exception:
-            # If metadata update fails and we moved the file, try to move it back
+        except Exception as e:
             if final_filepath != filepath:
-                try:
-                    new_path.rename(old_path)
-                    logger.warning("Rolled back file move due to metadata update failure")
-                except Exception:
-                    logger.exception("Failed to rollback file move")
+                new_path.rename(old_path)
 
             msg = f"Failed to update metadata for file: {filepath}"
             logger.exception(msg)
-            return PatchFileResponse(
-                code=ResponseCode.INTERNAL_SERVER_ERROR,
-                message=msg,
-                timestamp=PatchFileResponse.current_timestamp(),
-                success=False,
-                filepath=filepath,
-                tags=list(current_tags),
-            )
+            raise HTTPException(status_code=ResponseCode.INTERNAL_SERVER_ERROR, detail=msg) from e
 
-        logger.info("Updated file: %s (tags: %s)", final_filepath, list(new_tags))
+        msg = f"File updated successfully: {final_filepath}"
+        logger.info(msg)
         return PatchFileResponse(
-            code=ResponseCode.OK,
-            message="File updated successfully",
+            message=msg,
             timestamp=PatchFileResponse.current_timestamp(),
-            success=True,
             filepath=final_filepath,
             tags=list(new_tags),
         )
@@ -418,57 +363,33 @@ class CloudServer(TemplateServer):
         """
         logger.info("Received delete file request for: %s", filepath)
 
-        # Check if file exists in metadata
-        if not self.metadata_manager._file_exists(filepath):
+        if not self.metadata_manager.file_exists(filepath):
             msg = f"File not found in metadata: {filepath}"
             logger.error(msg)
-            return DeleteFileResponse(
-                code=ResponseCode.NOT_FOUND,
-                message=msg,
-                timestamp=DeleteFileResponse.current_timestamp(),
-                success=False,
-                filepath=filepath,
-            )
+            raise HTTPException(status_code=ResponseCode.NOT_FOUND, detail=msg)
 
-        # Construct absolute file path and delete physical file
         full_path = self.storage_directory / filepath
 
         try:
             if full_path.exists():
                 full_path.unlink()
                 logger.info("Deleted file from disk: %s", filepath)
-            else:
-                logger.warning("File not found on disk but exists in metadata: %s", filepath)
-        except Exception:
+        except Exception as e:
             msg = f"Failed to delete file from disk: {filepath}"
             logger.exception(msg)
-            return DeleteFileResponse(
-                code=ResponseCode.INTERNAL_SERVER_ERROR,
-                message=msg,
-                timestamp=DeleteFileResponse.current_timestamp(),
-                success=False,
-                filepath=filepath,
-            )
+            raise HTTPException(status_code=ResponseCode.INTERNAL_SERVER_ERROR, detail=msg) from e
 
-        # Delete metadata entry
         try:
-            self.metadata_manager.delete_file_entry(filepath)
-        except Exception:
+            self.metadata_manager.delete_file_entries([filepath])
+        except Exception as e:
             msg = f"Failed to delete metadata for file: {filepath}"
             logger.exception(msg)
-            return DeleteFileResponse(
-                code=ResponseCode.INTERNAL_SERVER_ERROR,
-                message=msg,
-                timestamp=DeleteFileResponse.current_timestamp(),
-                success=False,
-                filepath=filepath,
-            )
+            raise HTTPException(status_code=ResponseCode.INTERNAL_SERVER_ERROR, detail=msg) from e
 
-        logger.info("Deleted file: %s", filepath)
+        msg = f"File deleted successfully: {filepath}"
+        logger.info(msg)
         return DeleteFileResponse(
-            code=ResponseCode.OK,
-            message="File deleted successfully",
+            message=msg,
             timestamp=DeleteFileResponse.current_timestamp(),
-            success=True,
             filepath=filepath,
         )

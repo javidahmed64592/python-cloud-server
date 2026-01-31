@@ -139,7 +139,7 @@ class TestGetFilesEndpoint:
     ) -> None:
         """Test get_files successfully retrieves files."""
         files_request = GetFilesRequest(tag=None, offset=0, limit=100)
-        mock_request_object.json = AsyncMock(return_value=files_request.model_dump())
+        mock_request_object.json = AsyncMock(return_value=files_request.model_dump())  # type: ignore[method-assign]
 
         response = asyncio.run(mock_server.get_files(mock_request_object))
 
@@ -155,7 +155,7 @@ class TestGetFilesEndpoint:
     ) -> None:
         """Test get_files filters by tag."""
         files_request = GetFilesRequest(tag="test", offset=0, limit=100)
-        mock_request_object.json = AsyncMock(return_value=files_request.model_dump())
+        mock_request_object.json = AsyncMock(return_value=files_request.model_dump())  # type: ignore[method-assign]
 
         response = asyncio.run(mock_server.get_files(mock_request_object))
 
@@ -170,7 +170,7 @@ class TestGetFilesEndpoint:
     ) -> None:
         """Test get_files returns empty list for nonexistent tag."""
         files_request = GetFilesRequest(tag="nonexistent", offset=0, limit=100)
-        mock_request_object.json = AsyncMock(return_value=files_request.model_dump())
+        mock_request_object.json = AsyncMock(return_value=files_request.model_dump())  # type: ignore[method-assign]
 
         response = asyncio.run(mock_server.get_files(mock_request_object))
 
@@ -185,7 +185,7 @@ class TestGetFilesEndpoint:
         """Test get_files pagination."""
         limit = 10
         files_request = GetFilesRequest(tag=None, offset=0, limit=limit)
-        mock_request_object.json = AsyncMock(return_value=files_request.model_dump())
+        mock_request_object.json = AsyncMock(return_value=files_request.model_dump())  # type: ignore[method-assign]
 
         response = asyncio.run(mock_server.get_files(mock_request_object))
 
@@ -433,7 +433,7 @@ class TestPatchFileEndpoint:
     ) -> None:
         """Test patch_file successfully adds tags."""
         patch_request = PatchFileRequest(add_tags=["new_tag"], remove_tags=[])
-        mock_request_object.json = AsyncMock(return_value=patch_request.model_dump())
+        mock_request_object.json = AsyncMock(return_value=patch_request.model_dump())  # type: ignore[method-assign]
 
         mock_file = _mock_file_factory(self.MOCK_FILENAME, self.MOCK_CONTENT, self.MOCK_CONTENT_TYPE)
         asyncio.run(mock_server.post_file(mock_request_object, self.MOCK_FILEPATH, mock_file))
@@ -451,7 +451,7 @@ class TestPatchFileEndpoint:
     ) -> None:
         """Test patch_file successfully removes tags."""
         patch_request = PatchFileRequest(add_tags=[], remove_tags=["test"])
-        mock_request_object.json = AsyncMock(return_value=patch_request.model_dump())
+        mock_request_object.json = AsyncMock(return_value=patch_request.model_dump())  # type: ignore[method-assign]
 
         response = asyncio.run(mock_server.patch_file(mock_request_object, "test/test.txt"))
 
@@ -466,7 +466,7 @@ class TestPatchFileEndpoint:
         """Test patch_file successfully moves/renames file."""
         new_filepath = "uploads/moved.txt"
         patch_request = PatchFileRequest(new_filepath=new_filepath, add_tags=[], remove_tags=[])
-        mock_request_object.json = AsyncMock(return_value=patch_request.model_dump())
+        mock_request_object.json = AsyncMock(return_value=patch_request.model_dump())  # type: ignore[method-assign]
 
         mock_file = _mock_file_factory(self.MOCK_FILENAME, self.MOCK_CONTENT, self.MOCK_CONTENT_TYPE)
         asyncio.run(mock_server.post_file(mock_request_object, self.MOCK_FILEPATH, mock_file))
@@ -488,7 +488,7 @@ class TestPatchFileEndpoint:
     ) -> None:
         """Test patch_file returns error when file doesn't exist."""
         patch_request = PatchFileRequest(add_tags=["tag"], remove_tags=[])
-        mock_request_object.json = AsyncMock(return_value=patch_request.model_dump())
+        mock_request_object.json = AsyncMock(return_value=patch_request.model_dump())  # type: ignore[method-assign]
         filepath = "nonexistent/file.txt"
 
         with pytest.raises(HTTPException, match=rf"File not found in metadata: {filepath}") as exc_info:
@@ -505,7 +505,7 @@ class TestPatchFileEndpoint:
         new_filepath = "test/test.txt"
         patch_request = PatchFileRequest(new_filepath=new_filepath, add_tags=[], remove_tags=[])
 
-        mock_request_object.json = AsyncMock(return_value=patch_request.model_dump())
+        mock_request_object.json = AsyncMock(return_value=patch_request.model_dump())  # type: ignore[method-assign]
 
         mock_file = _mock_file_factory(self.MOCK_FILENAME, self.MOCK_CONTENT, self.MOCK_CONTENT_TYPE)
         asyncio.run(mock_server.post_file(mock_request_object, self.MOCK_FILEPATH, mock_file))
@@ -525,7 +525,7 @@ class TestPatchFileEndpoint:
         max_tags = mock_server.config.storage_config.max_tags_per_file
         add_tags = [f"tag{i}" for i in range(max_tags)]
         patch_request = PatchFileRequest(add_tags=add_tags, remove_tags=[])
-        mock_request_object.json = AsyncMock(return_value=patch_request.model_dump())
+        mock_request_object.json = AsyncMock(return_value=patch_request.model_dump())  # type: ignore[method-assign]
 
         with pytest.raises(
             HTTPException, match=rf"Number of tags exceeds maximum: {len(add_tags) + 1} > {max_tags}"
@@ -543,7 +543,7 @@ class TestPatchFileEndpoint:
         max_length = mock_server.config.storage_config.max_tag_length
         long_tag = "a" * (max_length + 1)
         patch_request = PatchFileRequest(add_tags=[long_tag, "valid_tag"], remove_tags=[])
-        mock_request_object.json = AsyncMock(return_value=patch_request.model_dump())
+        mock_request_object.json = AsyncMock(return_value=patch_request.model_dump())  # type: ignore[method-assign]
 
         response = asyncio.run(mock_server.patch_file(mock_request_object, "test/test.txt"))
 
@@ -560,7 +560,7 @@ class TestPatchFileEndpoint:
         """Test patch_file returns error when file move fails."""
         new_filepath = "uploads/moved.txt"
         patch_request = PatchFileRequest(new_filepath=new_filepath, add_tags=[], remove_tags=[])
-        mock_request_object.json = AsyncMock(return_value=patch_request.model_dump())
+        mock_request_object.json = AsyncMock(return_value=patch_request.model_dump())  # type: ignore[method-assign]
 
         mock_file = _mock_file_factory(self.MOCK_FILENAME, self.MOCK_CONTENT, self.MOCK_CONTENT_TYPE)
         asyncio.run(mock_server.post_file(mock_request_object, self.MOCK_FILEPATH, mock_file))
@@ -581,7 +581,7 @@ class TestPatchFileEndpoint:
         """Test patch_file rolls back file move when metadata update fails."""
         new_filepath = "uploads/moved.txt"
         patch_request = PatchFileRequest(new_filepath=new_filepath, add_tags=[], remove_tags=[])
-        mock_request_object.json = AsyncMock(return_value=patch_request.model_dump())
+        mock_request_object.json = AsyncMock(return_value=patch_request.model_dump())  # type: ignore[method-assign]
 
         mock_file = _mock_file_factory(self.MOCK_FILENAME, self.MOCK_CONTENT, self.MOCK_CONTENT_TYPE)
         asyncio.run(mock_server.post_file(mock_request_object, self.MOCK_FILEPATH, mock_file))

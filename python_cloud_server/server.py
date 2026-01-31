@@ -194,7 +194,7 @@ class CloudServer(TemplateServer):
 
         return FileResponse(
             path=full_path,
-            media_type=file_metadata.mime_type,
+            media_type=file_metadata.mime_type,  # type: ignore[union-attr]
             filename=full_path.name,
         )
 
@@ -286,7 +286,7 @@ class CloudServer(TemplateServer):
 
         # Calculate new tags
         current_metadata = self.metadata_manager.get_file_entry(filepath)
-        new_tags = set(current_metadata.tags).copy()
+        new_tags = set(current_metadata.tags).copy()  # type: ignore[union-attr]
 
         for tag in patch_request.add_tags:
             if len(tag) > self.config.storage_config.max_tag_length:

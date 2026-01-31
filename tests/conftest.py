@@ -83,17 +83,12 @@ def mock_file_metadata(mock_file_metadata_dict: dict) -> FileMetadata:
 
 # Server fixtures
 @pytest.fixture
-def mock_metadata_manager(mock_file_metadata: FileMetadata, mock_storage_config: StorageConfig) -> MetadataManager:
-    """Create a metadata manager with a temporary file path.
-
-    Uses tmp_path which is provided by pytest and is automatically cleaned up.
-    """
-    metadata_filepath = Path(mock_storage_config.server_directory) / mock_storage_config.metadata_filename
+def mock_metadata_manager(tmp_path: Path, mock_file_metadata: FileMetadata) -> MetadataManager:
+    """Create a metadata manager."""
+    metadata_filepath = tmp_path / Path("server") / "metadata.json"
     metadata_manager = MetadataManager(metadata_filepath)
-    file_path = (
-        Path(mock_storage_config.server_directory) / mock_storage_config.storage_directory / mock_file_metadata.filepath
-    )
+    file_path = tmp_path / Path("server") / "storage" / mock_file_metadata.filepath
     file_path.parent.mkdir(parents=True, exist_ok=True)
     file_path.write_text("test content")
-    metadata_manager.add_file_entry(mock_file_metadata)
+    metadata_manager.add_file_entries([mock_file_metadata])
     return metadata_manager

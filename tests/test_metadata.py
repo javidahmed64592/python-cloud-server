@@ -10,7 +10,7 @@ from python_cloud_server.metadata import MetadataManager
 from python_cloud_server.models import FileMetadata
 
 
-class TestMetadataManager:
+class TestMetadataManagerInitialization:
     """Unit tests for the MetadataManager class."""
 
     def test_mock_metadata_manager_initialization(self, mock_metadata_manager: MetadataManager) -> None:
@@ -20,6 +20,10 @@ class TestMetadataManager:
     def test_file_count_property(self, mock_metadata_manager: MetadataManager) -> None:
         """Test the file_count property."""
         assert mock_metadata_manager.file_count == 1
+
+
+class TestMetadataManagerIO:
+    """Unit tests for MetadataManager I/O operations."""
 
     def test_save_metadata_atomic(
         self, mock_metadata_manager: MetadataManager, mock_file_metadata: FileMetadata
@@ -74,10 +78,31 @@ class TestMetadataManager:
         with pytest.raises(PermissionError, match="Mocked permission error"):
             mock_metadata_manager._load_metadata()
 
+
+class TestMetadataManagerOperations:
+    """Unit tests for MetadataManager operations."""
+
     def test_file_exists(self, mock_metadata_manager: MetadataManager, mock_file_metadata: FileMetadata) -> None:
         """Test checking if a file exists in metadata."""
-        assert mock_metadata_manager._file_exists(mock_file_metadata.filepath) is True
-        assert mock_metadata_manager._file_exists("nonexistent/file.txt") is False
+        assert mock_metadata_manager.file_exists(mock_file_metadata.filepath) is True
+        assert mock_metadata_manager.file_exists("nonexistent/file.txt") is False
+
+    def test_list_files(self, mock_metadata_manager: MetadataManager, mock_file_metadata: FileMetadata) -> None:
+        """Test listing all file entries in metadata."""
+        files = mock_metadata_manager.list_files()
+        assert len(files) == 1
+        assert files[0] == mock_file_metadata
+
+    def test_list_files_with_tag(
+        self, mock_metadata_manager: MetadataManager, mock_file_metadata: FileMetadata
+    ) -> None:
+        """Test listing file entries filtered by tag."""
+        files_with_tag = mock_metadata_manager.list_files(tag="test")
+        assert len(files_with_tag) == 1
+        assert files_with_tag[0] == mock_file_metadata
+
+        files_without_tag = mock_metadata_manager.list_files(tag="nonexistent")
+        assert len(files_without_tag) == 0
 
     def test_get_file_entry(self, mock_metadata_manager: MetadataManager, mock_file_metadata: FileMetadata) -> None:
         """Test retrieving a file entry from metadata."""
@@ -93,30 +118,17 @@ class TestMetadataManager:
         new_file_metadata.filepath = "new/file.txt"
 
         initial_file_count = mock_metadata_manager.file_count
-        mock_metadata_manager.add_file_entry(new_file_metadata)
+        mock_metadata_manager.add_file_entries([new_file_metadata])
         assert mock_metadata_manager.file_count == initial_file_count + 1
         retrieved_entry = mock_metadata_manager.get_file_entry(new_file_metadata.filepath)
         assert retrieved_entry == new_file_metadata
 
-    def test_add_file_entry_existing_file(
-        self, mock_metadata_manager: MetadataManager, mock_file_metadata: FileMetadata
-    ) -> None:
-        """Test that adding an existing file entry raises ValueError."""
-        with pytest.raises(ValueError, match=f"File {mock_file_metadata.filepath} already exists!"):
-            mock_metadata_manager.add_file_entry(mock_file_metadata)
-
     def test_delete_file_entry(self, mock_metadata_manager: MetadataManager, mock_file_metadata: FileMetadata) -> None:
         """Test deleting a file entry from metadata."""
         initial_file_count = mock_metadata_manager.file_count
-        mock_metadata_manager.delete_file_entry(mock_file_metadata.filepath)
+        mock_metadata_manager.delete_file_entries([mock_file_metadata.filepath])
         assert mock_metadata_manager.file_count == initial_file_count - 1
         assert mock_metadata_manager.get_file_entry(mock_file_metadata.filepath) is None
-
-    def test_delete_file_entry_nonexistent_file(self, mock_metadata_manager: MetadataManager) -> None:
-        """Test that deleting a non-existent file entry raises KeyError."""
-        nonexistent_file = "nonexistent/file.txt"
-        with pytest.raises(KeyError, match=f"File {nonexistent_file} not found!"):
-            mock_metadata_manager.delete_file_entry(nonexistent_file)
 
     def test_update_file_entry(self, mock_metadata_manager: MetadataManager, mock_file_metadata: FileMetadata) -> None:
         """Test updating a file entry in metadata."""
@@ -154,20 +166,3 @@ class TestMetadataManager:
         nonexistent_file = "nonexistent/file.txt"
         with pytest.raises(KeyError, match=f"File {nonexistent_file} not found!"):
             mock_metadata_manager.update_file_entry(nonexistent_file, {})
-
-    def test_list_files(self, mock_metadata_manager: MetadataManager, mock_file_metadata: FileMetadata) -> None:
-        """Test listing all file entries in metadata."""
-        files = mock_metadata_manager.list_files()
-        assert len(files) == 1
-        assert files[0] == mock_file_metadata
-
-    def test_list_files_with_tag(
-        self, mock_metadata_manager: MetadataManager, mock_file_metadata: FileMetadata
-    ) -> None:
-        """Test listing file entries filtered by tag."""
-        files_with_tag = mock_metadata_manager.list_files(tag="test")
-        assert len(files_with_tag) == 1
-        assert files_with_tag[0] == mock_file_metadata
-
-        files_without_tag = mock_metadata_manager.list_files(tag="nonexistent")
-        assert len(files_without_tag) == 0

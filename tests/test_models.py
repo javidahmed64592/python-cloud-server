@@ -50,11 +50,9 @@ class TestGetFilesResponse:
     def test_model_dump(self) -> None:
         """Test the model_dump method."""
         data = {
-            "code": 200,
             "message": "Files retrieved successfully",
             "timestamp": "2025-01-01T12:00:00Z",
             "files": [],
-            "total": 0,
         }
         response = GetFilesResponse.model_validate(data)
         assert response.model_dump() == data
@@ -66,7 +64,6 @@ class TestPostFileResponse:
     def test_model_dump(self) -> None:
         """Test the model_dump method."""
         data = {
-            "code": 201,
             "message": "File uploaded successfully",
             "timestamp": "2025-01-01T12:00:00Z",
             "filepath": "animals/cat.png",
@@ -82,10 +79,8 @@ class TestPatchFileResponse:
     def test_model_dump(self) -> None:
         """Test the model_dump method."""
         data = {
-            "code": 200,
             "message": "File metadata updated successfully",
             "timestamp": "2025-01-01T12:00:00Z",
-            "success": True,
             "filepath": "uploads/renamed.png",
             "tags": ["new", "tag"],
         }
@@ -99,10 +94,8 @@ class TestDeleteFileResponse:
     def test_model_dump(self) -> None:
         """Test the model_dump method."""
         data = {
-            "code": 200,
             "message": "File deleted successfully",
             "timestamp": "2025-01-01T12:00:00Z",
-            "success": True,
             "filepath": "uploads/file_to_delete.png",
         }
         response = DeleteFileResponse.model_validate(data)

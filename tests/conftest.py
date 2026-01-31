@@ -38,9 +38,6 @@ def mock_replace_file() -> Generator[MagicMock]:
 def mock_storage_config_dict(tmp_path: Path) -> dict:
     """Provide a mock storage configuration dictionary."""
     return {
-        "server_directory": str(tmp_path),
-        "storage_directory": "files",
-        "metadata_filename": "metadata.json",
         "capacity_gb": 20,
         "upload_chunk_size_kb": 8,
         "max_file_size_mb": 100,

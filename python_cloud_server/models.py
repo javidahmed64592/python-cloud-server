@@ -12,9 +12,6 @@ from python_template_server.models import BaseResponse, TemplateServerConfig
 class StorageConfig(BaseModel):
     """Configuration model for the cloud storage."""
 
-    server_directory: str = Field(default="/srv/cloud_server", description="Directory of the cloud server.")
-    storage_directory: str = Field(default="files", description="Directory to store files.")
-    metadata_filename: str = Field(default="metadata.json", description="Filename for storing metadata.")
     capacity_gb: int = Field(default=20, description="Total storage capacity in GB.")
     upload_chunk_size_kb: int = Field(default=8, description="Chunk size for file uploads in KB.")
     max_file_size_mb: int = Field(default=100, description="Maximum file size in MB.")
@@ -73,7 +70,6 @@ class GetFilesResponse(BaseResponse):
     """Response model for list files endpoint."""
 
     files: list[FileMetadata] = Field(description="List of file metadata.")
-    total: int = Field(description="Total number of files matching the filter.")
 
 
 class PostFileResponse(BaseResponse):
@@ -86,7 +82,6 @@ class PostFileResponse(BaseResponse):
 class PatchFileResponse(BaseResponse):
     """Response model for patch file endpoint."""
 
-    success: bool = Field(description="Indicates if the tag update was successful.")
     filepath: str = Field(description="New file path if updated.")
     tags: list[str] = Field(description="Updated list of tags for the file.")
 
@@ -94,7 +89,6 @@ class PatchFileResponse(BaseResponse):
 class DeleteFileResponse(BaseResponse):
     """Response model for delete file endpoint."""
 
-    success: bool = Field(description="Indicates if the deletion was successful.")
     filepath: str = Field(description="File path that was deleted.")
 
 

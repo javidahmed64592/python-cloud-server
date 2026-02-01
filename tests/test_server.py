@@ -138,7 +138,7 @@ class TestGetFilesEndpoint:
         mock_request_object: Request,
     ) -> None:
         """Test get_files successfully retrieves files."""
-        files_request = GetFilesRequest(tag=None, offset=0, limit=100)
+        files_request = GetFilesRequest(tag=None)
         mock_request_object.json = AsyncMock(return_value=files_request.model_dump())  # type: ignore[method-assign]
 
         response = asyncio.run(mock_server.get_files(mock_request_object))
@@ -154,7 +154,7 @@ class TestGetFilesEndpoint:
         mock_request_object: Request,
     ) -> None:
         """Test get_files filters by tag."""
-        files_request = GetFilesRequest(tag="test", offset=0, limit=100)
+        files_request = GetFilesRequest(tag="test")
         mock_request_object.json = AsyncMock(return_value=files_request.model_dump())  # type: ignore[method-assign]
 
         response = asyncio.run(mock_server.get_files(mock_request_object))
@@ -169,28 +169,13 @@ class TestGetFilesEndpoint:
         mock_request_object: Request,
     ) -> None:
         """Test get_files returns empty list for nonexistent tag."""
-        files_request = GetFilesRequest(tag="nonexistent", offset=0, limit=100)
+        files_request = GetFilesRequest(tag="nonexistent")
         mock_request_object.json = AsyncMock(return_value=files_request.model_dump())  # type: ignore[method-assign]
 
         response = asyncio.run(mock_server.get_files(mock_request_object))
 
         assert isinstance(response, GetFilesResponse)
         assert len(response.files) == 0
-
-    def test_get_files_pagination(
-        self,
-        mock_server: CloudServer,
-        mock_request_object: Request,
-    ) -> None:
-        """Test get_files pagination."""
-        limit = 10
-        files_request = GetFilesRequest(tag=None, offset=0, limit=limit)
-        mock_request_object.json = AsyncMock(return_value=files_request.model_dump())  # type: ignore[method-assign]
-
-        response = asyncio.run(mock_server.get_files(mock_request_object))
-
-        assert isinstance(response, GetFilesResponse)
-        assert len(response.files) <= limit
 
     def test_get_files_endpoint(self, mock_server: CloudServer) -> None:
         """Test GET /files endpoint returns files successfully."""

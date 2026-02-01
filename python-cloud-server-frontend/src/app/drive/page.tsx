@@ -15,7 +15,7 @@ export default function DrivePage() {
     const loadFiles = async () => {
       try {
         setLoading(true);
-        const response = await getFiles({ limit: 10000 });
+        const response = await getFiles();
         setFiles(response.files);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load files");
@@ -44,17 +44,8 @@ export default function DrivePage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto">
-        <div className="border-b border-terminal-border p-6">
-          <h1 className="text-3xl font-bold text-text-primary">My Drive</h1>
-          <p className="mt-2 text-text-muted">
-            {files.length} {files.length === 1 ? "file" : "files"}
-          </p>
-        </div>
-
-        <PreviewGrid files={files} />
-      </div>
+    <div className="h-screen bg-background flex flex-col overflow-hidden">
+      <PreviewGrid files={files} />
     </div>
   );
 }

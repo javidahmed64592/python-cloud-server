@@ -158,9 +158,7 @@ class CloudServer(TemplateServer):
         files_request = GetFilesRequest.model_validate(await request.json())
         logger.info("Received list files request for tag: %s", files_request.tag)
 
-        files = self.metadata_manager.list_files(
-            tag=files_request.tag, offset=files_request.offset, limit=files_request.limit
-        )
+        files = self.metadata_manager.list_files(tag=files_request.tag)
 
         msg = f"Retrieved {len(files)} files successfully."
         logger.info(msg)

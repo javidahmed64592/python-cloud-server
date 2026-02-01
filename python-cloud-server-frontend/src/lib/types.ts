@@ -50,8 +50,6 @@ export interface DeleteFileResponse extends BaseResponse {
 // Request types
 export interface GetFilesRequest {
   tag?: string;
-  offset?: number;
-  limit?: number;
 }
 
 export interface PatchFileRequest {

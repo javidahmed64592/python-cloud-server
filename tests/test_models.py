@@ -110,8 +110,6 @@ class TestGetFilesRequest:
         """Test the model_dump method."""
         data = {
             "tag": "example",
-            "offset": 10,
-            "limit": 50,
         }
         request = GetFilesRequest.model_validate(data)
         assert request.model_dump() == data

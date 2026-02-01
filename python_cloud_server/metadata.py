@@ -81,17 +81,10 @@ class MetadataManager:
         """
         return filepath in self._metadata
 
-    def list_files(
-        self,
-        tag: str | None = None,
-        offset: int = 0,
-        limit: int = 100,
-    ) -> list[FileMetadata]:
+    def list_files(self, tag: str | None = None) -> list[FileMetadata]:
         """List files with optional tag filtering and pagination.
 
         :param str | None tag: Optional tag to filter by
-        :param int offset: Number of results to skip
-        :param int limit: Maximum number of results to return
         :return list[FileMetadata]: List of file metadata objects
         """
         with self._lock:
@@ -99,11 +92,8 @@ class MetadataManager:
                 FileMetadata.model_validate(data) for data in self._metadata.values() if tag is None or tag in data.tags
             ]
 
-            # Sort by uploaded_at descending (newest first)
             files.sort(key=lambda f: f.uploaded_at, reverse=True)
-
-            # Apply pagination
-            return files[offset : offset + limit]
+            return files
 
     def get_file_entry(self, filepath: str) -> FileMetadata | None:
         """Get a file entry from the metadata.

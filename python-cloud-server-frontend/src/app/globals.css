@@ -1,0 +1,79 @@
+@import "tailwindcss";
+
+@theme {
+  --color-background: #0a0a0a;
+  --color-background-secondary: #111111;
+  --color-background-tertiary: #1a1a1a;
+  --color-foreground: #00ff41;
+  --color-border: #333333;
+  --color-border-accent: #00ff41;
+  --color-text-primary: #00ff41;
+  --color-text-secondary: #ffffff;
+  --color-text-muted: #888888;
+  --color-neon-green: #00ff41;
+  --color-neon-purple: #bf00ff;
+  --color-neon-blue: #00bfff;
+  --color-neon-red: #ff0040;
+  --color-terminal-bg: #0d1117;
+  --color-terminal-border: #30363d;
+
+  --shadow-neon: 0 0 3px currentColor, 0 0 6px currentColor;
+  --shadow-terminal:
+    0 4px 6px -1px rgba(0, 0, 0, 0.5), 0 2px 4px -1px rgba(0, 0, 0, 0.3);
+}
+
+/* Global Styles */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: "JetBrains Mono", "Fira Code", "Consolas", monospace;
+  line-height: 1.6;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--background-secondary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--border-accent);
+}
+
+/* Mobile Navigation Styles */
+@media (max-width: 1023px) {
+  .mobile-nav-item {
+    display: block;
+    width: 100%;
+  }
+
+  .mobile-nav-item:hover {
+    background-color: var(--background-tertiary);
+  }
+}
+
+/* Ensure proper spacing for mobile */
+@media (max-width: 640px) {
+  .nav-logo-text {
+    font-size: 1.125rem; /* text-lg */
+  }
+
+  .nav-version {
+    display: none;
+  }
+}

@@ -198,7 +198,7 @@ class TestGetFilesEndpoint:
         client = TestClient(app)
 
         response = client.request(
-            "GET",
+            "POST",
             "/files",
             json={"tag": None, "offset": 0, "limit": 100},
         )

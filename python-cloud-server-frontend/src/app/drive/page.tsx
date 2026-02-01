@@ -15,7 +15,7 @@ export default function DrivePage() {
     const loadFiles = async () => {
       try {
         setLoading(true);
-        const response = await getFiles({ limit: 1000 });
+        const response = await getFiles({ limit: 10000 });
         setFiles(response.files);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load files");

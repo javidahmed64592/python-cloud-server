@@ -87,11 +87,13 @@ const extractFolders = (
     }
   });
 
-  return Array.from(folderSet).map(folderName => ({
-    type: "folder" as const,
-    name: folderName,
-    path: currentPath ? `${currentPath}/${folderName}` : folderName,
-  }));
+  return Array.from(folderSet)
+    .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }))
+    .map(folderName => ({
+      type: "folder" as const,
+      name: folderName,
+      path: currentPath ? `${currentPath}/${folderName}` : folderName,
+    }));
 };
 
 export default function PreviewGrid({ files, onFileClick }: PreviewGridProps) {

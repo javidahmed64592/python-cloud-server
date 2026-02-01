@@ -58,19 +58,20 @@ export default function MusicDisplay({ filepath, onClose }: MusicDisplayProps) {
         <div className="p-6">
           {loading && (
             <div className="flex items-center justify-center h-32">
-              <div className="text-text-muted">Loading...</div>
+              <div className="text-text-muted">Loading audio...</div>
             </div>
           )}
 
           {error && (
             <div className="flex items-center justify-center h-32">
-              <div className="text-neon-red">{error}</div>
+              <div className="text-neon-red">Failed to load audio</div>
             </div>
           )}
 
           {audioUrl && !loading && !error && (
             <div className="w-full">
               <audio
+                data-testid="audio-element"
                 src={audioUrl}
                 controls
                 controlsList="nodownload"

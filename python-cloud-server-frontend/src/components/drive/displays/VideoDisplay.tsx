@@ -58,18 +58,23 @@ export default function VideoDisplay({ filepath, onClose }: VideoDisplayProps) {
         <div className="p-6">
           {loading && (
             <div className="flex items-center justify-center h-64 w-96">
-              <div className="text-text-muted">Loading...</div>
+              <div className="text-text-muted">Loading video...</div>
             </div>
           )}
 
           {error && (
             <div className="flex items-center justify-center h-64 w-96">
-              <div className="text-neon-red">{error}</div>
+              <div className="text-neon-red">Failed to load video</div>
             </div>
           )}
 
           {videoUrl && !loading && !error && (
-            <video src={videoUrl} controls className="max-h-[70vh] max-w-full">
+            <video
+              data-testid="video-element"
+              src={videoUrl}
+              controls
+              className="max-h-[70vh] max-w-full"
+            >
               Your browser does not support the video tag.
             </video>
           )}

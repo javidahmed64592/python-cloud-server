@@ -41,22 +41,19 @@ The Python Cloud Server adds file storage and management endpoints on top of the
 
 **Request**: JSON body with `GetFilesRequest` model
 - `tag` (string, optional): Filter files by tag
-- `offset` (int, default 0): Pagination offset
-- `limit` (int, default 100, max 1000): Number of files to return
 
 **Response Model**: `GetFilesResponse`
 - `code` (int): HTTP status code
 - `message` (string): Status message
 - `timestamp` (string): ISO 8601 timestamp
 - `files` (list[FileMetadata]): List of file metadata
-- `total` (int): Total number of files matching the filter
 
 **Example Request**:
 ```bash
 curl -k https://localhost:443/api/files \
   -H "X-API-Key: your-api-token-here" \
   -H "Content-Type: application/json" \
-  -d '{"tag": "animal", "offset": 0, "limit": 10}'
+  -d '{"tag": "animal"}'
 ```
 
 **Example Response** (200 OK):
@@ -74,8 +71,7 @@ curl -k https://localhost:443/api/files \
       "uploaded_at": "2025-12-31T10:00:00.000000Z",
       "updated_at": "2025-12-31T11:00:00.000000Z"
     }
-  ],
-  "total": 1
+  ]
 }
 ```
 
@@ -253,7 +249,6 @@ The Python Cloud Server defines additional Pydantic models for file operations, 
 
 - `GetFilesResponse`: Extends `BaseResponse`
   - `files` (list[FileMetadata]): List of files
-  - `total` (int): Total matching files
 
 - `PostFileResponse`: Extends `BaseResponse`
   - `filepath` (string): Stored file path
@@ -272,8 +267,6 @@ The Python Cloud Server defines additional Pydantic models for file operations, 
 
 - `GetFilesRequest`: Request for listing files
   - `tag` (string, optional): Tag filter
-  - `offset` (int): Pagination offset
-  - `limit` (int): Pagination limit
 
 - `PatchFileRequest`: Request for updating files
   - `new_filepath` (string, optional): New file path

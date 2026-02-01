@@ -14,19 +14,6 @@ jest.mock("../api", () => {
     ...actual,
     getHealth: jest.fn(),
     login: jest.fn(),
-    getNotes: jest.fn(),
-    createNote: jest.fn(),
-    updateNote: jest.fn(),
-    deleteNote: jest.fn(),
-    getWeather: jest.fn(),
-    getWeatherLocation: jest.fn(),
-    updateWeatherLocation: jest.fn(),
-    getContainers: jest.fn(),
-    refreshContainers: jest.fn(),
-    startContainer: jest.fn(),
-    stopContainer: jest.fn(),
-    restartContainer: jest.fn(),
-    updateContainer: jest.fn(),
   };
 });
 

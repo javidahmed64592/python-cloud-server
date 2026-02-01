@@ -98,7 +98,7 @@ class GetFilesRequest(BaseModel):
 
     tag: str | None = Field(default=None, description="Optional tag filter.")
     offset: int = Field(default=0, ge=0, description="Pagination offset.")
-    limit: int = Field(default=100, ge=1, le=1000, description="Pagination limit (max 1000).")
+    limit: int = Field(default=100, ge=1, le=10000, description="Pagination limit (max 10000).")
 
 
 class PatchFileRequest(BaseModel):

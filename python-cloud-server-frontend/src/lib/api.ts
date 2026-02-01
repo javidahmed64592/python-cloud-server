@@ -129,6 +129,17 @@ export const getFiles = async (
   }
 };
 
+export const getThumbnail = async (filepath: string): Promise<string> => {
+  try {
+    const response = await api.get(`/files/${filepath}/thumbnail`, {
+      responseType: "blob",
+    });
+    return URL.createObjectURL(response.data);
+  } catch (error) {
+    throw new Error(extractErrorMessage(error));
+  }
+};
+
 export const downloadFile = async (filepath: string): Promise<Blob> => {
   try {
     const response = await api.get(`/files/${filepath}`, {

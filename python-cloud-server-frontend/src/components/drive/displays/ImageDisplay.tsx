@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useState } from "react";
 
 import { downloadFile } from "@/lib/api";
@@ -69,11 +70,16 @@ export default function ImageDisplay({ filepath, onClose }: ImageDisplayProps) {
           )}
 
           {imageUrl && !loading && !error && (
-            <img
-              src={imageUrl}
-              alt={filepath}
-              className="max-h-[70vh] max-w-full object-contain"
-            />
+            <div className="relative flex items-center justify-center">
+              <Image
+                src={imageUrl}
+                alt={filepath}
+                width={1920}
+                height={1080}
+                className="max-h-[70vh] max-w-full object-contain h-auto w-auto"
+                unoptimized
+              />
+            </div>
           )}
         </div>
       </div>

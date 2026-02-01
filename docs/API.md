@@ -22,6 +22,7 @@ For detailed information about these features, authentication token generation, 
 - [Cloud Server Endpoints](#cloud-server-endpoints)
   - [GET /api/files](#get-apifiles)
   - [GET /api/files/{filepath}](#get-apifilesfilepath)
+  - [GET /api/files/{filepath}/thumbnail](#get-apifilesfilepaththumbnail)
   - [POST /api/files/{filepath}](#post-apifilesfilepath)
   - [PATCH /api/files/{filepath}](#patch-apifilesfilepath)
   - [DELETE /api/files/{filepath}](#delete-apifilesfilepath)
@@ -98,6 +99,34 @@ curl -k https://localhost:443/api/files/animals/cat.png \
 - `401 Unauthorized`: Missing or invalid API key
 - `404 Not Found`: File not found
 - `429 Too Many Requests`: Rate limit exceeded
+
+### GET /api/files/{filepath}/thumbnail
+
+**Purpose**: Retrieve a thumbnail for an image or video file.
+
+**Request**: None (filepath in URL path)
+
+**Response**: JPEG thumbnail image (200x200px)
+
+**Behavior**:
+- Returns existing thumbnail if available
+- Generates thumbnail on-demand if not cached
+- Thumbnails are automatically created on server startup for all images/videos
+- Supported formats: Images (JPEG, PNG, etc.) and Videos (MP4, AVI, etc.)
+
+**Example Request**:
+```bash
+curl -k https://localhost:443/api/files/animals/cat.png/thumbnail \
+  -H "X-API-Key: your-api-token-here" \
+  -o cat_thumbnail.jpg
+```
+
+**Error Responses**:
+- `400 Bad Request`: File is not an image or video
+- `401 Unauthorized`: Missing or invalid API key
+- `404 Not Found`: File not found in metadata or on disk
+- `429 Too Many Requests`: Rate limit exceeded
+- `500 Internal Server Error`: Thumbnail generation failed
 
 ### POST /api/files/{filepath}
 
@@ -232,6 +261,7 @@ The Python Cloud Server defines additional Pydantic models for file operations, 
   - `max_file_size_mb` (int): Maximum file size in MB
   - `max_tags_per_file` (int): Maximum tags per file
   - `max_tag_length` (int): Maximum tag length
+  - `thumbnail_size` (int): Thumbnail dimensions in pixels (default: 200)
 
 - `CloudServerConfig`: Extends `TemplateServerConfig` with `storage_config`
 

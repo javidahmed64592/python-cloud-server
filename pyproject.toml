@@ -19,6 +19,8 @@ classifiers = [
 ]
 dependencies = [
     "python-template-server @ git+https://github.com/javidahmed64592/python-template-server.git",
+    "pillow>=12.1.0",
+    "opencv-python-headless>=4.13.0",
 ]
 
 [project.optional-dependencies]

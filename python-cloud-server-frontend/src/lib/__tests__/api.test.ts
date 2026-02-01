@@ -2,6 +2,7 @@ import { renderHook } from "@testing-library/react";
 
 import {
   getHealth,
+  getThumbnail,
   login,
   useHealthStatus,
   type HealthStatus,
@@ -13,6 +14,7 @@ jest.mock("../api", () => {
   return {
     ...actual,
     getHealth: jest.fn(),
+    getThumbnail: jest.fn(),
     login: jest.fn(),
   };
 });
@@ -21,6 +23,9 @@ jest.mock("../api", () => {
 global.fetch = jest.fn();
 
 const mockGetHealth = getHealth as jest.MockedFunction<typeof getHealth>;
+const mockGetThumbnail = getThumbnail as jest.MockedFunction<
+  typeof getThumbnail
+>;
 const mockLogin = login as jest.MockedFunction<typeof login>;
 
 describe("API Tests", () => {
@@ -94,6 +99,40 @@ describe("API Tests", () => {
       mockLogin.mockRejectedValue(new Error(errorMessage));
 
       await expect(login("test-key")).rejects.toThrow(errorMessage);
+    });
+  });
+
+  describe("getThumbnail", () => {
+    beforeEach(() => {
+      global.URL.createObjectURL = jest.fn(() => "blob:mock-thumbnail-url");
+    });
+
+    it("should fetch thumbnail and return blob URL", async () => {
+      const mockBlobUrl = "blob:mock-thumbnail-url";
+      mockGetThumbnail.mockResolvedValue(mockBlobUrl);
+
+      const result = await getThumbnail("test/image.png");
+
+      expect(mockGetThumbnail).toHaveBeenCalledWith("test/image.png");
+      expect(result).toBe(mockBlobUrl);
+    });
+
+    it("should handle thumbnail fetch error", async () => {
+      const errorMessage = "Thumbnail not found";
+      mockGetThumbnail.mockRejectedValue(new Error(errorMessage));
+
+      await expect(getThumbnail("test/missing.png")).rejects.toThrow(
+        errorMessage
+      );
+    });
+
+    it("should handle network error", async () => {
+      const errorMessage = "Network error";
+      mockGetThumbnail.mockRejectedValue(new Error(errorMessage));
+
+      await expect(getThumbnail("test/video.mp4")).rejects.toThrow(
+        errorMessage
+      );
     });
   });
 

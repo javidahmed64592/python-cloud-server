@@ -31,9 +31,10 @@ This document outlines how to configure and setup a development environment to w
 ```
 python_cloud_server/
 ├── main.py           # Application entry point
-├── metadata.py       # Metadata manager
+├── metadata.py       # Metadata manager for file metadata storage
 ├── models.py         # Pydantic models (config + API responses)
-└── server.py         # Cloud server class
+├── server.py         # Cloud server class
+└── thumbnails.py     # Thumbnail generator for images and videos
 ```
 
 ### Installing Dependencies
@@ -85,6 +86,13 @@ The backend will be available at `https://localhost:443/api` by default.
 **Available Endpoints:**
 - Health Check: `https://localhost:443/api/health`
 - Login: `https://localhost:443/api/login` (requires authentication)
+- File Management: See [API.md](API.md) for complete endpoint documentation
+
+**Features:**
+- File upload/download with metadata tracking
+- Tag-based file organization and filtering
+- Automatic thumbnail generation for images and videos (200x200px JPEG)
+- Client-side pagination for file listings (24 items per page)
 
 **Testing the API:**
 ```sh

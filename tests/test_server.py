@@ -27,6 +27,7 @@ from python_cloud_server.models import (
     PostFileResponse,
 )
 from python_cloud_server.server import CloudServer
+from python_cloud_server.thumbnails import ThumbnailGenerator
 
 
 @pytest.fixture(autouse=True)
@@ -46,7 +47,10 @@ def mock_package_metadata() -> Generator[MagicMock]:
 
 @pytest.fixture
 def mock_server(
-    mock_cloud_server_config: CloudServerConfig, mock_metadata_manager: MetadataManager, mock_server_root_path: Path
+    mock_cloud_server_config: CloudServerConfig,
+    mock_metadata_manager: MetadataManager,
+    mock_server_root_path: Path,
+    mock_thumbnail_generator: ThumbnailGenerator,
 ) -> Generator[CloudServer]:
     """Provide a CloudServer instance for testing."""
 
@@ -57,16 +61,19 @@ def mock_server(
         return
 
     storage_path = mock_server_root_path / "storage"
+    thumbnails_path = mock_server_root_path / "thumbnails"
 
     with (
         patch.object(CloudServer, "_verify_api_key", new=fake_verify_api_key),
         patch.object(CloudServer, "server_directory", property(lambda self: mock_server_root_path)),
         patch.object(CloudServer, "storage_directory", property(lambda self: storage_path)),
+        patch.object(CloudServer, "thumbnails_directory", property(lambda self: thumbnails_path)),
         patch.object(CloudServer, "metadata_filepath", property(lambda self: mock_server_root_path / "metadata.json")),
         patch("python_cloud_server.server.CloudServerConfig.save_to_file"),
         patch("python_cloud_server.server.MetadataManager", return_value=mock_metadata_manager),
     ):
         server = CloudServer(mock_cloud_server_config)
+        server.thumbnail_generator = mock_thumbnail_generator
         yield server
 
 
@@ -734,3 +741,156 @@ class TestDeleteFileEndpoint:
 
         # Verify file deleted
         assert not full_path.exists()
+
+
+class TestGetThumbnailEndpoint:
+    """Integration and unit tests for the GET /files/{filepath}/thumbnail endpoint."""
+
+    MOCK_FILEPATH = "images/test.jpg"
+    MOCK_FILENAME = "test.jpg"
+
+    @pytest.fixture
+    def mock_request_object(self) -> Request:
+        """Provide a mock Request object."""
+        return MagicMock(spec=Request)
+
+    @pytest.fixture
+    def mock_image_metadata(self) -> FileMetadata:
+        """Provide mock image metadata."""
+        return FileMetadata.new_current_instance(
+            filepath=self.MOCK_FILEPATH,
+            mime_type="image/jpeg",
+            size=1024,
+            tags=["test"],
+        )
+
+    def test_get_thumbnail_success(
+        self,
+        mock_server: CloudServer,
+        mock_request_object: Request,
+        mock_image_metadata: FileMetadata,
+    ) -> None:
+        """Test get_thumbnail returns thumbnail successfully."""
+        # Add file to metadata
+        mock_server.metadata_manager.add_file_entries([mock_image_metadata])
+
+        # Create source file
+        source_file = mock_server.storage_directory / self.MOCK_FILEPATH
+        source_file.parent.mkdir(parents=True, exist_ok=True)
+        source_file.write_bytes(b"fake image data")
+
+        # Create thumbnail file
+        thumbnail_path = mock_server.thumbnails_directory / f"{self.MOCK_FILEPATH}.jpg"
+        thumbnail_path.parent.mkdir(parents=True, exist_ok=True)
+        thumbnail_path.write_bytes(b"fake thumbnail data")
+
+        response = asyncio.run(mock_server.get_thumbnail(mock_request_object, self.MOCK_FILEPATH))
+
+        assert response.path == thumbnail_path
+        assert response.media_type == "image/jpeg"
+
+    def test_get_thumbnail_generates_on_demand(
+        self,
+        mock_server: CloudServer,
+        mock_request_object: Request,
+        mock_image_metadata: FileMetadata,
+    ) -> None:
+        """Test get_thumbnail generates thumbnail on demand if it doesn't exist."""
+        # Add file to metadata
+        mock_server.metadata_manager.add_file_entries([mock_image_metadata])
+
+        # Create source file
+        source_file = mock_server.storage_directory / self.MOCK_FILEPATH
+        source_file.parent.mkdir(parents=True, exist_ok=True)
+        source_file.write_bytes(b"fake image data")
+
+        # Thumbnail doesn't exist yet
+        thumbnail_path = mock_server.thumbnails_directory / f"{self.MOCK_FILEPATH}.jpg"
+        assert not thumbnail_path.exists()
+
+        # Mock PIL to create the thumbnail file
+        with patch("python_cloud_server.thumbnails.Image") as mock_image:
+            mock_img_instance = MagicMock()
+            mock_img_instance.mode = "RGB"
+            mock_img_instance.copy.return_value = mock_img_instance
+            mock_image.open.return_value.__enter__.return_value = mock_img_instance
+
+            def mock_thumbnail_save(path: str | Path, img_format: str = "JPEG", **kwargs: dict) -> None:
+                """Mock saving thumbnail to create the file."""
+                Path(path).parent.mkdir(parents=True, exist_ok=True)
+                Path(path).write_bytes(b"generated thumbnail")
+
+            mock_img_instance.save.side_effect = mock_thumbnail_save
+
+            response = asyncio.run(mock_server.get_thumbnail(mock_request_object, self.MOCK_FILEPATH))
+
+            assert response.path == thumbnail_path
+            assert thumbnail_path.exists()
+
+    def test_get_thumbnail_file_not_in_metadata(
+        self,
+        mock_server: CloudServer,
+        mock_request_object: Request,
+    ) -> None:
+        """Test get_thumbnail raises error if file not in metadata."""
+        with pytest.raises(HTTPException, match="File not found in metadata") as exc_info:
+            asyncio.run(mock_server.get_thumbnail(mock_request_object, "nonexistent.jpg"))
+
+        assert exc_info.value.status_code == ResponseCode.NOT_FOUND
+
+    def test_get_thumbnail_not_image_or_video(
+        self,
+        mock_server: CloudServer,
+        mock_request_object: Request,
+    ) -> None:
+        """Test get_thumbnail raises error for non-image/video files."""
+        text_metadata = FileMetadata.new_current_instance(
+            filepath="test.txt",
+            mime_type="text/plain",
+            size=100,
+            tags=[],
+        )
+        mock_server.metadata_manager.add_file_entries([text_metadata])
+
+        with pytest.raises(HTTPException, match="Thumbnails only available for images and videos") as exc_info:
+            asyncio.run(mock_server.get_thumbnail(mock_request_object, "test.txt"))
+
+        assert exc_info.value.status_code == ResponseCode.BAD_REQUEST
+
+    def test_get_thumbnail_source_file_not_found(
+        self,
+        mock_server: CloudServer,
+        mock_request_object: Request,
+        mock_image_metadata: FileMetadata,
+    ) -> None:
+        """Test get_thumbnail raises error if source file doesn't exist on disk."""
+        # Add file to metadata but don't create source file
+        mock_server.metadata_manager.add_file_entries([mock_image_metadata])
+
+        with pytest.raises(HTTPException, match="Source file not found on disk") as exc_info:
+            asyncio.run(mock_server.get_thumbnail(mock_request_object, self.MOCK_FILEPATH))
+
+        assert exc_info.value.status_code == ResponseCode.NOT_FOUND
+
+    def test_get_thumbnail_endpoint(self, mock_server: CloudServer, mock_image_metadata: FileMetadata) -> None:
+        """Test GET /files/{filepath}/thumbnail endpoint via TestClient."""
+        app = mock_server.app
+        client = TestClient(app)
+
+        # Add file to metadata
+        mock_server.metadata_manager.add_file_entries([mock_image_metadata])
+
+        # Create source file
+        source_file = mock_server.storage_directory / mock_image_metadata.filepath
+        source_file.parent.mkdir(parents=True, exist_ok=True)
+        source_file.write_bytes(b"fake image data")
+
+        # Create thumbnail file
+        thumbnail_path = mock_server.thumbnails_directory / f"{mock_image_metadata.filepath}.jpg"
+        thumbnail_path.parent.mkdir(parents=True, exist_ok=True)
+        thumbnail_path.write_bytes(b"fake thumbnail data")
+
+        response = client.get(f"/files/{mock_image_metadata.filepath}/thumbnail")
+
+        assert response.status_code == ResponseCode.OK
+        assert response.content == b"fake thumbnail data"

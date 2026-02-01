@@ -46,12 +46,12 @@ const getFileType = (mimeType: string | undefined): FileType => {
   return "unknown";
 };
 
-const getPreviewComponent = (fileType: FileType) => {
+const getPreviewComponent = (fileType: FileType, filepath?: string) => {
   switch (fileType) {
     case "image":
-      return <ImagePreview />;
+      return <ImagePreview filepath={filepath || ""} />;
     case "video":
-      return <VideoPreview />;
+      return <VideoPreview filepath={filepath || ""} />;
     case "music":
       return <MusicPreview />;
     case "text":
@@ -234,7 +234,7 @@ export default function PreviewGrid({ files, onFileClick }: PreviewGridProps) {
                     filename={filename}
                     onClick={() => handleFileClick(item.metadata)}
                   >
-                    {getPreviewComponent(fileType)}
+                    {getPreviewComponent(fileType, item.metadata.filepath)}
                   </PreviewItem>
                 );
               }

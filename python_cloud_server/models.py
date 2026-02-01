@@ -17,6 +17,7 @@ class StorageConfig(BaseModel):
     max_file_size_mb: int = Field(default=100, description="Maximum file size in MB.")
     max_tags_per_file: int = Field(default=10, description="Maximum number of tags per file.")
     max_tag_length: int = Field(default=50, description="Maximum length of a tag.")
+    thumbnail_size: int = Field(default=200, description="Thumbnail size in pixels (width and height).")
 
 
 class CloudServerConfig(TemplateServerConfig):

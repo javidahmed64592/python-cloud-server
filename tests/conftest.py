@@ -5,9 +5,11 @@ from pathlib import Path
 from unittest.mock import MagicMock, mock_open, patch
 
 import pytest
+from PIL import Image
 
 from python_cloud_server.metadata import MetadataManager
 from python_cloud_server.models import CloudServerConfig, FileMetadata, StorageConfig
+from python_cloud_server.thumbnails import ThumbnailGenerator
 
 
 # General fixtures
@@ -42,6 +44,7 @@ def mock_storage_config_dict() -> dict:
         "max_file_size_mb": 100,
         "max_tags_per_file": 10,
         "max_tag_length": 50,
+        "thumbnail_size": 200,
     }
 
 
@@ -100,3 +103,27 @@ def mock_metadata_manager(mock_server_root_path: Path, mock_file_metadata: FileM
     metadata_manager = MetadataManager(metadata_filepath)
     metadata_manager.add_file_entries([mock_file_metadata])
     return metadata_manager
+
+
+# Thumbnail fixtures
+@pytest.fixture
+def mock_thumbnail_generator() -> ThumbnailGenerator:
+    """Create a real ThumbnailGenerator instance for testing."""
+    return ThumbnailGenerator(thumbnail_size=(200, 200))
+
+
+@pytest.fixture
+def mock_image_file(tmp_path: Path) -> Path:
+    """Create a simple test image file."""
+    image_path = tmp_path / "test_image.jpg"
+    img = Image.new("RGB", (400, 300), color="red")
+    img.save(image_path, "JPEG")
+    return image_path
+
+
+@pytest.fixture
+def mock_video_file(tmp_path: Path) -> Path:
+    """Create a mock video file path (doesn't need to be valid for most tests)."""
+    video_path = tmp_path / "test_video.mp4"
+    video_path.write_bytes(b"mock video data")
+    return video_path

@@ -53,8 +53,18 @@ api.interceptors.request.use(
 // Health status type
 export type HealthStatus = "online" | "offline" | "checking";
 
+// API response type for file metadata (snake_case from backend)
+interface ApiFileMetadata {
+  filepath: string;
+  mime_type: string;
+  size: number;
+  tags: string[];
+  uploaded_at: string;
+  updated_at: string;
+}
+
 // Transform snake_case API response to camelCase
-const transformFileMetadata = (data: any): FileMetadata => ({
+const transformFileMetadata = (data: ApiFileMetadata): FileMetadata => ({
   filepath: data.filepath,
   mimeType: data.mime_type,
   size: data.size,
@@ -114,16 +124,34 @@ export const login = async (apiKey: string): Promise<LoginResponse> => {
   }
 };
 
+// API response type for getFiles (snake_case from backend)
+interface ApiGetFilesResponse {
+  message: string;
+  timestamp: string;
+  files: ApiFileMetadata[];
+}
+
 // File operations
 export const getFiles = async (
   request: GetFilesRequest = {}
 ): Promise<GetFilesResponse> => {
   try {
-    const response = await api.post<any>("/files", request);
+    const response = await api.post<ApiGetFilesResponse>("/files", request);
     return {
       ...response.data,
       files: response.data.files.map(transformFileMetadata),
     };
+  } catch (error) {
+    throw new Error(extractErrorMessage(error));
+  }
+};
+
+export const getThumbnail = async (filepath: string): Promise<string> => {
+  try {
+    const response = await api.get(`/files/${filepath}/thumbnail`, {
+      responseType: "blob",
+    });
+    return URL.createObjectURL(response.data);
   } catch (error) {
     throw new Error(extractErrorMessage(error));
   }

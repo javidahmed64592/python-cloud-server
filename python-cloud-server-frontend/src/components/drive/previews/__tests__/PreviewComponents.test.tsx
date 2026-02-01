@@ -10,7 +10,7 @@ import * as api from "@/lib/api";
 // Mock Next.js Image component
 jest.mock("next/image", () => ({
   __esModule: true,
-  default: (props: any) => {
+  default: (props: React.ImgHTMLAttributes<HTMLImageElement>) => {
     // eslint-disable-next-line @next/next/no-img-element, jsx-a11y/alt-text
     return <img {...props} />;
   },
@@ -34,9 +34,7 @@ describe("Preview Components", () => {
 
   describe("ImagePreview", () => {
     it("should show loading spinner initially", () => {
-      mockGetThumbnail.mockImplementation(
-        () => new Promise(() => {})
-      );
+      mockGetThumbnail.mockImplementation(() => new Promise(() => {}));
       render(<ImagePreview filepath="test/image.png" />);
       const spinner = document.querySelector(".animate-spin");
       expect(spinner).toBeInTheDocument();
@@ -63,9 +61,7 @@ describe("Preview Components", () => {
     });
 
     it("should have correct styling", () => {
-      mockGetThumbnail.mockImplementation(
-        () => new Promise(() => {})
-      );
+      mockGetThumbnail.mockImplementation(() => new Promise(() => {}));
       const { container } = render(<ImagePreview filepath="test/image.png" />);
       const wrapper = container.firstChild as HTMLElement;
       expect(wrapper).toHaveClass("bg-background-secondary");
@@ -83,9 +79,7 @@ describe("Preview Components", () => {
 
   describe("VideoPreview", () => {
     it("should show loading spinner initially", () => {
-      mockGetThumbnail.mockImplementation(
-        () => new Promise(() => {})
-      );
+      mockGetThumbnail.mockImplementation(() => new Promise(() => {}));
       render(<VideoPreview filepath="test/video.mp4" />);
       const spinner = document.querySelector(".animate-spin");
       expect(spinner).toBeInTheDocument();

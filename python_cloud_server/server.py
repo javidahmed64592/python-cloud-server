@@ -21,6 +21,7 @@ from python_cloud_server.models import (
     PatchFileResponse,
     PostFileResponse,
 )
+from python_cloud_server.thumbnails import ThumbnailGenerator
 
 logger = logging.getLogger(__name__)
 
@@ -38,6 +39,7 @@ class CloudServer(TemplateServer):
 
         self._initialize_storage()
         self._initialize_metadata()
+        self._initialize_thumbnails()
 
     @property
     def server_directory(self) -> Path:
@@ -48,6 +50,11 @@ class CloudServer(TemplateServer):
     def storage_directory(self) -> Path:
         """Get the storage directory path."""
         return self.server_directory / "storage"
+
+    @property
+    def thumbnails_directory(self) -> Path:
+        """Get the thumbnails directory path."""
+        return self.server_directory / "thumbnails"
 
     @property
     def metadata_filepath(self) -> Path:
@@ -102,6 +109,40 @@ class CloudServer(TemplateServer):
 
         logger.info("Metadata manager initialized with %d files", self.metadata_manager.file_count)
 
+    def _initialize_thumbnails(self) -> None:
+        """Initialize thumbnail generator and sync thumbnails with files."""
+        self.thumbnails_directory.mkdir(parents=True, exist_ok=True)
+        logger.info("Thumbnails directory ready: %s", self.thumbnails_directory)
+
+        thumbnail_size = self.config.storage_config.thumbnail_size
+        self.thumbnail_generator = ThumbnailGenerator(thumbnail_size=(thumbnail_size, thumbnail_size))
+
+        thumbnails_to_add = []
+
+        for filepath, file_metadata in self.metadata_manager._metadata.items():
+            mime_type = file_metadata.mime_type
+
+            # Only generate thumbnails for images and videos
+            if not (mime_type.startswith("image/") or mime_type.startswith("video/")):
+                continue
+
+            source_file = self.storage_directory / filepath
+            thumbnail_file = self.thumbnails_directory / f"{filepath}.jpg"
+
+            # Skip if thumbnail already exists
+            if thumbnail_file.exists():
+                continue
+
+            thumbnails_to_add.append((source_file, thumbnail_file, mime_type))
+
+        # Generate thumbnail
+        if thumbnails_to_add:
+            for source_file, thumbnail_file, mime_type in thumbnails_to_add:
+                logger.info("Generating thumbnail for: %s", source_file)
+                self.thumbnail_generator.generate_thumbnail(source_file, mime_type, thumbnail_file)
+
+        logger.info("Thumbnail sync complete: %d generated", len(thumbnails_to_add))
+
     def validate_config(self, config_data: dict) -> CloudServerConfig:
         """Validate configuration data against the TemplateServerConfig model.
 
@@ -118,6 +159,13 @@ class CloudServer(TemplateServer):
             handler_function=self.get_files,
             response_model=GetFilesResponse,
             methods=["POST"],
+            limited=True,
+        )
+        self.add_authenticated_route(
+            endpoint="/files/{filepath:path}/thumbnail",
+            handler_function=self.get_thumbnail,
+            response_model=None,
+            methods=["GET"],
             limited=True,
         )
         self.add_authenticated_route(
@@ -147,6 +195,55 @@ class CloudServer(TemplateServer):
             response_model=DeleteFileResponse,
             methods=["DELETE"],
             limited=True,
+        )
+
+    async def get_thumbnail(self, request: Request, filepath: str) -> FileResponse:
+        """Handle get thumbnail requests - retrieve or generate a thumbnail.
+
+        :param Request request: The request object
+        :param str filepath: The file path (e.g., 'animals/cat.png')
+        :return FileResponse: Server response with thumbnail image
+        :raise HTTPException: If file not found or not an image/video
+        """
+        logger.info("Received get thumbnail request for: %s", filepath)
+
+        if not self.metadata_manager.file_exists(filepath):
+            msg = f"File not found in metadata: {filepath}"
+            logger.error(msg)
+            raise HTTPException(status_code=ResponseCode.NOT_FOUND, detail=msg)
+
+        file_metadata = self.metadata_manager.get_file_entry(filepath)
+        if not file_metadata or not file_metadata.mime_type:
+            msg = f"File metadata not found: {filepath}"
+            logger.error(msg)
+            raise HTTPException(status_code=ResponseCode.NOT_FOUND, detail=msg)
+
+        if not (file_metadata.mime_type.startswith("image/") or file_metadata.mime_type.startswith("video/")):
+            msg = f"Thumbnails only available for images and videos: {filepath}"
+            logger.error(msg)
+            raise HTTPException(status_code=ResponseCode.BAD_REQUEST, detail=msg)
+
+        thumbnail_path = self.thumbnails_directory / f"{filepath}.jpg"
+
+        if not thumbnail_path.exists():
+            logger.info("Thumbnail not found, generating on demand: %s", filepath)
+            source_path = self.storage_directory / filepath
+            if not source_path.exists():
+                msg = f"Source file not found on disk: {filepath}"
+                logger.error(msg)
+                raise HTTPException(status_code=ResponseCode.NOT_FOUND, detail=msg)
+
+            try:
+                thumbnail_path.parent.mkdir(parents=True, exist_ok=True)
+                self.thumbnail_generator.generate_thumbnail(source_path, file_metadata.mime_type, thumbnail_path)
+                logger.info("Generated thumbnail on demand: %s", filepath)
+            except Exception as e:
+                msg = f"Failed to generate thumbnail for: {filepath}"
+                logger.exception(msg)
+                raise HTTPException(status_code=ResponseCode.INTERNAL_SERVER_ERROR, detail=msg) from e
+
+        return FileResponse(
+            path=thumbnail_path, media_type="image/jpeg", filename=f"{Path(filepath).stem}_thumbnail.jpg"
         )
 
     async def get_files(self, request: Request) -> GetFilesResponse:
@@ -258,6 +355,15 @@ class CloudServer(TemplateServer):
             logger.exception(msg)
             raise HTTPException(status_code=ResponseCode.INTERNAL_SERVER_ERROR, detail=msg) from e
 
+        if mime_type.startswith("image/") or mime_type.startswith("video/"):
+            try:
+                thumbnail_path = self.thumbnails_directory / f"{filepath}.jpg"
+                thumbnail_path.parent.mkdir(parents=True, exist_ok=True)
+                self.thumbnail_generator.generate_thumbnail(full_path, mime_type, thumbnail_path)
+                logger.info("Generated thumbnail for uploaded file: %s", filepath)
+            except Exception as e:
+                logger.warning("Failed to generate thumbnail for uploaded file %s: %s", filepath, e)
+
         msg = f"File uploaded successfully: {filepath} ({file_size} bytes)"
         logger.info(msg)
         return PostFileResponse(
@@ -267,7 +373,7 @@ class CloudServer(TemplateServer):
             size=file_size,
         )
 
-    async def patch_file(self, request: Request, filepath: str) -> PatchFileResponse:
+    async def patch_file(self, request: Request, filepath: str) -> PatchFileResponse:  # noqa: PLR0912, PLR0915
         """Handle patch file requests - update file metadata and/or move file.
 
         :param Request request: The request object
@@ -319,6 +425,16 @@ class CloudServer(TemplateServer):
 
                 old_path.rename(new_path)
                 logger.info("Moved file from %s to %s", filepath, new_filepath)
+
+                old_thumbnail_path = self.thumbnails_directory / f"{filepath}.jpg"
+                new_thumbnail_path = self.thumbnails_directory / f"{new_filepath}.jpg"
+                if old_thumbnail_path.exists():
+                    try:
+                        new_thumbnail_path.parent.mkdir(parents=True, exist_ok=True)
+                        old_thumbnail_path.rename(new_thumbnail_path)
+                        logger.info("Moved thumbnail from %s to %s", filepath, new_filepath)
+                    except Exception as e:
+                        logger.warning("Failed to move thumbnail for %s: %s", filepath, e)
 
                 final_filepath = new_filepath
 
@@ -383,6 +499,14 @@ class CloudServer(TemplateServer):
             msg = f"Failed to delete metadata for file: {filepath}"
             logger.exception(msg)
             raise HTTPException(status_code=ResponseCode.INTERNAL_SERVER_ERROR, detail=msg) from e
+
+        thumbnail_path = self.thumbnails_directory / f"{filepath}.jpg"
+        try:
+            if thumbnail_path.exists():
+                thumbnail_path.unlink()
+                logger.info("Deleted thumbnail for file: %s", filepath)
+        except Exception as e:
+            logger.warning("Failed to delete thumbnail for %s: %s", filepath, e)
 
         msg = f"File deleted successfully: {filepath}"
         logger.info(msg)

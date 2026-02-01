@@ -55,9 +55,9 @@ describe("File API Methods", () => {
 
       mockGetFiles.mockResolvedValue(mockResponse);
 
-      const result = await getFiles({ limit: 10 });
+      const result = await getFiles();
 
-      expect(mockGetFiles).toHaveBeenCalledWith({ limit: 10 });
+      expect(mockGetFiles).toHaveBeenCalledWith();
       expect(result.files[0]).toEqual({
         filepath: "test.txt",
         mimeType: "text/plain",

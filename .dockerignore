@@ -57,6 +57,14 @@ docker-compose.yml
 # Tests
 tests/
 
+# Frontend build artifacts
+python-cloud-server-frontend/node_modules/
+python-cloud-server-frontend/.next/
+python-cloud-server-frontend/out/
+
+# Static files (built in Docker)
+static/
+
 # Miscellaneous
 .DS_Store
 *.bak

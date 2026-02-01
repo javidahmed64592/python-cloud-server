@@ -126,9 +126,7 @@ describe("PreviewGrid", () => {
   it("should display empty state when no files", () => {
     render(<PreviewGrid files={[]} />);
 
-    expect(
-      screen.getByText("No files or folders found")
-    ).toBeInTheDocument();
+    expect(screen.getByText("No files or folders found")).toBeInTheDocument();
   });
 
   it("should navigate into folder when clicked", () => {
@@ -196,9 +194,7 @@ describe("PreviewGrid", () => {
     expect(screen.getByTestId("preview-nested.jpg")).toBeInTheDocument();
 
     // Should not show root files
-    expect(
-      screen.queryByTestId("preview-image.jpg")
-    ).not.toBeInTheDocument();
+    expect(screen.queryByTestId("preview-image.jpg")).not.toBeInTheDocument();
     expect(
       screen.queryByTestId("preview-document.txt")
     ).not.toBeInTheDocument();

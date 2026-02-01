@@ -75,7 +75,7 @@ export default function MusicDisplay({ filepath, onClose }: MusicDisplayProps) {
                 controls
                 controlsList="nodownload"
                 className="w-full"
-                style={{ minHeight: '54px' }}
+                style={{ minHeight: "54px" }}
               >
                 Your browser does not support the audio tag.
               </audio>

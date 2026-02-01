@@ -6,7 +6,11 @@ interface PreviewItemProps {
   children: ReactNode;
 }
 
-export default function PreviewItem({ filename, onClick, children }: PreviewItemProps) {
+export default function PreviewItem({
+  filename,
+  onClick,
+  children,
+}: PreviewItemProps) {
   return (
     <button
       onClick={onClick}

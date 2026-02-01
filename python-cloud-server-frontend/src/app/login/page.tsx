@@ -39,7 +39,9 @@ export default function LoginPage() {
       <div className="w-full max-w-md space-y-6 p-8">
         {/* Header */}
         <div className="space-y-2 text-center">
-          <h1 className="text-4xl font-bold text-text-primary">Python Cloud Server</h1>
+          <h1 className="text-4xl font-bold text-text-primary">
+            Python Cloud Server
+          </h1>
           <p className="text-text-muted">Lightweight FastAPI cloud server.</p>
         </div>
 

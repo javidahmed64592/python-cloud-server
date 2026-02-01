@@ -69,11 +69,7 @@ export default function VideoDisplay({ filepath, onClose }: VideoDisplayProps) {
           )}
 
           {videoUrl && !loading && !error && (
-            <video
-              src={videoUrl}
-              controls
-              className="max-h-[70vh] max-w-full"
-            >
+            <video src={videoUrl} controls className="max-h-[70vh] max-w-full">
               Your browser does not support the video tag.
             </video>
           )}

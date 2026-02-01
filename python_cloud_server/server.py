@@ -117,7 +117,7 @@ class CloudServer(TemplateServer):
             endpoint="/files",
             handler_function=self.get_files,
             response_model=GetFilesResponse,
-            methods=["GET"],
+            methods=["POST"],
             limited=True,
         )
         self.add_authenticated_route(

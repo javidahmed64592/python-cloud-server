@@ -2,7 +2,17 @@ import axios from "axios";
 import { useEffect, useState } from "react";
 
 import { getApiKey } from "@/lib/auth";
-import type { HealthResponse, LoginResponse } from "@/lib/types";
+import type {
+  DeleteFileResponse,
+  GetFilesRequest,
+  GetFilesResponse,
+  FileMetadata,
+  HealthResponse,
+  LoginResponse,
+  PatchFileRequest,
+  PatchFileResponse,
+  PostFileResponse,
+} from "@/lib/types";
 
 // Determine the base URL based on environment
 const getBaseURL = () => {
@@ -42,6 +52,16 @@ api.interceptors.request.use(
 
 // Health status type
 export type HealthStatus = "online" | "offline" | "checking";
+
+// Transform snake_case API response to camelCase
+const transformFileMetadata = (data: any): FileMetadata => ({
+  filepath: data.filepath,
+  mimeType: data.mime_type,
+  size: data.size,
+  tags: data.tags,
+  uploadedAt: data.uploaded_at,
+  updatedAt: data.updated_at,
+});
 
 const extractErrorMessage = (error: unknown): string => {
   if (axios.isAxiosError(error)) {
@@ -88,6 +108,81 @@ export const login = async (apiKey: string): Promise<LoginResponse> => {
         "X-API-KEY": apiKey,
       },
     });
+    return response.data;
+  } catch (error) {
+    throw new Error(extractErrorMessage(error));
+  }
+};
+
+// File operations
+export const getFiles = async (
+  request: GetFilesRequest = {}
+): Promise<GetFilesResponse> => {
+  try {
+    const response = await api.post<any>("/files", request);
+    return {
+      ...response.data,
+      files: response.data.files.map(transformFileMetadata),
+    };
+  } catch (error) {
+    throw new Error(extractErrorMessage(error));
+  }
+};
+
+export const downloadFile = async (filepath: string): Promise<Blob> => {
+  try {
+    const response = await api.get(`/files/${filepath}`, {
+      responseType: "blob",
+    });
+    return response.data;
+  } catch (error) {
+    throw new Error(extractErrorMessage(error));
+  }
+};
+
+export const uploadFile = async (
+  filepath: string,
+  file: File
+): Promise<PostFileResponse> => {
+  try {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const response = await api.post<PostFileResponse>(
+      `/files/${filepath}`,
+      formData,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      }
+    );
+    return response.data;
+  } catch (error) {
+    throw new Error(extractErrorMessage(error));
+  }
+};
+
+export const patchFile = async (
+  filepath: string,
+  request: PatchFileRequest
+): Promise<PatchFileResponse> => {
+  try {
+    const response = await api.patch<PatchFileResponse>(
+      `/files/${filepath}`,
+      request
+    );
+    return response.data;
+  } catch (error) {
+    throw new Error(extractErrorMessage(error));
+  }
+};
+
+export const deleteFile = async (
+  filepath: string
+): Promise<DeleteFileResponse> => {
+  try {
+    const response = await api.delete<DeleteFileResponse>(`/files/${filepath}`);
     return response.data;
   } catch (error) {
     throw new Error(extractErrorMessage(error));

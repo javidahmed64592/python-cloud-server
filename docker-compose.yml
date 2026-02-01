@@ -35,4 +35,3 @@ services:
 volumes:
   certs:
   logs:
-  server:

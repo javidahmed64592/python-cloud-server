@@ -190,7 +190,7 @@ export default function PreviewGrid({ files, onFileClick }: PreviewGridProps) {
         {/* Breadcrumb navigation */}
         <div className="flex-shrink-0">
           {currentPath && (
-            <div className="px-6 pt-4 pb-2">
+            <div className="px-4 sm:px-6 pt-4 pb-2">
               <button
                 onClick={handleBackClick}
                 className="text-neon-green hover:opacity-80 transition-opacity"
@@ -205,8 +205,8 @@ export default function PreviewGrid({ files, onFileClick }: PreviewGridProps) {
         </div>
 
         {/* Grid area */}
-        <div className="flex-1 overflow-hidden px-6">
-          <div className="grid grid-cols-4 lg:grid-cols-6 gap-4 h-full content-start">
+        <div className="flex-1 overflow-hidden px-4 sm:px-6">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4 h-full content-start">
             {paginatedItems.map(item => {
               if (item.type === "folder") {
                 return (
@@ -258,11 +258,11 @@ export default function PreviewGrid({ files, onFileClick }: PreviewGridProps) {
 
           {/* Pagination Controls */}
           {totalPages > 1 && (
-            <div className="flex items-center justify-center gap-2 px-6 pb-4">
+            <div className="flex items-center justify-center gap-2 px-4 sm:px-6 pb-4">
               <button
                 onClick={() => handlePageChange(currentPage - 1)}
                 disabled={currentPage === 1}
-                className="px-4 py-2 bg-terminal-bg border border-terminal-border text-text-primary hover:bg-terminal-border disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="px-3 sm:px-4 py-2 bg-terminal-bg border border-terminal-border text-text-primary hover:bg-terminal-border disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
               >
                 Previous
               </button>
@@ -293,7 +293,7 @@ export default function PreviewGrid({ files, onFileClick }: PreviewGridProps) {
                       return (
                         <span
                           key={`ellipsis-${page}`}
-                          className="px-3 py-2 text-text-muted"
+                          className="px-2 sm:px-3 py-2 text-text-muted text-sm"
                         >
                           ...
                         </span>
@@ -304,7 +304,7 @@ export default function PreviewGrid({ files, onFileClick }: PreviewGridProps) {
                       <button
                         key={page}
                         onClick={() => handlePageChange(page)}
-                        className={`px-4 py-2 border transition-colors ${
+                        className={`px-3 sm:px-4 py-2 border transition-colors text-sm ${
                           page === currentPage
                             ? "bg-neon-green text-terminal-bg border-neon-green font-bold"
                             : "bg-terminal-bg border-terminal-border text-text-primary hover:bg-terminal-border"
@@ -320,7 +320,7 @@ export default function PreviewGrid({ files, onFileClick }: PreviewGridProps) {
               <button
                 onClick={() => handlePageChange(currentPage + 1)}
                 disabled={currentPage === totalPages}
-                className="px-4 py-2 bg-terminal-bg border border-terminal-border text-text-primary hover:bg-terminal-border disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="px-3 sm:px-4 py-2 bg-terminal-bg border border-terminal-border text-text-primary hover:bg-terminal-border disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
               >
                 Next
               </button>

@@ -205,8 +205,8 @@ export default function PreviewGrid({ files, onFileClick }: PreviewGridProps) {
         </div>
 
         {/* Grid area */}
-        <div className="flex-1 overflow-hidden px-4 sm:px-6">
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4 h-full content-start">
+        <div className="flex-1 overflow-y-auto px-4 sm:px-6">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4 py-4 content-start">
             {paginatedItems.map(item => {
               if (item.type === "folder") {
                 return (

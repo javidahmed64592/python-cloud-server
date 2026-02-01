@@ -96,10 +96,13 @@ const extractFolders = (
     }));
 };
 
+const ITEMS_PER_PAGE = 24; // 4x6 grid
+
 export default function PreviewGrid({ files, onFileClick }: PreviewGridProps) {
   const [selectedFile, setSelectedFile] = useState<FileMetadata | null>(null);
   const [displayType, setDisplayType] = useState<FileType | null>(null);
   const [currentPath, setCurrentPath] = useState<string>("");
+  const [currentPage, setCurrentPage] = useState<number>(1);
 
   const handleFileClick = (file: FileMetadata) => {
     const fileType = getFileType(file.mimeType);
@@ -132,12 +135,14 @@ export default function PreviewGrid({ files, onFileClick }: PreviewGridProps) {
 
   const handleFolderClick = (folderPath: string) => {
     setCurrentPath(folderPath);
+    setCurrentPage(1); // Reset to first page when navigating folders
   };
 
   const handleBackClick = () => {
     const parts = currentPath.split("/").filter(Boolean);
     parts.pop();
     setCurrentPath(parts.join("/"));
+    setCurrentPage(1); // Reset to first page when navigating back
   };
 
   const handleCloseDisplay = () => {
@@ -167,61 +172,158 @@ export default function PreviewGrid({ files, onFileClick }: PreviewGridProps) {
     ...filteredFiles.map(f => ({ type: "file" as const, metadata: f })),
   ];
 
+  // Calculate pagination
+  const totalItems = gridItems.length;
+  const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const endIndex = startIndex + ITEMS_PER_PAGE;
+  const paginatedItems = gridItems.slice(startIndex, endIndex);
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
   return (
     <>
-      <div className="space-y-4">
+      <div className="flex flex-col h-full overflow-hidden">
         {/* Breadcrumb navigation */}
-        {currentPath && (
-          <div className="px-6 pt-6">
-            <button
-              onClick={handleBackClick}
-              className="text-neon-green hover:opacity-80 transition-opacity"
-            >
-              ← Back
-            </button>
-            <div className="mt-2 text-sm text-text-muted">
-              Current folder: {currentPath}
+        <div className="flex-shrink-0">
+          {currentPath && (
+            <div className="px-6 pt-4 pb-2">
+              <button
+                onClick={handleBackClick}
+                className="text-neon-green hover:opacity-80 transition-opacity"
+              >
+                ← Back
+              </button>
+              <div className="mt-2 text-sm text-text-muted">
+                Current folder: {currentPath}
+              </div>
             </div>
+          )}
+        </div>
+
+        {/* Grid area */}
+        <div className="flex-1 overflow-hidden px-6">
+          <div className="grid grid-cols-4 lg:grid-cols-6 gap-4 h-full content-start">
+            {paginatedItems.map(item => {
+              if (item.type === "folder") {
+                return (
+                  <PreviewItem
+                    key={`folder-${item.path}`}
+                    filename={item.name}
+                    onClick={() =>
+                      handleFolderClick(
+                        currentPath ? `${currentPath}/${item.name}` : item.name
+                      )
+                    }
+                  >
+                    {getPreviewComponent("folder")}
+                  </PreviewItem>
+                );
+              } else {
+                const fileType = getFileType(item.metadata.mimeType);
+                const filename =
+                  item.metadata.filepath.split("/").pop() ||
+                  item.metadata.filepath;
+
+                return (
+                  <PreviewItem
+                    key={item.metadata.filepath}
+                    filename={filename}
+                    onClick={() => handleFileClick(item.metadata)}
+                  >
+                    {getPreviewComponent(fileType)}
+                  </PreviewItem>
+                );
+              }
+            })}
+
+            {paginatedItems.length === 0 && (
+              <div className="col-span-full flex items-center justify-center h-64 text-text-muted">
+                No files or folders found
+              </div>
+            )}
           </div>
-        )}
+        </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 px-6 pb-6">
-          {gridItems.map(item => {
-            if (item.type === "folder") {
-              return (
-                <PreviewItem
-                  key={`folder-${item.path}`}
-                  filename={item.name}
-                  onClick={() =>
-                    handleFolderClick(
-                      currentPath ? `${currentPath}/${item.name}` : item.name
-                    )
+        {/* Pagination footer */}
+        <div className="flex-shrink-0 border-t border-terminal-border bg-background">
+          {/* Items count */}
+          <div className="text-center text-sm text-text-muted py-3">
+            Showing {startIndex + 1}-{Math.min(endIndex, totalItems)} of{" "}
+            {totalItems} items
+          </div>
+
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-center gap-2 px-6 pb-4">
+              <button
+                onClick={() => handlePageChange(currentPage - 1)}
+                disabled={currentPage === 1}
+                className="px-4 py-2 bg-terminal-bg border border-terminal-border text-text-primary hover:bg-terminal-border disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                Previous
+              </button>
+
+              <div className="flex gap-1">
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                  page => {
+                    // Show first page, last page, current page, and pages around current
+                    const showPage =
+                      page === 1 ||
+                      page === totalPages ||
+                      (page >= currentPage - 1 && page <= currentPage + 1);
+
+                    const showEllipsisBefore =
+                      page === currentPage - 2 && currentPage > 3;
+                    const showEllipsisAfter =
+                      page === currentPage + 2 && currentPage < totalPages - 2;
+
+                    if (
+                      !showPage &&
+                      !showEllipsisBefore &&
+                      !showEllipsisAfter
+                    ) {
+                      return null;
+                    }
+
+                    if (showEllipsisBefore || showEllipsisAfter) {
+                      return (
+                        <span
+                          key={`ellipsis-${page}`}
+                          className="px-3 py-2 text-text-muted"
+                        >
+                          ...
+                        </span>
+                      );
+                    }
+
+                    return (
+                      <button
+                        key={page}
+                        onClick={() => handlePageChange(page)}
+                        className={`px-4 py-2 border transition-colors ${
+                          page === currentPage
+                            ? "bg-neon-green text-terminal-bg border-neon-green font-bold"
+                            : "bg-terminal-bg border-terminal-border text-text-primary hover:bg-terminal-border"
+                        }`}
+                      >
+                        {page}
+                      </button>
+                    );
                   }
-                >
-                  {getPreviewComponent("folder")}
-                </PreviewItem>
-              );
-            } else {
-              const fileType = getFileType(item.metadata.mimeType);
-              const filename =
-                item.metadata.filepath.split("/").pop() ||
-                item.metadata.filepath;
+                )}
+              </div>
 
-              return (
-                <PreviewItem
-                  key={item.metadata.filepath}
-                  filename={filename}
-                  onClick={() => handleFileClick(item.metadata)}
-                >
-                  {getPreviewComponent(fileType)}
-                </PreviewItem>
-              );
-            }
-          })}
-
-          {gridItems.length === 0 && (
-            <div className="col-span-full flex items-center justify-center h-64 text-text-muted">
-              No files or folders found
+              <button
+                onClick={() => handlePageChange(currentPage + 1)}
+                disabled={currentPage === totalPages}
+                className="px-4 py-2 bg-terminal-bg border border-terminal-border text-text-primary hover:bg-terminal-border disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                Next
+              </button>
             </div>
           )}
         </div>

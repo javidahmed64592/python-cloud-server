@@ -82,6 +82,9 @@ jest.mock("@/components/drive/displays/MusicDisplay", () => ({
   ),
 }));
 
+// Mock window.scrollTo
+global.scrollTo = jest.fn();
+
 describe("PreviewGrid", () => {
   const mockFiles: FileMetadata[] = [
     {
@@ -109,6 +112,18 @@ describe("PreviewGrid", () => {
       updatedAt: "2023-01-01T00:00:00Z",
     },
   ];
+
+  // Helper function to generate large file sets for pagination testing
+  const generateMockFiles = (count: number): FileMetadata[] => {
+    return Array.from({ length: count }, (_, i) => ({
+      filepath: `file${i}.jpg`,
+      mimeType: "image/jpeg",
+      size: 1024,
+      tags: [],
+      uploadedAt: "2023-01-01T00:00:00Z",
+      updatedAt: "2023-01-01T00:00:00Z",
+    }));
+  };
 
   it("should render files at root level", () => {
     render(<PreviewGrid files={mockFiles} />);
@@ -233,5 +248,163 @@ describe("PreviewGrid", () => {
     expect(screen.getByTestId("preview-image.png")).toBeInTheDocument();
     expect(screen.getByTestId("preview-video.mp4")).toBeInTheDocument();
     expect(screen.getByTestId("preview-audio.mp3")).toBeInTheDocument();
+  });
+
+  describe("Pagination", () => {
+    it("should display pagination controls when more than 24 items", () => {
+      const manyFiles = generateMockFiles(30);
+      render(<PreviewGrid files={manyFiles} />);
+
+      expect(screen.getByText("Previous")).toBeInTheDocument();
+      expect(screen.getByText("Next")).toBeInTheDocument();
+      expect(screen.getByText("1")).toBeInTheDocument();
+      expect(screen.getByText("2")).toBeInTheDocument();
+    });
+
+    it("should not display pagination when 24 or fewer items", () => {
+      const fewFiles = generateMockFiles(20);
+      render(<PreviewGrid files={fewFiles} />);
+
+      expect(screen.queryByText("Previous")).not.toBeInTheDocument();
+      expect(screen.queryByText("Next")).not.toBeInTheDocument();
+    });
+
+    it("should display correct items count", () => {
+      const manyFiles = generateMockFiles(30);
+      render(<PreviewGrid files={manyFiles} />);
+
+      expect(screen.getByText("Showing 1-24 of 30 items")).toBeInTheDocument();
+    });
+
+    it("should navigate to next page", () => {
+      const manyFiles = generateMockFiles(30);
+      render(<PreviewGrid files={manyFiles} />);
+
+      // Click next button
+      const nextButton = screen.getByText("Next");
+      fireEvent.click(nextButton);
+
+      // Should show items 25-30
+      expect(screen.getByText("Showing 25-30 of 30 items")).toBeInTheDocument();
+      expect(screen.getByTestId("preview-file24.jpg")).toBeInTheDocument();
+    });
+
+    it("should navigate to previous page", () => {
+      const manyFiles = generateMockFiles(30);
+      render(<PreviewGrid files={manyFiles} />);
+
+      // Go to page 2
+      const nextButton = screen.getByText("Next");
+      fireEvent.click(nextButton);
+
+      // Go back to page 1
+      const prevButton = screen.getByText("Previous");
+      fireEvent.click(prevButton);
+
+      expect(screen.getByText("Showing 1-24 of 30 items")).toBeInTheDocument();
+      expect(screen.getByTestId("preview-file0.jpg")).toBeInTheDocument();
+    });
+
+    it("should disable Previous button on first page", () => {
+      const manyFiles = generateMockFiles(30);
+      render(<PreviewGrid files={manyFiles} />);
+
+      const prevButton = screen.getByText("Previous");
+      expect(prevButton).toBeDisabled();
+    });
+
+    it("should disable Next button on last page", () => {
+      const manyFiles = generateMockFiles(30);
+      render(<PreviewGrid files={manyFiles} />);
+
+      // Go to last page
+      const nextButton = screen.getByText("Next");
+      fireEvent.click(nextButton);
+
+      expect(nextButton).toBeDisabled();
+    });
+
+    it("should highlight current page number", () => {
+      const manyFiles = generateMockFiles(30);
+      render(<PreviewGrid files={manyFiles} />);
+
+      const page1Button = screen.getByText("1");
+      expect(page1Button).toHaveClass("bg-neon-green");
+
+      // Navigate to page 2
+      const nextButton = screen.getByText("Next");
+      fireEvent.click(nextButton);
+
+      const page2Button = screen.getByText("2");
+      expect(page2Button).toHaveClass("bg-neon-green");
+    });
+
+    it("should reset to page 1 when navigating into folder", async () => {
+      // Create a file that would be on page 2, then a folder with content
+      const filesWithFolders = [
+        ...generateMockFiles(25), // This creates 25 files, so we need page 2
+        {
+          filepath: "testfolder/file.jpg",
+          mimeType: "image/jpeg",
+          size: 1024,
+          tags: [],
+          uploadedAt: "2023-01-01T00:00:00Z",
+          updatedAt: "2023-01-01T00:00:00Z",
+        },
+      ];
+
+      render(<PreviewGrid files={filesWithFolders} />);
+
+      // Folder 'testfolder' will be on first page (folders are rendered before files)
+      const folderButton = screen.getByTestId("preview-testfolder");
+
+      // Navigate into folder (this should work immediately)
+      fireEvent.click(folderButton);
+
+      // Should show only the file inside the folder
+      await waitFor(() => {
+        expect(screen.getByText("Showing 1-1 of 1 items")).toBeInTheDocument();
+        expect(
+          screen.getByText("Current folder: testfolder")
+        ).toBeInTheDocument();
+      });
+    });
+
+    it("should reset to page 1 when navigating back from folder", () => {
+      const manyFiles = generateMockFiles(30);
+      const filesWithFolders = [
+        ...manyFiles,
+        {
+          filepath: "folder/file.jpg",
+          mimeType: "image/jpeg",
+          size: 1024,
+          tags: [],
+          uploadedAt: "2023-01-01T00:00:00Z",
+          updatedAt: "2023-01-01T00:00:00Z",
+        },
+      ];
+
+      render(<PreviewGrid files={filesWithFolders} />);
+
+      // Navigate into folder
+      const folderButton = screen.getByTestId("preview-folder");
+      fireEvent.click(folderButton);
+
+      // Navigate back
+      const backButton = screen.getByText("← Back");
+      fireEvent.click(backButton);
+
+      // Should be on page 1
+      expect(screen.getByText("Showing 1-24 of 31 items")).toBeInTheDocument();
+    });
+
+    it("should display 24 items per page (4x6 grid)", () => {
+      const manyFiles = generateMockFiles(50);
+      render(<PreviewGrid files={manyFiles} />);
+
+      // Count rendered preview items
+      const previewItems = screen.getAllByTestId(/preview-file/);
+      expect(previewItems).toHaveLength(24);
+    });
   });
 });

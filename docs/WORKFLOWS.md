@@ -1,6 +1,6 @@
 # GitHub Workflows
 
-This document details the CI/CD workflows to build and release the Python Cloud Server application.
+This document details the CI/CD workflows to build and release the application.
 They run automated code quality checks to ensure code remains robust, maintainable, and testable.
 
 ## CI Workflow
@@ -33,7 +33,7 @@ It consists of the following jobs:
 ### bandit
 - Checkout code
 - Setup Python environment with dev dependencies (via custom action)
-- Run security scanning with bandit on `python_cloud_server/` directory
+- Run security scanning with bandit
 - Generate JSON report for artifacts
 - Fail if security vulnerabilities are found
 
@@ -41,6 +41,14 @@ It consists of the following jobs:
 - Checkout code
 - Setup Python environment with dev dependencies (via custom action)
 - Audit dependencies for known CVEs using `pip-audit --desc`
+
+### frontend
+- Checkout code
+- Set up Node.js  and dependencies with npm caching (via custom action)
+- Run type checking with `npm run type-check`
+- Run linting with `npm run lint`
+- Run formatting check with `npm run format`
+- Run tests with `npm run test`
 
 ### version-check
 - Checkout code
@@ -52,12 +60,20 @@ It consists of the following jobs:
 The Build workflow runs on pushes and pull requests to the `main` branch.
 It consists of the following jobs:
 
+### build-frontend
+- Checkout code
+- Set up Node.js and dependencies with npm caching (via custom action)
+- Build frontend with `npm run build`
+- Upload frontend build artifact
+
 ### build-wheel
+- Depends on `build-frontend` job
 - Checkout code
 - Setup Python environment with dev dependencies (via custom action)
+- Download frontend build artifact to `static/` directory
 - Build wheel with `uv build`
 - Inspect wheel contents for verification
-- Upload wheel artifact (`python_cloud_server_wheel`)
+- Upload wheel artifact
 
 ### verify-structure
 - Depends on `build-wheel` job
@@ -66,7 +82,6 @@ It consists of the following jobs:
 - Download wheel artifact
 - Install wheel using `uv pip install`
 - Verify installed package structure in site-packages
-- Display directory structure with tree views for verification
 
 ## Docker Workflow
 
@@ -75,38 +90,32 @@ It consists of the following jobs:
 
 ### build-docker
 - Checkout code
+- Create `.env` file from `.env.example` template
 - Build and start services with `docker compose up --build -d`
 - Wait for services to start (5 seconds)
-- Show server logs from `python-cloud-server` container
+- Show server logs from container
 - **Health check** using reusable composite action `.github/actions/docker-check-containers` with port 443
 - Stop services with full cleanup: `docker compose down --volumes --remove-orphans`
 
 ### prepare-release
+- Depends on `build-docker` job
 - Checkout code
 - Setup Python environment with dev dependencies (via custom action)
 - Extract version from `pyproject.toml` using Python's `tomllib`
-- Prepare release directory: copy `docker-compose.yml` and `README.md` to `release/`, make `install_cloud_server.sh` executable, rename `release/` to `python_cloud_server_<version>`, display directory tree
+- Prepare release directory
+- Display directory tree structure
 - Create compressed tarball of the release directory
-- Upload tarball as artifact (`python_cloud_server_release`)
-
-### check-installer
-- Depends on `prepare-release` job
-- Checkout code
-- Setup Python environment (via custom action)
-- Download release tarball artifact
-- Extract tarball
-- Verify pre-installation contents: check for `docker-compose.yml`, `README.md`, and executable `install_cloud_server.sh`
-- Run installer script (non-interactive, defaults to port 443)
-- Verify post-installation contents: ensure installer script is removed, check for created service files (`python-cloud-server.service`, `start_service.sh`, `stop_service.sh`, `uninstall_python_cloud_server.sh`) and verify scripts are executable
+- Upload tarball as artifact
 
 ### publish-release
-- Depends on `build-docker` and `check-installer` jobs
+- Depends on `prepare-release` job
 - Only runs on push to `main` branch (not PRs)
 - Requires `contents: write` and `packages: write` permissions
 - Checkout code
 - Setup Python environment with dev dependencies (via custom action)
 - Extract version from `pyproject.toml` using Python's `tomllib`
 - Check if Git tag already exists (skip if duplicate)
+- Download release tarball artifact
 - Set up Docker Buildx for multi-platform builds
 - Log in to GitHub Container Registry (ghcr.io)
 - Extract Docker metadata with semantic versioning tags:

@@ -64,7 +64,8 @@ uv run pre-commit install
 Before running the server, you need to generate an API authentication token.
 
 ```sh
-uv run generate-new-token
+cp .env.example .env       # Set HOST and PORT to override defaults
+uv run generate-new-token  # Set API_TOKEN_HASH variable
 ```
 
 This command:

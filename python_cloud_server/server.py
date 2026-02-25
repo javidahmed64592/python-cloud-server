@@ -54,7 +54,7 @@ class CloudServer(TemplateServer):
     @property
     def thumbnails_directory(self) -> Path:
         """Get the thumbnails directory path."""
-        return self.server_directory / "thumbnails"
+        return self.storage_directory / ".thumbnails"
 
     @property
     def metadata_filepath(self) -> Path:
@@ -77,7 +77,7 @@ class CloudServer(TemplateServer):
             # Add existing files on disk to metadata if missing
             filepaths_to_add: list[FileMetadata] = []
             for file_path in self.storage_directory.rglob("*"):
-                if file_path.is_file():
+                if file_path.is_file() and not file_path.is_relative_to(self.thumbnails_directory):
                     relative_path = file_path.relative_to(self.storage_directory).as_posix()
                     if not self.metadata_manager.file_exists(relative_path):
                         size = file_path.stat().st_size
@@ -274,6 +274,11 @@ class CloudServer(TemplateServer):
         :raise HTTPException: If file not found
         """
         logger.info("Received get file request for: %s", filepath)
+
+        if (self.storage_directory / filepath).is_relative_to(self.thumbnails_directory):
+            msg = f"Access to thumbnails directory is not allowed: {filepath}"
+            logger.error(msg)
+            raise HTTPException(status_code=ResponseCode.FORBIDDEN, detail=msg)
 
         if not self.metadata_manager.file_exists(filepath):
             msg = f"File not found in metadata: {filepath}"

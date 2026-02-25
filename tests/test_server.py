@@ -61,7 +61,7 @@ def mock_server(
         return
 
     storage_path = mock_server_root_path / "storage"
-    thumbnails_path = mock_server_root_path / "thumbnails"
+    thumbnails_path = mock_server_root_path / "storage" / ".thumbnails"
 
     with (
         patch.object(CloudServer, "_verify_api_key", new=fake_verify_api_key),
@@ -97,13 +97,16 @@ class TestCloudServer:
     def test_init(self, mock_server: CloudServer) -> None:
         """Test CloudServer initialization."""
         assert isinstance(mock_server.config, CloudServerConfig)
+        assert mock_server.server_directory.exists()
         assert mock_server.storage_directory.exists()
         assert mock_server.metadata_filepath.parent.exists()
+        assert mock_server.thumbnails_directory.exists()
 
     def test_server_directory_properties(self, mock_server: CloudServer) -> None:
         """Test server directory property methods."""
         assert mock_server.storage_directory == mock_server.server_directory / "storage"
         assert mock_server.metadata_filepath == mock_server.server_directory / "metadata.json"
+        assert mock_server.thumbnails_directory == mock_server.storage_directory / ".thumbnails"
 
     def test_validate_config(self, mock_server: CloudServer, mock_cloud_server_config: CloudServerConfig) -> None:
         """Test configuration validation."""
@@ -234,6 +237,21 @@ class TestGetFileEndpoint:
         assert mock_file_response.media_type == mock_file_metadata.mime_type
         assert mock_file_response.filename == Path(mock_file_metadata.filepath).name
 
+    def test_get_file_in_thumbnails_directory(
+        self,
+        mock_server: CloudServer,
+        mock_request_object: Request,
+    ) -> None:
+        """Test get_file raises 403 when file is in thumbnails directory."""
+        filepath = ".thumbnails/file.txt"
+
+        with pytest.raises(
+            HTTPException, match=rf"Access to thumbnails directory is not allowed: {filepath}"
+        ) as exc_info:
+            asyncio.run(mock_server.get_file(mock_request_object, filepath))
+
+        assert exc_info.value.status_code == ResponseCode.FORBIDDEN
+
     def test_get_file_not_found_in_metadata(
         self,
         mock_server: CloudServer,
@@ -242,11 +260,10 @@ class TestGetFileEndpoint:
         """Test get_file raises 404 when file not in metadata."""
         filepath = "nonexistent/file.txt"
 
-        with pytest.raises(HTTPException) as exc_info:
+        with pytest.raises(HTTPException, match=rf"File not found in metadata: {filepath}") as exc_info:
             asyncio.run(mock_server.get_file(mock_request_object, filepath))
 
         assert exc_info.value.status_code == ResponseCode.NOT_FOUND
-        assert f"File not found in metadata: {filepath}" in str(exc_info.value.detail)
 
     def test_get_file_not_found_on_disk(
         self,

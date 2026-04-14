@@ -38,7 +38,6 @@ Rename `.env.example` to `.env` and edit it to configure the server.
 - `HOST`: Server host address (default: localhost)
 - `PORT`: Server port (default: 443)
 - `API_TOKEN_HASH`: Leave blank to auto-generate on first run, or provide your own token hash
-- `GEMINI_API_KEY`: API key from Google AI Studio
 
 ### Managing the Container
 

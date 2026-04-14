@@ -35,7 +35,7 @@ class CloudServer(TemplateServer):
         :param CloudServerConfig | None config: Optional pre-loaded configuration
         """
         self.config: CloudServerConfig
-        super().__init__(package_name="python_cloud_server", config=config)
+        super().__init__(package_name="python-cloud-server", config=config)
 
         self._initialize_storage()
         self._initialize_metadata()

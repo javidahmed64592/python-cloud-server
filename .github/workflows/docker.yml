@@ -18,12 +18,8 @@ jobs:
 
       - uses: ./.github/actions/docker/build-start-services
         if: github.event.repository.name == 'python-template-server'
-        with:
-          build-args: "--profile cpu"
       - uses: javidahmed64592/python-template-server/.github/actions/docker/build-start-services@main
         if: github.event.repository.name != 'python-template-server'
-        with:
-          build-args: "--profile cpu"
 
       - uses: ./.github/actions/docker/show-logs
         if: github.event.repository.name == 'python-template-server'

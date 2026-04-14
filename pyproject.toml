@@ -18,8 +18,8 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
 ]
 dependencies = [
+    "pillow>=12.2.0",
     "python-template-server @ git+https://github.com/javidahmed64592/python-template-server.git",
-    "pillow>=12.1.1",
     "opencv-python-headless>=4.13.0",
 ]
 
@@ -27,9 +27,13 @@ dependencies = [
 dev = [
     "python-template-server[dev] @ git+https://github.com/javidahmed64592/python-template-server.git",
 ]
+docs = [
+    "python-template-server[docs] @ git+https://github.com/javidahmed64592/python-template-server.git",
+]
 
 [project.urls]
 repository = "https://github.com/javidahmed64592/python-cloud-server"
+documentation = "https://javidahmed64592.github.io/python-cloud-server"
 
 [project.scripts]
 python-cloud-server = "python_cloud_server.main:run"
@@ -167,5 +171,6 @@ pretty = true
 [[tool.mypy.overrides]]
 module = [
     "python_template_server.*",
+    "template_python.*",
 ]
 ignore_missing_imports = true

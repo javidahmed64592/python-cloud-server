@@ -6,7 +6,7 @@ from pathlib import Path
 
 from fastapi import HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse
-from python_template_server.constants import BYTES_TO_MB, ROOT_DIR
+from python_template_server.constants import MB_TO_BYTES, ROOT_DIR
 from python_template_server.models import ResponseCode
 from python_template_server.template_server import TemplateServer
 
@@ -304,7 +304,7 @@ class CloudServer(TemplateServer):
         :param Path full_path: The full file path
         :param int file_size: The size of the file in bytes
         """
-        if file_size > self.config.storage_config.max_file_size_mb * BYTES_TO_MB:
+        if file_size > self.config.storage_config.max_file_size_mb * MB_TO_BYTES:
             full_path.unlink(missing_ok=True)
             msg = f"File size exceeds maximum limit: {full_path} ({file_size} bytes)"
             logger.error(msg)

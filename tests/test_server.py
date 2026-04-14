@@ -12,7 +12,7 @@ from fastapi import HTTPException, Request, Security, UploadFile
 from fastapi.routing import APIRoute
 from fastapi.security import APIKeyHeader
 from fastapi.testclient import TestClient
-from python_template_server.constants import BYTES_TO_MB
+from python_template_server.constants import MB_TO_BYTES
 from python_template_server.models import ResponseCode
 
 from python_cloud_server.metadata import MetadataManager
@@ -367,7 +367,7 @@ class TestPostFileEndpoint:
         mock_request_object: Request,
     ) -> None:
         """Test post_file returns error when file exceeds size limit."""
-        max_size = mock_server.config.storage_config.max_file_size_mb * BYTES_TO_MB
+        max_size = mock_server.config.storage_config.max_file_size_mb * MB_TO_BYTES
         large_content = b"X" * (max_size + 1000)
         mock_file = _mock_file_factory(self.MOCK_FILENAME, large_content, "application/octet-stream")
 

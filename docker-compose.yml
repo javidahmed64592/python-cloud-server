@@ -15,7 +15,7 @@ services:
       - ./.env:/app/.env
       - ./certs:/app/certs
       - ./logs:/app/logs
-      - /mnt/cloud-server:/app/server
+      - ${SERVER_PATH:-./server}:/app/server
     restart: unless-stopped
     healthcheck:
       test:

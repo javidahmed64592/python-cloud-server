@@ -61,94 +61,11 @@ class CloudServer(TemplateServer):
         """Get the metadata file path."""
         return self.server_directory / "metadata.json"
 
-    def _initialize_storage(self) -> None:
-        """Initialize storage directories and verify configuration."""
-        if not self.server_directory.exists():
-            logger.error("Server directory does not exist: %s", self.server_directory)
-            raise SystemExit(1)
-
-        self.storage_directory.mkdir(parents=True, exist_ok=True)
-        logger.info("Storage directory ready: %s", self.storage_directory)
-
-    def _initialize_metadata(self) -> None:
-        """Initialize metadata manager."""
-        self.metadata_manager = MetadataManager(self.metadata_filepath)
-        with self.metadata_manager._lock:
-            # Add existing files on disk to metadata if missing
-            filepaths_to_add: list[FileMetadata] = []
-            for file_path in self.storage_directory.rglob("*"):
-                if file_path.is_file() and not file_path.is_relative_to(self.thumbnails_directory):
-                    relative_path = file_path.relative_to(self.storage_directory).as_posix()
-                    if not self.metadata_manager.file_exists(relative_path):
-                        size = file_path.stat().st_size
-                        mime_type, _ = mimetypes.guess_type(str(file_path))
-                        if mime_type is None:
-                            mime_type = "application/octet-stream"
-                        file_metadata = FileMetadata.new_current_instance(
-                            filepath=relative_path,
-                            mime_type=mime_type,
-                            size=size,
-                            tags=[],
-                        )
-                        filepaths_to_add.append(file_metadata)
-
-            if filepaths_to_add:
-                logger.info("Syncing %d files from storage", len(filepaths_to_add))
-                self.metadata_manager.add_file_entries(filepaths_to_add)
-
-            # Remove metadata entries for files that no longer exist on disk
-            filepaths_to_remove: list[str] = []
-            for filepath in list(self.metadata_manager._metadata.keys()):
-                full_path = self.storage_directory / filepath
-                if not full_path.exists():
-                    filepaths_to_remove.append(filepath)
-
-            if filepaths_to_remove:
-                logger.info("Removing %d stale metadata entries", len(filepaths_to_remove))
-                self.metadata_manager.delete_file_entries(filepaths_to_remove)
-
-        logger.info("Metadata manager initialized with %d files", self.metadata_manager.file_count)
-
-    def _initialize_thumbnails(self) -> None:
-        """Initialize thumbnail generator and sync thumbnails with files."""
-        self.thumbnails_directory.mkdir(parents=True, exist_ok=True)
-        logger.info("Thumbnails directory ready: %s", self.thumbnails_directory)
-
-        thumbnail_size = self.config.storage_config.thumbnail_size
-        self.thumbnail_generator = ThumbnailGenerator(thumbnail_size=(thumbnail_size, thumbnail_size))
-
-        thumbnails_to_add = []
-
-        for filepath, file_metadata in self.metadata_manager._metadata.items():
-            mime_type = file_metadata.mime_type
-
-            # Only generate thumbnails for images and videos
-            if not (mime_type.startswith("image/") or mime_type.startswith("video/")):
-                continue
-
-            source_file = self.storage_directory / filepath
-            thumbnail_file = self.thumbnails_directory / f"{filepath}.jpg"
-
-            # Skip if thumbnail already exists
-            if thumbnail_file.exists():
-                continue
-
-            thumbnails_to_add.append((source_file, thumbnail_file, mime_type))
-
-        # Generate thumbnail
-        if thumbnails_to_add:
-            for source_file, thumbnail_file, mime_type in thumbnails_to_add:
-                logger.info("Generating thumbnail for: %s", source_file)
-                self.thumbnail_generator.generate_thumbnail(source_file, mime_type, thumbnail_file)
-
-        logger.info("Thumbnail sync complete: %d generated", len(thumbnails_to_add))
-
     def validate_config(self, config_data: dict) -> CloudServerConfig:
         """Validate configuration data against the TemplateServerConfig model.
 
         :param dict config_data: The configuration data to validate
         :return TemplateServerConfig: The validated configuration model
-        :raise ValidationError: If the configuration data is invalid
         """
         return CloudServerConfig.model_validate(config_data)  # type: ignore[no-any-return]
 
@@ -197,23 +114,111 @@ class CloudServer(TemplateServer):
             limited=True,
         )
 
+    def _initialize_storage(self) -> None:
+        """Initialize storage directories and verify configuration.
+
+        :raise SystemExit: If server directory does not exist
+        """
+        if not self.server_directory.exists():
+            logger.error("Server directory does not exist: %s", self.server_directory)
+            raise SystemExit(1)
+
+        self.storage_directory.mkdir(parents=True, exist_ok=True)
+        logger.info("Storage directory ready: %s", self.storage_directory)
+
+    def _initialize_metadata(self) -> None:
+        """Initialize metadata manager."""
+        self.metadata_manager = MetadataManager(self.metadata_filepath)
+        with self.metadata_manager._lock:
+            # Add existing files on disk to metadata if missing
+            filepaths_to_add: list[FileMetadata] = []
+            for file_path in self.storage_directory.rglob("*"):
+                if file_path.is_file() and not file_path.is_relative_to(self.thumbnails_directory):
+                    relative_path = file_path.relative_to(self.storage_directory).as_posix()
+                    if not self.metadata_manager.file_exists(filepath=relative_path):
+                        size = file_path.stat().st_size
+                        mime_type, _ = mimetypes.guess_type(str(file_path))
+                        if mime_type is None:
+                            mime_type = "application/octet-stream"
+                        file_metadata = FileMetadata.new_current_instance(
+                            filepath=relative_path,
+                            mime_type=mime_type,
+                            size=size,
+                            tags=[],
+                        )
+                        filepaths_to_add.append(file_metadata)
+
+            if filepaths_to_add:
+                logger.info("Syncing %d files from storage", len(filepaths_to_add))
+                self.metadata_manager.add_file_entries(filepaths_to_add)
+
+            # Remove metadata entries for files that no longer exist on disk
+            filepaths_to_remove = [
+                filepath
+                for filepath in self.metadata_manager._metadata.keys()
+                if not (self.storage_directory / filepath).exists()
+            ]
+
+            if filepaths_to_remove:
+                logger.info("Removing %d stale metadata entries", len(filepaths_to_remove))
+                self.metadata_manager.delete_file_entries(filepaths_to_remove)
+
+        logger.info("Metadata manager initialized with %d files", self.metadata_manager.file_count)
+
+    def _initialize_thumbnails(self) -> None:
+        """Initialize thumbnail generator and sync thumbnails with files."""
+        self.thumbnails_directory.mkdir(parents=True, exist_ok=True)
+        logger.info("Thumbnails directory ready: %s", self.thumbnails_directory)
+
+        self.thumbnail_generator = ThumbnailGenerator(
+            thumbnail_size=(self.config.storage_config.thumbnail_size, self.config.storage_config.thumbnail_size)
+        )
+
+        thumbnails_to_add = []
+
+        for filepath, file_metadata in self.metadata_manager._metadata.items():
+            mime_type = file_metadata.mime_type
+
+            # Only generate thumbnails for images and videos
+            if not (mime_type.startswith("image/") or mime_type.startswith("video/")):
+                continue
+
+            source_file = self.storage_directory / filepath
+            thumbnail_file = self.thumbnails_directory / f"{filepath}.jpg"
+
+            # Skip if thumbnail already exists
+            if thumbnail_file.exists():
+                continue
+
+            thumbnails_to_add.append((source_file, thumbnail_file, mime_type))
+
+        # Generate thumbnail
+        if thumbnails_to_add:
+            for source_file, thumbnail_file, mime_type in thumbnails_to_add:
+                logger.info("Generating thumbnail for: %s", source_file)
+                self.thumbnail_generator.generate_thumbnail(source_file, mime_type, thumbnail_file)
+
+        logger.info("Thumbnail sync complete: %d generated", len(thumbnails_to_add))
+
     async def get_thumbnail(self, request: Request, filepath: str) -> FileResponse:
         """Handle get thumbnail requests - retrieve or generate a thumbnail.
 
         :param Request request: The request object
         :param str filepath: The file path (e.g., 'animals/cat.png')
         :return FileResponse: Server response with thumbnail image
-        :raise HTTPException: If file not found or not an image/video
+        :raise HTTPException: If file not found, not an image/video, or thumbnail generation fails
         """
         logger.info("Received get thumbnail request for: %s", filepath)
 
-        if not self.metadata_manager.file_exists(filepath):
+        if not self.metadata_manager.file_exists(filepath=filepath):
             msg = f"File not found in metadata: {filepath}"
             logger.error(msg)
             raise HTTPException(status_code=ResponseCode.NOT_FOUND, detail=msg)
 
-        file_metadata = self.metadata_manager.get_file_entry(filepath)
-        if not file_metadata or not file_metadata.mime_type:
+        if (
+            not (file_metadata := self.metadata_manager.get_file_entry(filepath=filepath))
+            or not file_metadata.mime_type
+        ):
             msg = f"File metadata not found: {filepath}"
             logger.error(msg)
             raise HTTPException(status_code=ResponseCode.NOT_FOUND, detail=msg)
@@ -223,9 +228,7 @@ class CloudServer(TemplateServer):
             logger.error(msg)
             raise HTTPException(status_code=ResponseCode.BAD_REQUEST, detail=msg)
 
-        thumbnail_path = self.thumbnails_directory / f"{filepath}.jpg"
-
-        if not thumbnail_path.exists():
+        if not (thumbnail_path := self.thumbnails_directory / f"{filepath}.jpg").exists():
             logger.info("Thumbnail not found, generating on demand: %s", filepath)
             source_path = self.storage_directory / filepath
             if not source_path.exists():
@@ -235,7 +238,9 @@ class CloudServer(TemplateServer):
 
             try:
                 thumbnail_path.parent.mkdir(parents=True, exist_ok=True)
-                self.thumbnail_generator.generate_thumbnail(source_path, file_metadata.mime_type, thumbnail_path)
+                self.thumbnail_generator.generate_thumbnail(
+                    file_path=source_path, mime_type=file_metadata.mime_type, output_path=thumbnail_path
+                )
                 logger.info("Generated thumbnail on demand: %s", filepath)
             except Exception as e:
                 msg = f"Failed to generate thumbnail for: {filepath}"
@@ -261,7 +266,6 @@ class CloudServer(TemplateServer):
         logger.info(msg)
         return GetFilesResponse(
             message=msg,
-            timestamp=GetFilesResponse.current_timestamp(),
             files=files,
         )
 
@@ -271,7 +275,7 @@ class CloudServer(TemplateServer):
         :param Request request: The request object
         :param str filepath: The file path to retrieve (e.g., 'animals/cat.png')
         :return FileResponse: Server response
-        :raise HTTPException: If file not found
+        :raise HTTPException: If file not found in metadata or on disk or if access to thumbnails directory is attempted
         """
         logger.info("Received get file request for: %s", filepath)
 
@@ -280,7 +284,7 @@ class CloudServer(TemplateServer):
             logger.error(msg)
             raise HTTPException(status_code=ResponseCode.FORBIDDEN, detail=msg)
 
-        if not self.metadata_manager.file_exists(filepath):
+        if not self.metadata_manager.file_exists(filepath=filepath):
             msg = f"File not found in metadata: {filepath}"
             logger.error(msg)
             raise HTTPException(status_code=ResponseCode.NOT_FOUND, detail=msg)
@@ -290,11 +294,9 @@ class CloudServer(TemplateServer):
             logger.error(msg)
             raise HTTPException(status_code=ResponseCode.NOT_FOUND, detail=msg)
 
-        file_metadata = self.metadata_manager.get_file_entry(filepath)
-
         return FileResponse(
             path=full_path,
-            media_type=file_metadata.mime_type,  # type: ignore[union-attr]
+            media_type=self.metadata_manager.get_file_entry(filepath=filepath).mime_type,  # type: ignore[union-attr]
             filename=full_path.name,
         )
 
@@ -303,6 +305,7 @@ class CloudServer(TemplateServer):
 
         :param Path full_path: The full file path
         :param int file_size: The size of the file in bytes
+        :raise ValueError: If file size exceeds maximum limit
         """
         if file_size > self.config.storage_config.max_file_size_mb * MB_TO_BYTES:
             full_path.unlink(missing_ok=True)
@@ -317,16 +320,16 @@ class CloudServer(TemplateServer):
         :param str filepath: The destination path for the file (e.g., 'animals/cat.png')
         :param UploadFile file: The uploaded file
         :return PostFileResponse: Server response
+        :raise HTTPException: If file already exists, file saving fails, or metadata saving fails
         """
         logger.info("Received post file request for: %s", filepath)
 
-        if self.metadata_manager.file_exists(filepath):
+        if self.metadata_manager.file_exists(filepath=filepath):
             msg = f"File already exists: {filepath}"
             logger.error(msg)
             raise HTTPException(status_code=ResponseCode.CONFLICT, detail=msg)
 
-        mime_type = file.content_type or "application/octet-stream"
-        if mime_type == "application/octet-stream":
+        if (mime_type := file.content_type or "application/octet-stream") == "application/octet-stream":
             guessed_type, _ = mimetypes.guess_type(filepath)
             mime_type = guessed_type or mime_type
 
@@ -338,7 +341,7 @@ class CloudServer(TemplateServer):
             with full_path.open("wb") as f:
                 while chunk := await file.read(self.config.storage_config.upload_chunk_size_kb * 1024):
                     file_size += len(chunk)
-                    self._check_file_too_large(full_path, file_size)
+                    self._check_file_too_large(full_path=full_path, file_size=file_size)
                     f.write(chunk)
         except Exception as e:
             full_path.unlink(missing_ok=True)
@@ -353,7 +356,7 @@ class CloudServer(TemplateServer):
                 size=file_size,
                 tags=[],
             )
-            self.metadata_manager.add_file_entries([file_metadata])
+            self.metadata_manager.add_file_entries(file_metadata_list=[file_metadata])
         except Exception as e:
             full_path.unlink(missing_ok=True)
             msg = f"Failed to save metadata for file: {filepath}"
@@ -364,7 +367,9 @@ class CloudServer(TemplateServer):
             try:
                 thumbnail_path = self.thumbnails_directory / f"{filepath}.jpg"
                 thumbnail_path.parent.mkdir(parents=True, exist_ok=True)
-                self.thumbnail_generator.generate_thumbnail(full_path, mime_type, thumbnail_path)
+                self.thumbnail_generator.generate_thumbnail(
+                    file_path=full_path, mime_type=mime_type, output_path=thumbnail_path
+                )
                 logger.info("Generated thumbnail for uploaded file: %s", filepath)
             except Exception as e:
                 logger.warning("Failed to generate thumbnail for uploaded file %s: %s", filepath, e)
@@ -373,7 +378,6 @@ class CloudServer(TemplateServer):
         logger.info(msg)
         return PostFileResponse(
             message=msg,
-            timestamp=PostFileResponse.current_timestamp(),
             filepath=filepath,
             size=file_size,
         )
@@ -384,17 +388,18 @@ class CloudServer(TemplateServer):
         :param Request request: The request object
         :param str filepath: The file path to update (e.g., 'animals/cat.png')
         :return PatchFileResponse: Server response
+        :raise HTTPException: If file not found, file moving fails, or metadata updating fails
         """
         patch_request = PatchFileRequest.model_validate(await request.json())
         logger.info("Received patch file request for: %s", filepath)
 
-        if not self.metadata_manager.file_exists(filepath):
+        if not self.metadata_manager.file_exists(filepath=filepath):
             msg = f"File not found in metadata: {filepath}"
             logger.error(msg)
             raise HTTPException(status_code=ResponseCode.NOT_FOUND, detail=msg)
 
         # Calculate new tags
-        current_metadata = self.metadata_manager.get_file_entry(filepath)
+        current_metadata = self.metadata_manager.get_file_entry(filepath=filepath)
         new_tags = set(current_metadata.tags).copy()  # type: ignore[union-attr]
 
         for tag in patch_request.add_tags:
@@ -417,7 +422,7 @@ class CloudServer(TemplateServer):
         if patch_request.new_filepath:
             new_filepath = patch_request.new_filepath
 
-            if self.metadata_manager.file_exists(new_filepath):
+            if self.metadata_manager.file_exists(filepath=new_filepath):
                 msg = f"Destination file already exists: {new_filepath}"
                 logger.error(msg)
                 raise HTTPException(status_code=ResponseCode.CONFLICT, detail=msg)
@@ -468,7 +473,6 @@ class CloudServer(TemplateServer):
         logger.info(msg)
         return PatchFileResponse(
             message=msg,
-            timestamp=PatchFileResponse.current_timestamp(),
             filepath=final_filepath,
             tags=list(new_tags),
         )
@@ -479,10 +483,11 @@ class CloudServer(TemplateServer):
         :param Request request: The request object
         :param str filepath: The file path to delete (e.g., 'animals/cat.png')
         :return DeleteFileResponse: Server response
+        :raise HTTPException: If file not found, file deletion fails, or metadata deletion fails
         """
         logger.info("Received delete file request for: %s", filepath)
 
-        if not self.metadata_manager.file_exists(filepath):
+        if not self.metadata_manager.file_exists(filepath=filepath):
             msg = f"File not found in metadata: {filepath}"
             logger.error(msg)
             raise HTTPException(status_code=ResponseCode.NOT_FOUND, detail=msg)
@@ -499,15 +504,14 @@ class CloudServer(TemplateServer):
             raise HTTPException(status_code=ResponseCode.INTERNAL_SERVER_ERROR, detail=msg) from e
 
         try:
-            self.metadata_manager.delete_file_entries([filepath])
+            self.metadata_manager.delete_file_entries(filepaths=[filepath])
         except Exception as e:
             msg = f"Failed to delete metadata for file: {filepath}"
             logger.exception(msg)
             raise HTTPException(status_code=ResponseCode.INTERNAL_SERVER_ERROR, detail=msg) from e
 
-        thumbnail_path = self.thumbnails_directory / f"{filepath}.jpg"
         try:
-            if thumbnail_path.exists():
+            if (thumbnail_path := self.thumbnails_directory / f"{filepath}.jpg").exists():
                 thumbnail_path.unlink()
                 logger.info("Deleted thumbnail for file: %s", filepath)
         except Exception as e:
@@ -517,6 +521,5 @@ class CloudServer(TemplateServer):
         logger.info(msg)
         return DeleteFileResponse(
             message=msg,
-            timestamp=DeleteFileResponse.current_timestamp(),
             filepath=filepath,
         )

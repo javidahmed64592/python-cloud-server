@@ -368,7 +368,7 @@ class CloudServer(TemplateServer):
                 thumbnail_path = self.thumbnails_directory / f"{filepath}.jpg"
                 thumbnail_path.parent.mkdir(parents=True, exist_ok=True)
                 self.thumbnail_generator.generate_thumbnail(
-                    file_path=full_path, mime_type=mime_type, thumbnail_path=thumbnail_path
+                    file_path=full_path, mime_type=mime_type, output_path=thumbnail_path
                 )
                 logger.info("Generated thumbnail for uploaded file: %s", filepath)
             except Exception as e:

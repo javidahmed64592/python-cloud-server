@@ -71,47 +71,53 @@ class CloudServer(TemplateServer):
 
     def setup_routes(self) -> None:
         """Set up API routes."""
-        self.add_authenticated_route(
+        self.add_route(
             endpoint="/files",
             handler_function=self.get_files,
             response_model=GetFilesResponse,
             methods=["POST"],
             limited=True,
+            authentication_required=True,
         )
-        self.add_authenticated_route(
+        self.add_route(
             endpoint="/files/{filepath:path}/thumbnail",
             handler_function=self.get_thumbnail,
             response_model=None,
             methods=["GET"],
             limited=True,
+            authentication_required=True,
         )
-        self.add_authenticated_route(
+        self.add_route(
             endpoint="/files/{filepath:path}",
             handler_function=self.get_file,
             response_model=None,
             methods=["GET"],
             limited=True,
+            authentication_required=True,
         )
-        self.add_authenticated_route(
+        self.add_route(
             endpoint="/files/{filepath:path}",
             handler_function=self.post_file,
             response_model=PostFileResponse,
             methods=["POST"],
             limited=True,
+            authentication_required=True,
         )
-        self.add_authenticated_route(
+        self.add_route(
             endpoint="/files/{filepath:path}",
             handler_function=self.patch_file,
             response_model=PatchFileResponse,
             methods=["PATCH"],
             limited=True,
+            authentication_required=True,
         )
-        self.add_authenticated_route(
+        self.add_route(
             endpoint="/files/{filepath:path}",
             handler_function=self.delete_file,
             response_model=DeleteFileResponse,
             methods=["DELETE"],
             limited=True,
+            authentication_required=True,
         )
 
     def _initialize_storage(self) -> None:

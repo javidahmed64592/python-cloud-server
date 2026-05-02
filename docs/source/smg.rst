@@ -133,7 +133,7 @@ Frontend (Next.js)
    :target: https://reactjs.org/
    :alt: React
 
-.. image:: https://img.shields.io/badge/Node.js-18+-339933?style=flat-square&logo=node.js&logoColor=white
+.. image:: https://img.shields.io/badge/Node.js-25+-339933?style=flat-square&logo=node.js&logoColor=white
    :target: https://nodejs.org/
    :alt: Node.js
 

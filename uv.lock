@@ -1302,7 +1302,7 @@ wheels = [
 [[package]]
 name = "python-template-server"
 version = "0.1.2"
-source = { git = "https://github.com/javidahmed64592/python-template-server.git#604e5845f42848086dcffc6af9eff7323208262d" }
+source = { git = "https://github.com/javidahmed64592/python-template-server.git#9ac9414db370e37006f55987c243dd167a273e88" }
 dependencies = [
     { name = "cryptography" },
     { name = "fastapi" },
@@ -1608,7 +1608,7 @@ wheels = [
 [[package]]
 name = "template-python"
 version = "0.1.0"
-source = { git = "https://github.com/javidahmed64592/template-python.git#7968ce1c95cb52d983d4f8f222c7e97d653e0a0d" }
+source = { git = "https://github.com/javidahmed64592/template-python.git#f64f7b59b5f406610bcfe3174b184ce886ac0694" }
 dependencies = [
     { name = "pydantic" },
     { name = "pyhere" },
